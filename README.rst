@@ -18,8 +18,7 @@ History
 
 The repos and their purpose from first iteration of Expfactory
 
--  `expfactory-experiments <https://github.com/expfactory/experiments>`_: Held
-  large nunmber of jspsych experiments currated by Poldrack Lab
+-  `expfactory-experiments <https://github.com/expfactory/experiments>`_: Holds large nunmber of jspsych experiments currated by Poldrack Lab.
 - `expfactory-python <https://github.com/expfactory/expfactory-python>`_:
   Python module/cli that would take experiments and compose them into
   batteries. Could serve batteries locally via a flask application.
