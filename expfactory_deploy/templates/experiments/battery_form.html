@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+    {% if object.pk %}
+        <h2> Update Battery </h2>
+    {% else %}
+        <h2>Create Battery</h2>
+    {% endif %}
+    {% crispy form %}
+    <h3>Experiments</h3>
+    <table id="experiment-repo-table">
+      <thead>
+        <tr>
+          <th> </th>
+          <th>Name</th>
+          <th>Origin</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp_repo in experiment_repo_list %}
+        <tr>
+          <td>
+            <input type="checkbox" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox">
+          </td>
+          <td>{{ exp_repo.name }}</td>
+          <td>{{ exp_repo.origin }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+{% endblock %}
+
+
+{% block inline_javascript %}
+{{ block.super }}
+
+  /* When we select an experiment from the table, update the select input used
+     by django.
+   */
+  function selectFromCheckbox(event) {
+    const value = event.target.value
+    const checked = event.target.checked
+    document.querySelectorAll("{{ exp_repo_select_id }} option").forEach(opt => {
+      if (opt.value === value) {
+        opt.selected = checked
+      }
+    })
+  }
+
+  /* To run on initial load, assumes that we are using experiment's database
+     IDs as the value for options and as the checkbox id attribute
+   */
+  function checkBoxesFromSelect() {
+    document.querySelectorAll("{{ exp_repo_select_id }} option").forEach(opt => {
+      const cb = document.getElementById(opt.value)
+      cb.checked = opt.selected
+    })
+  }
+  const exp_repo_checkboxes = document.querySelector(".exp_repo_checkbox")
+  exp_repo_inputs.map(x => x.addEventListener("change", selectFromCheckBox))
+
+{% endblock %}

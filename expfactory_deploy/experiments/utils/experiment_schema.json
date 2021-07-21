@@ -1,0 +1,49 @@
+{
+  "title": "expfactory config",
+  "description": "configuration files for expfactory experiment",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+          "name": { "type": "string" },
+          "exp_id": { "type": "string" },
+          "cognitive_atlas_task_id": { "type": "string" },
+          "template": { "type": "string" },
+          "run": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+            "contributors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "time": { "type": "number" },
+          "reference": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" }}
+            ]
+          },
+          "notes": { "type": "string" },
+          "publish": { "type": "string", "enum": ["True", "False"] },
+          "experiment_variables": {
+            "anyOf": [
+              { "type": "object" },
+              { "type": "string" },
+              {"type": "array", "items": { "type": "object" } }
+            ]
+          },
+          "deployment_variables": {
+            "anyOf": [
+              { "type": "object" },
+              { "type": "string" },
+              {"type": "array", "items": { "type": "object" } }
+            ]
+          }
+     }
+  }
+}

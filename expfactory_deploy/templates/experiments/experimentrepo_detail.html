@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{# we may want to see all deployments of this experiment #}
+<ul>
+{% for exp in object.experimentinstance_set.all %}
+  <li>
+    {{ exp.commit }} - {{ exp.commit_date }}
+    <br/>
+    {{ exp.note }}
+    <br/>
+    <ul>
+      {% for deployment in exp.batterydeployment_set.all %}
+        <li>
+          <a href="{% url 'battery-deployment-detail' deployment.id %}> {{ deployment.name }} - {{ deployment.status }} </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </li>
+{% endfor %}
+</ul>
+
+{% endblock %}

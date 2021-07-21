@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Experiment Repos</h2>
+    <ul>
+        {% for repo in object_list %}
+            <li>
+              <a href="{% url 'experiments:experiment-repo-detail' repo.id %}">{{ repo.name }}</a> - {{ repo.origin.origin }} - {{ repo.location }}
+            </li>
+        {% empty %}
+          <li> No Experiments </li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'experiments:experiment-repo-list' %}">Update Experiments</a>
+{% endblock %}

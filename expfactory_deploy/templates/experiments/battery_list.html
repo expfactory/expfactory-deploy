@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Batteries</h2>
+    <ul>
+        {% for battery in object_list %}
+            <li>
+              <a href="{% url 'battery-update'  battery.id %}">{{ battery.name }}</a> - <a href="{% url 'battery-deployment-create' battery.id %}">Deploy</a>
+            </li>
+        {% empty %}
+          <li> No Batteries</li>
+        {% endfor %}
+    </ul>
+    <a href="{% 'battery-create' %}">Create Battery</a>
+{% endblock %}

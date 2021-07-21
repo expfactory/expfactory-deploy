@@ -275,3 +275,5 @@ expfactory_deploy/media/
 .ipython/
 .env
 .envs/*
+
+js_experiments/

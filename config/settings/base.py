@@ -79,6 +79,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "expfactory_deploy.users.apps.UsersConfig",
     # Your stuff: custom apps go here
+    "expfactory_deploy.experiments.apps.ExperimentsConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -312,3 +313,4 @@ CORS_URLS_REGEX = r"^/api/.*$"
 # Your stuff...
 # ------------------------------------------------------------------------------
 ADD_REVERSION_ADMIN = True
+DEFAULT_EXPERIMENT_DIR = str(ROOT_DIR / "js_experiments")

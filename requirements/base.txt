@@ -10,6 +10,8 @@ django-celery-beat==2.2.0  # https://github.com/celery/django-celery-beat
 flower==0.9.7  # https://github.com/mher/flower
 uvicorn[standard]==0.13.4  # https://github.com/encode/uvicorn
 boto3==1.17.22
+GitPython==3.1.18
+jsonschema
 
 
 # Django
@@ -21,9 +23,9 @@ django-allauth==0.44.0  # https://github.com/pennersr/django-allauth
 django-crispy-forms==1.11.1  # https://github.com/django-crispy-forms/django-crispy-forms
 django-compressor==2.4  # https://github.com/django-compressor/django-compressor
 django-redis==4.12.1  # https://github.com/jazzband/django-redis
-django-guardian=2.3.0
-django-reversion=3.0.9
-django-reversion-compare=0.14.0
+django-guardian==2.3.0
+django-reversion==3.0.9
+django-reversion-compare==0.14.0
 # Django REST Framework
 djangorestframework==3.12.2  # https://github.com/encode/django-rest-framework
 django-cors-headers==3.7.0 # https://github.com/adamchainz/django-cors-headers
