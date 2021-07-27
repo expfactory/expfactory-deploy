@@ -9,31 +9,115 @@
     {% endif %}
     {% crispy form %}
     <h3>Experiments</h3>
-    <table id="experiment-repo-table">
-      <thead>
-        <tr>
-          <th> </th>
-          <th>Name</th>
-          <th>Origin</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for exp_repo in experiment_repo_list %}
-        <tr>
-          <td>
-            <input type="checkbox" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox">
-          </td>
-          <td>{{ exp_repo.name }}</td>
-          <td>{{ exp_repo.origin }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <nav>
+      <div class="nav nav-tabs" id="nav-tab" role="tablist">
+        <a class="nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab" aria-controls="nav-home" aria-selected="true">Home</a>
+        <a class="nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-profile" role="tab" aria-controls="nav-profile" aria-selected="false">Profile</a>
+      </div>
+    </nav>
+    <div class="tab-content" id="nav-tabContent">
+      <div class="tab-pane active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
+        <table id="experiment-repo-table">
+          <thead>
+            <tr>
+              <th> </th>
+              <th>Name</th>
+              <th>Origin</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for exp_repo in experiment_repo_list %}
+            <tr>
+              <td>
+                <input type="checkbox" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox">
+              </td>
+              <td>{{ exp_repo.name }}</td>
+              <td>{{ exp_repo.origin }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+    <div class="tab-pane" id="nav-profile">
+      <form id="experiment_instance_table" method="post" action="">
+        <table id="exp_instance_table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Note</th>
+              <th>Commit</th>
+              <th>Origin</th>
+            </tr>
+          </thead>
+          <tbody id="exp_instance_tbody">
+          {% for form in exp_instance_formset.forms %}
+            <tr>
+              <td></td>
+              <td> {{ form.note }} </td>
+              <td> {{ form.commit }} </td>
+              <td> {{ form.experiment_repo_id }} </td>
+            </tr>
+          {% endfor %}
+            <tr><td>wat</td><td>wat</td><td>wat</td></tr>
+          </tbody>
+        </table>
+        {{ exp_instance_formset.management_form }}
+      </form>
+    </div>
+  </div>
 {% endblock %}
 
 
 {% block inline_javascript %}
 {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script>
+  function updateOrder() {
+    const rows = document.querySelectorAll('#exp_instance_tbody tr');
+    rows.forEach((row) => {
+      row.setAttribute("data-id", row.rowIndex)
+      row.children[0].innerText = row.rowIndex
+    })
+  }
+
+  Sortable.create(exp_instance_tbody,{
+    onUpdate: function(evt) {
+      updateOrder()      
+    }
+  })
+  const form_count_id = "id_form-TOTAL_FORMS"
+  const form_table_id = "exp_instance_table"
+  const note_template = `{{ exp_instance_formset.empty_form.note }}`
+  const commit_template = `{{ exp_instance_formset.empty_form.commit }}`
+  const origin_template = `{{ exp_instance_formset.empty_form.experiment_repo_id }}`
+  const empty_prefix = '__prefix__'
+
+  
+  function increment_form_count() {
+    const elem = document.getElementById(form_count_id)
+    elem.value++
+    return elem.value
+  }
+
+  function decrement_form_count() {
+    const elem = document.getElementById(form_count_id)
+    if (elem.value === 0) {
+      return 0
+    }
+    elem.value--
+    return elem.value
+  }
+
+  function add_row() {
+    const prefix = increment_form_count()
+    row = document.getElementById(form_table_id).insertRow()
+    row.setAttribute("data-id", row.rowIndex)
+    row.insertCell().innerText = row.rowIndex
+    row.insertCell().innerHTML = note_template.replaceAll(empty_prefix, prefix)
+    row.insertCell().innerHTML = commit_template.replaceAll(empty_prefix, prefix)
+    row.insertCell().innerHTML = origin_template.replaceAll(empty_prefix, prefix)
+    return row
+  }
 
   /* When we select an experiment from the table, update the select input used
      by django.
@@ -41,11 +125,14 @@
   function selectFromCheckbox(event) {
     const value = event.target.value
     const checked = event.target.checked
-    document.querySelectorAll("{{ exp_repo_select_id }} option").forEach(opt => {
-      if (opt.value === value) {
-        opt.selected = checked
-      }
-    })
+    if (checked) {
+      const row = add_row()
+      row.querySelectorAll("option").forEach(opt => {
+        if (opt.value === value) {
+          opt.selected = checked
+        }
+      })
+    }
   }
 
   /* To run on initial load, assumes that we are using experiment's database
@@ -57,7 +144,8 @@
       cb.checked = opt.selected
     })
   }
-  const exp_repo_checkboxes = document.querySelector(".exp_repo_checkbox")
-  exp_repo_inputs.map(x => x.addEventListener("change", selectFromCheckBox))
+  const exp_repo_checkboxes = document.querySelectorAll(".exp_repo_checkbox")
+  exp_repo_checkboxes.forEach(x => x.addEventListener("change", selectFromCheckbox))
+  </script>
 
 {% endblock %}

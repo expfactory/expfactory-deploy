@@ -1,31 +1,28 @@
+from django import forms
 from django.forms import ModelForm
-
 from experiments import models as models
 
-'''
-class BatteryDeploymentForm(ModelForm):
+class BatteryForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        # we could pass user/request to limit experiments retrieved
+        super(BatteryForm, self).__init__(*args, **kwargs)
+        '''
+        experiment_choices = [(x.id, x.name) for x in models.ExperimentRepo.objects.all()]
+        self.fields['experiments'] = forms.MultipleChoiceField(
+            initial=[],
+            widget=forms.CheckboxSelectMultiple,
+            choices=experiment_choices
+        )
+        '''
+
     class Meta:
-        model = models.BatteryDeployment
+        model = models.Battery
         fields = [
-            "name", "battery_id", "consent",
-            "insturctions", "advertisement"
+            "name", "consent", "insturctions", "advertisement"
         ]
 
-    # For now we will just default to the latest commits from experiments
-    #    used by the parent battery if its ID happens to be set in URL
-    def save(self, commit=True):
-        battery_deployment = self.super().save(commit=False)
-        battery_id = self.kwargs.get('battery_id')
-        battery = Battery.objects.get(pk=battery_id)
-        if parent_battery:
-            battery_deployment.battery_id = parent_battery.id
-            for experiment in parent_battery.experiments.all():
-                exp_instance, created = ExperimentInstance.get_or_create(
-                    experiment_repo_id=experiment.id,
-                    commit="latest"
-                )
-                battery_deployment.experiment_instances.add(exp_instance)
-        if commit:
-            battery_deployment.save()
-        return battery_deployment
-'''
+
+class ExperimentInstanceForm(ModelForm):
+    class Meta:
+        model = models.ExperimentInstance
+        fields = ["note", "commit", "experiment_repo_id"]

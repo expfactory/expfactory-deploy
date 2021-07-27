@@ -6,24 +6,28 @@ from model_utils import Choices
 from model_utils.fields import MonitorField
 from model_utils.models import StatusModel, TimeStampedModel
 
+
 class RepoOrigin(models.Model):
-    origin = models.URLField(unique = True)
+    origin = models.URLField(unique=True)
     path = models.TextField()
+
 
 @reversion.register()
 class ExperimentRepo(models.Model):
     """ Location of a repository that contains an experiment """
+
     name = models.TextField()
     origin = models.ForeignKey(RepoOrigin, null=True, on_delete=models.SET_NULL)
     location = models.TextField()
 
     def get_absolute_url(self):
-        return reverse('experiment-repo-detail', kwargs={'pk': self.pk})
+        return reverse("experiment-repo-detail", kwargs={"pk": self.pk})
 
 
 @reversion.register()
 class ExperimentInstance(models.Model):
     """ A specific point in time of an experiment. """
+
     note = models.TextField(blank=True)
     commit = models.TextField(blank=True)
     commit_date = models.DateField(blank=True)
@@ -32,15 +36,20 @@ class ExperimentInstance(models.Model):
 
 @reversion.register()
 class Battery(TimeStampedModel, StatusModel):
-    """ when a battery is "created" its a template.
-        When cloned for it becomes a draft for deployment
-        When published no further changes are allowed.
-        Finally inactive prevents subjects from using it.
+    """when a battery is "created" its a template.
+    When cloned for it becomes a draft for deployment
+    When published no further changes are allowed.
+    Finally inactive prevents subjects from using it.
     """
+
     STATUS = Choices("template", "draft", "published", "inactive")
     name = models.TextField()
-    template_id = models.ForeignKey("Battery", on_delete=models.CASCADE, blank=True, null=True)
-    experiment_instances = models.ManyToManyField(ExperimentInstance, through='BatteryExperiments')
+    template_id = models.ForeignKey(
+        "Battery", on_delete=models.CASCADE, blank=True, null=True
+    )
+    experiment_instances = models.ManyToManyField(
+        ExperimentInstance, through="BatteryExperiments"
+    )
     consent = models.TextField(blank=True)
     insturctions = models.TextField(blank=True)
     advertisement = models.TextField(blank=True)
@@ -48,7 +57,10 @@ class Battery(TimeStampedModel, StatusModel):
 
 class BatteryExperiments(models.Model):
     """ Associate specific experiments with a deployment of a battery """
-    experiment_instance = models.ForeignKey(ExperimentInstance, on_delete=models.CASCADE)
+
+    experiment_instance = models.ForeignKey(
+        ExperimentInstance, on_delete=models.CASCADE
+    )
     battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
     order = models.IntegerField(
         help_text="""
@@ -71,16 +83,21 @@ class Subject(models.Model):
     mturk_id = models.TextField(blank=True)
     notes = models.TextField(blank=True)
 
+
 class Assignment(models.Model):
     """ Associate a subject with a battery deployment that they should complete """
+
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
 
 
 class Result(TimeStampedModel):
     """ Results from a particular experiment returned by subjects """
+
     battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
-    experiment_instance = models.ForeignKey(ExperimentInstance, on_delete=models.CASCADE)
+    experiment_instance = models.ForeignKey(
+        ExperimentInstance, on_delete=models.CASCADE
+    )
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     data = models.TextField(blank=True)
     completed = models.BooleanField(default=False)
