@@ -27,12 +27,18 @@ urlpatterns = [
     path("battery/", views.BatteryList.as_view(), name="battery-list"),
     path("battery/<int:pk>/", views.BatteryDetail.as_view(), name="battery-detail"),
     path("battery/create/", views.BatteryCreate.as_view(), name="battery-create"),
-    path("battery/create/complex/", views.BatteryComplex.as_view(), name="battery-create-complex"),
+    path(
+        "battery/create/complex/",
+        views.BatteryComplex.as_view(),
+        name="battery-create-complex",
+    ),
     path(
         "battery/create/template", views.BatteryCreate.as_view(), name="battery-create"
     ),
     path(
-        "battery/<int:pk>/update/", views.BatteryComplex.as_view(), name="battery-update"
+        "battery/<int:pk>/update/",
+        views.BatteryComplex.as_view(),
+        name="battery-update",
     ),
     path(
         "battery/<int:battery_id>/deploy/",

@@ -53,7 +53,7 @@
           <tbody id="exp_instance_tbody">
           {% for form in exp_instance_formset.forms %}
             <tr>
-              <td></td>
+              <td> {{ form.ORDER }} </td>
               <td> {{ form.note }} </td>
               <td> {{ form.commit }} </td>
               <td> {{ form.experiment_repo_id }} </td>
@@ -75,8 +75,9 @@
   function updateOrder() {
     const rows = document.querySelectorAll('#exp_instance_tbody tr');
     rows.forEach((row) => {
-      row.setAttribute("data-id", row.rowIndex)
-      row.children[0].innerText = row.rowIndex
+      row.setAttribute("data-id", row.rowIndex - 1)
+      row.children[0].querySelector('input').value = row.rowIndex - 1
+      // row.children[0].innerText = row.rowIndex
     })
   }
 
@@ -86,7 +87,8 @@
     }
   })
   const form_count_id = "id_form-TOTAL_FORMS"
-  const form_table_id = "exp_instance_table"
+  const form_table_id = "exp_instance_tbody"
+  const order_template = `{{ exp_instance_formset.empty_form.ORDER }}`
   const note_template = `{{ exp_instance_formset.empty_form.note }}`
   const commit_template = `{{ exp_instance_formset.empty_form.commit }}`
   const origin_template = `{{ exp_instance_formset.empty_form.experiment_repo_id }}`
@@ -109,10 +111,10 @@
   }
 
   function add_row() {
-    const prefix = increment_form_count()
+    const prefix = increment_form_count() - 1
     row = document.getElementById(form_table_id).insertRow()
-    row.setAttribute("data-id", row.rowIndex)
-    row.insertCell().innerText = row.rowIndex
+    row.setAttribute("data-id", row.rowIndex - 1)
+    row.insertCell().innerHTML = order_template.replaceAll(empty_prefix, prefix)
     row.insertCell().innerHTML = note_template.replaceAll(empty_prefix, prefix)
     row.insertCell().innerHTML = commit_template.replaceAll(empty_prefix, prefix)
     row.insertCell().innerHTML = origin_template.replaceAll(empty_prefix, prefix)
@@ -132,6 +134,7 @@
           opt.selected = checked
         }
       })
+    updateOrder()
     }
   }
 

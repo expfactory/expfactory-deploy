@@ -1,10 +1,10 @@
-from django.shortcuts import get_object_or_404
-from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.forms import formset_factory
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import TemplateView, DetailView, ListView
+from django.views.generic import DetailView, ListView, TemplateView
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from experiments import forms as forms
 from experiments import models as models
@@ -91,30 +91,46 @@ class BatteryCreate(CreateView):
                 if battery.get(field):
                     initial[field] = battery[field]
 
+
 class BatteryComplex(TemplateView):
-    template_name = 'experiments/battery_form.html'
+    template_name = "experiments/battery_form.html"
+    battery = None
+    battery_kwargs = {}
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        battery_id = self.kwargs.get('pk')
-        print(battery_id)
-        battery=None
+        battery_id = self.kwargs.get("pk")
+        battery = None
         ordering = None
         initial = None
-        if battery_id is not None:
-            battery = get_object_or_404(models.Battery, pk=battery_id)
-            ordering = battery.batteryexperiments_set.all().prefetch_related('experiment_instance')
+        if self.battery:
+            ordering = (
+                self.battery.batteryexperiments_set.all()
+                .order_by("order")
+                .prefetch_related("experiment_instance")
+            )
             initial = [{order: x.order, **x.experiment_instance} for x in ordering]
-    
-        context['form'] = forms.BatteryForm(instance=battery)
+
+        context["form"] = forms.BatteryForm(**self.battery_kwargs)
 
         add_experiment_repos(context)
-        context["exp_instance_formset"] = forms.ExpInstanceFormset(initial=initial)
+        # context["exp_instance_formset"] = forms.ExpInstanceFormset(queryset=models.ExperimentInstance.objects.none())
+        context["exp_instance_formset"] = forms.ExpInstanceFormset()
         return context
 
+    def get_object(self):
+        battery_id = self.kwargs.get("battery_id")
+        if battery_id is not None:
+            battery = get_object_or_404(models.Battery, pk=battery_id)
+            self.battery = battery
+            self.battery_kwargs = {instance: battery}
+
     """Render a form on GET and processes it on POST."""
+
     def get(self, request, *args, **kwargs):
         """Handle GET requests: instantiate a blank version of the form."""
+        self.get_object()
         return self.render_to_response(self.get_context_data())
 
     def post(self, request, *args, **kwargs):
@@ -122,17 +138,24 @@ class BatteryComplex(TemplateView):
         Handle POST requests: instantiate a form instance with the passed
         POST variables and then check if it's valid.
         """
-        exp_instance_formset = forms.ExpInstanceFormset(self.request.POST)
-        form = forms.BatteryForm(self.request.POST)
+        self.get_object()
+        form = forms.BatteryForm(self.request.POST, **self.battery_kwargs)
         battery = form.save()
-        print("FORMSET IS VALID")
-        print(exp_instance_formset.is_valid())
+
+        exp_instance_formset = forms.ExpInstanceFormset(self.request.POST)
+        # exp_instances = exp_instance_formset.save(commit=False)
+        valid = exp_instance_formset.is_valid()
+        if valid:
+            for order, form in enumerate(exp_instance_formset.ordered_forms):
+                exp_inst = form.save()
+                models.BatteryExperiments.objects.create(
+                    battery=battery, experiment_instance=exp_inst, order=order
+                )
         if form.is_valid():
             return HttpResponseRedirect("/battery/")
         else:
-            return HttpResponseRedirect(reverse_lazy('battery-list'))
+            return HttpResponseRedirect(reverse_lazy("battery-list"))
 
-            
 
 class BatteryUpdate(UpdateView):
     model = models.Battery
