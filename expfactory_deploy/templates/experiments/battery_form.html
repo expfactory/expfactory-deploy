@@ -7,6 +7,8 @@
     {% else %}
         <h2>Create Battery</h2>
     {% endif %}
+    <form id="experiment_instance_table" method="post" action="">
+    <input class="btn btn-primary" type="submit" name="action" value="submit"/>
     {% crispy form %}
     <h3>Experiments</h3>
     <nav>
@@ -39,7 +41,6 @@
         </table>
     </div>
     <div class="tab-pane" id="nav-profile">
-      <form id="experiment_instance_table" method="post" action="">
         <table id="exp_instance_table">
           <thead>
             <tr>
@@ -58,12 +59,11 @@
               <td> {{ form.experiment_repo_id }} </td>
             </tr>
           {% endfor %}
-            <tr><td>wat</td><td>wat</td><td>wat</td></tr>
           </tbody>
         </table>
         {{ exp_instance_formset.management_form }}
-      </form>
     </div>
+    </form>
   </div>
 {% endblock %}
 
@@ -82,7 +82,7 @@
 
   Sortable.create(exp_instance_tbody,{
     onUpdate: function(evt) {
-      updateOrder()      
+      updateOrder()
     }
   })
   const form_count_id = "id_form-TOTAL_FORMS"
@@ -92,7 +92,7 @@
   const origin_template = `{{ exp_instance_formset.empty_form.experiment_repo_id }}`
   const empty_prefix = '__prefix__'
 
-  
+
   function increment_form_count() {
     const elem = document.getElementById(form_count_id)
     elem.value++

@@ -75,6 +75,7 @@ class BatteryExperiments(models.Model):
 @reversion.register()
 class ExperimentFramework(models.Model):
     """ Framework used by experiments. """
+
     pass
 
 

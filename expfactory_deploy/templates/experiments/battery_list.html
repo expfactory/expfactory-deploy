@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h2>Batteries</h2>
+    <h2>Batteries wat</h2>
     <ul>
         {% for battery in object_list %}
             <li>
-              <a href="{% url 'battery-update'  battery.id %}">{{ battery.name }}</a> - <a href="{% url 'battery-deployment-create' battery.id %}">Deploy</a>
+              <a href="{% url 'experiments:battery-update'  battery.id %}">{{ battery.name }}</a> - <a href=""> Deploy</a>
             </li>
         {% empty %}
           <li> No Batteries</li>
         {% endfor %}
     </ul>
-    <a href="{% 'battery-create' %}">Create Battery</a>
+    <a href="{% url 'experiments:battery-create-complex' %}"> create </a>
 {% endblock %}
