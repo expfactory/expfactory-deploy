@@ -38,6 +38,21 @@ class ExperimentInstanceOrderForm(ExperimentInstanceForm):
         self.helper = FormHelper(self)
         self.helper.form_tag = False
 
+    def clean(self):
+        commit = self.cleaned_data["commit"]
+        exp_instance = self.cleaned_data["experiment_repo_id"]
+        if commit == "latest":
+            commit = exp_instance.get_latest_commit()
+
+        # should we return gitpython error message here?
+        if not exp_instance.origin.is_valid_commit(commit):
+            raise forms.ValidationError(
+                f"Commit '{commit}' is invalid for {exp_instance.origin}"
+            )
+
+        self.cleaned_data["commit"] = commit
+        return self.cleaned_data
+
 
 ExpInstanceFormset = modelformset_factory(
     models.ExperimentInstance,

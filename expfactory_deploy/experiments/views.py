@@ -78,13 +78,9 @@ class BatteryComplex(TemplateView):
         ordering = models.ExperimentInstance.objects.none()
         initial = None
         if self.battery:
-            ordering = (
-                self.battery.batteryexperiments_set.all()
-                .order_by("order")
-                .prefetch_related("experiment_instance")
-            )
-            initial = [{order: x.order, **x.experiment_instance} for x in ordering]
-
+            ordering = models.ExperimentInstance.objects.filter(
+                batteryexperiments__battery=self.battery
+            ).order_by("batteryexperiments__order")
         context["form"] = forms.BatteryForm(**self.battery_kwargs)
 
         add_experiment_repos(context)
@@ -92,11 +88,11 @@ class BatteryComplex(TemplateView):
         return context
 
     def get_object(self):
-        battery_id = self.kwargs.get("battery_id")
+        battery_id = self.kwargs.get("pk")
         if battery_id is not None:
             battery = get_object_or_404(models.Battery, pk=battery_id)
             self.battery = battery
-            self.battery_kwargs = {instance: battery}
+            self.battery_kwargs = {"instance": battery}
 
     """Render a form on GET and processes it on POST."""
 
@@ -115,14 +111,18 @@ class BatteryComplex(TemplateView):
         battery = form.save()
 
         exp_instance_formset = forms.ExpInstanceFormset(self.request.POST)
-        # exp_instances = exp_instance_formset.save(commit=False)
         valid = exp_instance_formset.is_valid()
         if valid:
             for order, form in enumerate(exp_instance_formset.ordered_forms):
+                print(form.cleaned_data)
                 exp_inst = form.save()
-                models.BatteryExperiments.objects.create(
+                mtm = models.BatteryExperiments.objects.create(
                     battery=battery, experiment_instance=exp_inst, order=order
                 )
+                print("mtm")
+                print(mtm)
+        else:
+            print(exp_instance_formset.errors)
         if form.is_valid():
             return HttpResponseRedirect("/battery/")
         else:

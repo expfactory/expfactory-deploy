@@ -5,7 +5,7 @@ import pathlib
 import git
 import jsonschema
 from django.conf import settings
-from experiments.models import ExperimentRepo, RepoOrigin
+from git.exc import GitError
 
 """
 Given a repo, crawl its subdirectories and return paths to directories with valid config.json
@@ -35,6 +35,8 @@ Process experiments found by find_valid_dirs, make new ExperimentRepoObjects if 
 
 
 def find_new_experiments(search_dir=settings.DEFAULT_EXPERIMENT_DIR):
+    from experiments.models import ExperimentRepo, RepoOrigin
+
     print(f"searching {search_dir}")
     valid_dirs = find_valid_dirs(search_dir)
     created_repos = []
@@ -62,4 +64,14 @@ def find_new_experiments(search_dir=settings.DEFAULT_EXPERIMENT_DIR):
 
 
 def get_latest_commit(repo_location):
-    return "latest"
+    repo = git.Repo(repo_location)
+    return repo.head.commit.hexsha
+
+
+def is_valid_commit(repo_location, commit):
+    try:
+        repo = git.Repo(repo_location)
+        repo.commit(commit)
+        return True
+    except GitError:
+        return False

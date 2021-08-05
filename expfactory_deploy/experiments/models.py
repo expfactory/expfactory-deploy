@@ -6,18 +6,28 @@ from model_utils import Choices
 from model_utils.fields import MonitorField
 from model_utils.models import StatusModel, TimeStampedModel
 
+from .utils import repo as repo
+
 
 class RepoOrigin(models.Model):
+    """ Location of a repository that contains an experiment """
+
     origin = models.URLField(unique=True)
     path = models.TextField()
 
     def __str__(self):
         return self.origin
 
+    def get_latest_commit(self):
+        return repo.get_latest_commit(self.path)
+
+    def is_valid_commit(self, commit):
+        return repo.is_valid_commit(self.path, commit)
+
 
 @reversion.register()
 class ExperimentRepo(models.Model):
-    """ Location of a repository that contains an experiment """
+    """ Location of an experiment and the repository it belongs to """
 
     name = models.TextField()
     origin = models.ForeignKey(RepoOrigin, null=True, on_delete=models.SET_NULL)
@@ -25,6 +35,12 @@ class ExperimentRepo(models.Model):
 
     def get_absolute_url(self):
         return reverse("experiment-repo-detail", kwargs={"pk": self.pk})
+
+    """ We may want to just look at latest commit for files in its directory(location)
+        instead of getting entire repos latest commit """
+
+    def get_latest_commit(self):
+        return self.origin.get_latest_commit()
 
     def __str__(self):
         return self.name
@@ -39,8 +55,11 @@ class ExperimentInstance(models.Model):
     commit_date = models.DateField(blank=True, null=True)
     experiment_repo_id = models.ForeignKey(ExperimentRepo, on_delete=models.CASCADE)
 
+    def is_valid_commit(self):
+        return self.experiment_repo_id.origin.is_valid_commit(self.commit)
+
     def __str__(self):
-        return f"{self.experiment_repo_id_name}:{self.commit}"
+        return f"{self.commit}"
 
 
 @reversion.register()
