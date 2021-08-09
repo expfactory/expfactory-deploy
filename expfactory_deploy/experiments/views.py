@@ -94,33 +94,31 @@ class BatteryComplex(TemplateView):
             self.battery = battery
             self.battery_kwargs = {"instance": battery}
 
-    """Render a form on GET and processes it on POST."""
-
     def get(self, request, *args, **kwargs):
-        """Handle GET requests: instantiate a blank version of the form."""
         self.get_object()
         return self.render_to_response(self.get_context_data())
 
     def post(self, request, *args, **kwargs):
-        """
-        Handle POST requests: instantiate a form instance with the passed
-        POST variables and then check if it's valid.
-        """
         self.get_object()
         form = forms.BatteryForm(self.request.POST, **self.battery_kwargs)
         battery = form.save()
 
-        exp_instance_formset = forms.ExpInstanceFormset(self.request.POST)
+        ordering = models.ExperimentInstance.objects.filter(
+            batteryexperiments__battery=self.battery
+        ).order_by("batteryexperiments__order")
+
+        exp_instance_formset = forms.ExpInstanceFormset(
+            self.request.POST, queryset=ordering
+        )
+
         valid = exp_instance_formset.is_valid()
         if valid:
             for order, form in enumerate(exp_instance_formset.ordered_forms):
                 print(form.cleaned_data)
                 exp_inst = form.save()
-                mtm = models.BatteryExperiments.objects.create(
+                models.BatteryExperiments.objects.get_or_create(
                     battery=battery, experiment_instance=exp_inst, order=order
                 )
-                print("mtm")
-                print(mtm)
         else:
             print(exp_instance_formset.errors)
         if form.is_valid():

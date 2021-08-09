@@ -12,7 +12,7 @@ class BatteryForm(ModelForm):
 
     class Meta:
         model = models.Battery
-        fields = ["name", "consent", "instructions", "advertisement"]
+        fields = ["name", "consent", "instructions", "advertisement", "status"]
         widgets = {
             "name": forms.TextInput(),
             "consent": forms.Textarea(attrs={"cols": 80, "rows": 2}),
@@ -27,7 +27,7 @@ class ExperimentInstanceForm(ModelForm):
         fields = ["note", "commit", "experiment_repo_id"]
         widgets = {
             "commit": forms.TextInput(),
-            "note": forms.Textarea(attrs={"cols": 80, "rows": 2}),
+            "note": forms.Textarea(attrs={"cols": 40, "rows": 4}),
         }
 
 
