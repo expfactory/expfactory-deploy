@@ -1,12 +1,32 @@
 # from model_utils.fields import StatusField
+import uuid
+
 import reversion
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 from model_utils import Choices
 from model_utils.fields import MonitorField
 from model_utils.models import StatusModel, TimeStampedModel
 
 from .utils import repo as repo
+
+
+class SubjectTaskStatusModel(StatusModel):
+    """Abstract class that tracks the various states a subject might
+    be in relation to either an experiment or a battery"""
+
+    STATUS = Choices("not-started", "started", "completed", "failed")
+    started_at = MonitorField(monitor="status", when=["started"])
+    completed_at = MonitorField(monitor="status", when=["completed"])
+    failed_at = MonitorField(monitor="status", when=["failed"])
+
+    @property
+    def completed(self):
+        return self.status == self.STATUS.completed
+
+    class Meta:
+        abstract = True
 
 
 class RepoOrigin(models.Model):
@@ -63,7 +83,7 @@ class ExperimentInstance(models.Model):
 
 
 @reversion.register()
-class Battery(TimeStampedModel, StatusModel):
+class Battery(TimeStampedModel):
     """when a battery is "created" its a template.
     When cloned for it becomes a draft for deployment
     When published no further changes are allowed.
@@ -81,6 +101,7 @@ class Battery(TimeStampedModel, StatusModel):
     consent = models.TextField(blank=True)
     instructions = models.TextField(blank=True)
     advertisement = models.TextField(blank=True)
+    random_order = models.BooleanField(default="True")
 
     def __str__(self):
         return self.name
@@ -100,32 +121,64 @@ class BatteryExperiments(models.Model):
 
 
 @reversion.register()
-class ExperimentFramework(models.Model):
+class Framework(models.Model):
     """ Framework used by experiments. """
 
-    pass
+    name = models.TextField(unique=True)
+    template = models.TextField()
+
+
+class FrameworkResource(models.Model):
+    name = models.TextField(unique=True)
+    path = models.TextField()
 
 
 class Subject(models.Model):
     email = models.TextField(blank=True)
     mturk_id = models.TextField(blank=True)
     notes = models.TextField(blank=True)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True)
 
 
-class Assignment(models.Model):
+class Assignment(SubjectTaskStatusModel):
     """ Associate a subject with a battery deployment that they should complete """
 
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
+    consent_accepted = models.BooleanField(null=True)
+
+    def get_next_experiment(self):
+        order = "?" if self.battery.random_order else "order"
+        experiments = (
+            BatteryExperiments.objects.filter(battery=self.battery)
+            .values("experiment_instance")
+            .order_by(order)
+        )
+        exempt = list(
+            Results.objects.filter(
+                Q(status=Results.STATUS.completed) | Q(status=Results.STATUS.failed),
+                subject=self.subject,
+            )
+        )
+        unfinished = [exp for exp in experiments if exp not in exempt]
+        if len(unfinished):
+            return unfinished[0]
+        else:
+            return None
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                name="unique_assignment", fields=["subject", "battery"]
+            )
+        ]
 
 
-class Result(TimeStampedModel):
+class Result(TimeStampedModel, SubjectTaskStatusModel):
     """ Results from a particular experiment returned by subjects """
 
-    battery = models.ForeignKey(Battery, on_delete=models.CASCADE, null=True)
-    experiment_instance = models.ForeignKey(
-        ExperimentInstance, on_delete=models.CASCADE, null=True
+    battery_experiment = models.ForeignKey(
+        BatteryExperiments, on_delete=models.SET_NULL, null=True
     )
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     data = models.TextField(blank=True)
-    completed = models.BooleanField(default=False)

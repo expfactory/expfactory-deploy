@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.forms import formset_factory
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -132,3 +133,49 @@ class BatteryDeploymentDelete(DeleteView):
     model = models.Battery
     success_url = reverse_lazy('battery-list')
 """
+
+
+class Serve(TemplateView):
+    worker = None
+    battery = None
+    experiment = None
+    assignment = None
+
+    def get_template_names(self):
+        """
+        Return a list of template names to be used for the request. Must return
+        a list. May not be called if render_to_response() is overridden.
+        """
+        return ["experiments/____.html"]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+    def set_objects(self):
+        """ we might accept the uuid assocaited with the worker instead of its id """
+        self.subject = get_object_or_404(
+            models.Subject, pk=self.kwargs.get("subject_id")
+        )
+        self.battery = get_object_or_404(
+            models.Battery, pk=self.kwargs.get("battery_id")
+        )
+        try:
+            self.assignment = models.Assignment.get(
+                subject=self.subject, battery=self.battery
+            )
+        except ObjectDoesNotExist:
+            # make new one?
+            pass
+
+    def get(self, request, *args, **kwargs):
+        self.set_objects()
+        if self.assignment.consent_accepted is not True:
+            # display instructions and consent
+            pass
+
+        self.assignment.get_next_experiment()
+        return self.render_to_response(self.get_context_data())
+
+    def post(self, request, *args, **kwargs):
+        return

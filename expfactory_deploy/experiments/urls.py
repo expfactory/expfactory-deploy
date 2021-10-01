@@ -37,6 +37,11 @@ urlpatterns = [
         views.BatteryComplex.as_view(),
         name="battery-create",
     ),
+    path(
+        "serve/<int:worker_id>/<int:battery_id>/<int:experiment_id>/",
+        views.Serve.as_view(),
+        name="serve",
+    ),
 ]
 
 """ urls we may want

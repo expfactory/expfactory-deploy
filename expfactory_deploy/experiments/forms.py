@@ -12,7 +12,7 @@ class BatteryForm(ModelForm):
 
     class Meta:
         model = models.Battery
-        fields = ["name", "consent", "instructions", "advertisement", "status"]
+        fields = ["name", "consent", "instructions", "advertisement"]
         widgets = {
             "name": forms.TextInput(),
             "consent": forms.Textarea(attrs={"cols": 80, "rows": 2}),
