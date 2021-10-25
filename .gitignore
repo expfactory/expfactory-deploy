@@ -277,3 +277,4 @@ expfactory_deploy/media/
 .envs/*
 
 js_experiments/
+expfactory_deploy/sessions/*
