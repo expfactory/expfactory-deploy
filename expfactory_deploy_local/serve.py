@@ -2,12 +2,13 @@ import argparse
 import json
 import os
 import sys
+import urllib
 from pathlib import Path
 
 import web
 from web.contrib.template import render_jinja
 
-urls = ("/(.*)/serve", "serve")
+urls = ("/(.*)/serve", "serve", "/(.*)/decline", "decline")
 web.config.debug = False
 app = web.application(urls, globals())
 session = web.session.Session(
@@ -33,12 +34,7 @@ template_dir = "templates"
 render = render_jinja(template_dir, encoding="utf-8")
 
 with open(args.exp_config[0]) as fp:
-    exps = fp.read()
-    if isinstance(exps, list):
-        exps = exps.striplines()
-    else:
-        exps = [exps.strip("\n")]
-    experiments = [Path(x) for x in exps]
+    experiments = [Path(x.strip()) for x in fp.readlines()]
 
 for experiment in experiments:
     try:
@@ -58,6 +54,8 @@ css_tag = '<link rel="stylesheet" type="text/css" href="{}">'
 
 
 def format_external_scripts(scripts, exp_location, static_location="/"):
+    print(scripts)
+    print(exp_location)
     js = []
     css = []
     for script in scripts:
@@ -94,10 +92,10 @@ def serve_experiment(experiment):
     context = {
         "experiment_load": experiment_load,
         "uniqueId": uniqueId,
-        "post_url": "/sync/",
-        "next_page": "/some_url",
+        "post_url": "./serve",
+        "next_page": "./serve",
         "exp_id": exp_name,
-        "exp_end": "/some_url",
+        "exp_end": "./decline",
     }
     """
     experiment_load - list of scripts
@@ -115,18 +113,28 @@ def serve_experiment(experiment):
 
 class serve:
     def GET(self, name):
+        print(session.incomplete)
         if session.incomplete == None:
             session.incomplete = [*experiments]
-        elif len(session.incomplete) == 0:
-            app.stop()
+            print(experiments)
+            print([*experiments])
+        if len(session.incomplete) == 0:
+            return render.finished()
         exp_to_serve = session.incomplete[-1]
         return serve_experiment(exp_to_serve)
 
     def POST(self, name):
-        session.pop()
-        with output_file.open(results_dir, "a") as fp:
-            f.write(web.data())
-            f.write("\n")
+        session.incomplete.pop()
+        with open(Path(results_dir, output_file), "ab") as fp:
+            data = web.data()
+            fp.write(data)
+        web.header("Content-Type", "application/json")
+        return "{'success': true}"
+
+
+class decline:
+    def GET(self, name):
+        app.stop()
 
 
 if __name__ == "__main__":
