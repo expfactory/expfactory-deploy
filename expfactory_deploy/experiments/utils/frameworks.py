@@ -4,7 +4,7 @@ import git
 from django.conf import settings
 from experiments import models as models
 
-js_tag = "<script src={}></script>"
+js_tag = '<script src="{}"></script>'
 css_tag = '<link rel="stylesheet" type="text/css" href="{}">'
 
 

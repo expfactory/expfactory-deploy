@@ -11,7 +11,6 @@ RUN apt-get update \
   # Translations dependencies
   && apt-get install -y gettext \
   && apt-get install -y git \
-  && apt-get install -y postgresql-client \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*

@@ -1,4 +1,3 @@
-# from model_utils.fields import StatusField
 import uuid
 
 import reversion
@@ -6,7 +5,7 @@ from django.db import models
 from django.db.models import Q
 from django.urls import reverse
 from model_utils import Choices
-from model_utils.fields import MonitorField
+from model_utils.fields import MonitorField, StatusField
 from model_utils.models import StatusModel, TimeStampedModel
 
 from .utils import repo as repo
@@ -83,7 +82,7 @@ class ExperimentInstance(models.Model):
 
 
 @reversion.register()
-class Battery(TimeStampedModel):
+class Battery(TimeStampedModel, StatusField):
     """when a battery is "created" its a template.
     When cloned for it becomes a draft for deployment
     When published no further changes are allowed.
@@ -91,7 +90,7 @@ class Battery(TimeStampedModel):
     """
 
     STATUS = Choices("template", "draft", "published", "inactive")
-    name = models.TextField()
+    title = models.TextField()
     template_id = models.ForeignKey(
         "Battery", on_delete=models.CASCADE, blank=True, null=True
     )
@@ -102,9 +101,6 @@ class Battery(TimeStampedModel):
     instructions = models.TextField(blank=True)
     advertisement = models.TextField(blank=True)
     random_order = models.BooleanField(default="True")
-
-    def __str__(self):
-        return self.name
 
 
 class BatteryExperiments(models.Model):

@@ -63,6 +63,11 @@ def add_experiment_repos(context):
 class BatteryList(ListView):
     model = models.Battery
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        print(dir(context))
+        return context
+
 
 class BatteryDetail(DetailView):
     model = models.Battery

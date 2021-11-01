@@ -87,7 +87,8 @@
     }
   })
   const form_count_id = "id_form-TOTAL_FORMS"
-  const form_table_id = "exp_instance_tbody"
+  const form_table_id = "exp_instance_table"
+  const form_tbody_id = "exp_instance_tbody"
   const order_template = `{{ exp_instance_formset.empty_form.ORDER }}`
   const note_template = `{{ exp_instance_formset.empty_form.note }}`
   const commit_template = `{{ exp_instance_formset.empty_form.commit }}`
@@ -110,18 +111,30 @@
     return elem.value
   }
 
-  function add_row() {
+  function add_row(value) {
     const prefix = increment_form_count() - 1
-    row = document.getElementById(form_table_id).insertRow()
+    row = document.getElementById(form_tbody_id).insertRow()
     row.setAttribute("data-id", row.rowIndex - 1)
     row.insertCell().innerHTML = order_template.replaceAll(empty_prefix, prefix)
     row.insertCell().innerHTML = note_template.replaceAll(empty_prefix, prefix)
     row.insertCell().innerHTML = commit_template.replaceAll(empty_prefix, prefix)
-    row.insertCell().innerHTML = origin_template.replaceAll(empty_prefix, prefix)
+    let exp_select = row.insertCell()
+    exp_select.innerHTML = origin_template.replaceAll(empty_prefix, prefix)
+    exp_select = exp_select.querySelector('select')
+    exp_select.value  = value
     return row
   }
 
-  function remove_row() {
+  function remove_row(value) {
+    const tbody = document.getElementById(form_tbody_id)
+    const table = document.getElementById(form_table_id)
+    const remRows = [...tbody.querySelectorAll('tr')].filter(row => {
+      return row.querySelector('select').value === String(value)
+    })
+    remRows.map(row => {
+      table.deleteRow(row.rowIndex)
+      decrement_form_count()
+    })
   }
 
   /* When we select an experiment from the table, update the select input used
@@ -130,15 +143,16 @@
   function selectFromCheckbox(event) {
     const value = event.target.value
     const checked = event.target.checked
+    console.log(event)
     if (checked) {
-      if (document.querySelectorAll(`#${form_table_id} select`).any(select => select.value === value)) {
-        contine;
+      if (Array.from(document.querySelectorAll(`#${form_tbody_id} select`)).some(select => select.value === value)) {
+        console.log('already selected?')
       } else {
-        const row = add_row()
+        const row = add_row(value)
       }
     } else {
-      if (document.querySelectorAll(`#${form_table_id} select`).any(select => select.value === value)) {
-        remove_row()
+      if (Array.from(document.querySelectorAll(`#${form_tbody_id} select`)).some(select => select.value === value)) {
+        remove_row(value)
       }
     }
     updateOrder()
@@ -148,7 +162,7 @@
      IDs as the value for options and as the checkbox id attribute
    */
   function checkBoxesFromSelect() {
-    document.querySelectorAll(`#${form_table_id} select`).forEach(opt => {
+    document.querySelectorAll(`#${form_tbody_id} select`).forEach(opt => {
       const cb = document.getElementById(String(opt.value))
       cb.checked = true
     })
