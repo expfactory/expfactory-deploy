@@ -3,7 +3,10 @@ from django.urls import include, path
 from expfactory_deploy.experiments import views
 
 urlpatterns = [
-    path("", views.ExperimentRepoList.as_view(), name="experiment-repo-list"),
+    path("", views.ExperimentRepoList.as_view(), name="home"),
+    path(
+        "experiments", views.ExperimentRepoList.as_view(), name="experiment-repo-list"
+    ),
     path(
         "experiment_repo/<int:pk>/",
         views.ExperimentRepoDetail.as_view(),

@@ -313,3 +313,4 @@ CORS_URLS_REGEX = r"^/api/.*$"
 # ------------------------------------------------------------------------------
 ADD_REVERSION_ADMIN = True
 DEFAULT_EXPERIMENT_DIR = str(ROOT_DIR / "js_experiments")
+DEFAULT_DEPLOYMENT_DIR = str(ROOT_DIR / "static_deployment")

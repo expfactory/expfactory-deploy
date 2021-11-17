@@ -1,6 +1,8 @@
 import uuid
+from pathlib import Path
 
 import reversion
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
@@ -33,6 +35,7 @@ class RepoOrigin(models.Model):
 
     origin = models.URLField(unique=True)
     path = models.TextField()
+    name = models.TextField(blank=True, unique=True)
 
     def __str__(self):
         return self.origin
@@ -42,6 +45,17 @@ class RepoOrigin(models.Model):
 
     def is_valid_commit(self, commit):
         return repo.is_valid_commit(self.path, commit)
+
+    def checkout_commit(self, commit):
+        stem = Path(self.path).stem
+        deploy_to = Path(settings.DEFAULT_DEPLOYMENT_DIR, stem, commit)
+        if deploy_to in repo.git.worktree("list"):
+            return deploy_to
+        elif self.is_valid_commit(commit):
+            return False
+        else:
+            repo.git.worktree("add", deploy_to, commit)
+            return deploy_to
 
 
 @reversion.register()
@@ -76,6 +90,9 @@ class ExperimentInstance(models.Model):
 
     def is_valid_commit(self):
         return self.experiment_repo_id.origin.is_valid_commit(self.commit)
+
+    def deploy_static(self):
+        return self.experiment_repo_id.origin.checkout_commit(self.commit)
 
     def __str__(self):
         return f"{self.commit}"

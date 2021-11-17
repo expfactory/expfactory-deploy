@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
@@ -6,15 +10,18 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import DetailView, ListView, TemplateView
+from django.views.generic import DetailView, ListView, TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from experiments import forms as forms
 from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
 
+sys.path.append(Path(settings.ROOT_DIR, "expfactory_deploy_local"))
+
+from expfactory_deploy_local.utils import generate_experiment_context
+
+
 # Experiment Views
-
-
 def experiment_instances_from_latest(experiment_repos):
     for experiment_repo in experiment_repos:
         latest = get_latest_commit(experiment_repo.location)
@@ -135,6 +142,24 @@ class BatteryDeploymentDelete(DeleteView):
     model = models.Battery
     success_url = reverse_lazy('battery-list')
 """
+
+
+class Preview(View):
+    def get(self, request, *args, **kwargs):
+        exp_id = self.kwargs.get("exp_id")
+        experiment = get_object_or_404(models.ExperimentRepo, exp_id)
+        # Could embed commit or instance id in kwargs, default to latest for now
+        commit = experiment.get_latest_commit()
+        exp_instance, created = models.ExperimentInstance.get_or_create(
+            experiment_repo_id=exp_id, commit=commit
+        )
+        deploy_static = exp_instance.deploy_static()
+        location = Path(deploy_static, Path(experiment.location).stem)
+
+        # default template for our style experiments
+        template = "experiments/jspsych_deploy.html"
+        context = generate_experiment_context(location, settings.STATIC_DIR)
+        return render(request, template, context)
 
 
 class Serve(TemplateView):
