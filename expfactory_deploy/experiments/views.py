@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import F
 from django.forms import formset_factory
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -65,7 +66,6 @@ class BatteryList(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        print(dir(context))
         return context
 
 
@@ -81,16 +81,19 @@ class BatteryComplex(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        ordering = models.ExperimentInstance.objects.none()
-        initial = None
+        qs = models.ExperimentInstance.objects.none()
+        ordering = None
         if self.battery:
-            ordering = models.ExperimentInstance.objects.filter(
+            qs = models.ExperimentInstance.objects.filter(
                 batteryexperiments__battery=self.battery
             ).order_by("batteryexperiments__order")
+            ordering = qs.annotate(exp_order=F("batteryexperiments__order"))
         context["form"] = forms.BatteryForm(**self.battery_kwargs)
 
         add_experiment_repos(context)
-        context["exp_instance_formset"] = forms.ExpInstanceFormset(queryset=ordering)
+        context["exp_instance_formset"] = forms.ExpInstanceFormset(
+            queryset=qs, form_kwargs={"ordering": ordering}
+        )
         return context
 
     def get_object(self):
@@ -114,18 +117,12 @@ class BatteryComplex(TemplateView):
         ).order_by("batteryexperiments__order")
 
         exp_instance_formset = forms.ExpInstanceFormset(
-            self.request.POST, queryset=ordering
+            self.request.POST, form_kwargs={"battery_id": battery.id}
         )
-
         valid = exp_instance_formset.is_valid()
         if valid:
-            for order, form in enumerate(exp_instance_formset.ordered_forms):
-                print(form.cleaned_data)
-                exp_inst = form.save()
-                models.BatteryExperiments.objects.get_or_create(
-                    battery=battery, experiment_instance=exp_inst, order=order
-                )
-        else:
+            exp_instance_formset.save()
+        elif not valid:
             print(exp_instance_formset.errors)
         if form.is_valid():
             return HttpResponseRedirect("/battery/")
