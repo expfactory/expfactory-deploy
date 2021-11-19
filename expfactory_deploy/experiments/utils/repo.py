@@ -34,7 +34,7 @@ Process experiments found by find_valid_dirs, make new ExperimentRepoObjects if 
 """
 
 
-def find_new_experiments(search_dir=settings.DEFAULT_EXPERIMENT_DIR):
+def find_new_experiments(search_dir=settings.REPO_DIR):
     from experiments.models import ExperimentRepo, RepoOrigin
 
     print(f"searching {search_dir}")
@@ -73,5 +73,5 @@ def is_valid_commit(repo_location, commit):
         repo = git.Repo(repo_location)
         repo.commit(commit)
         return True
-    except GitError:
+    except GitError as e:
         return False

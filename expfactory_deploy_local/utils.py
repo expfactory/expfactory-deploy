@@ -1,4 +1,5 @@
 """ Common functions used by webpy and django deployments """
+import json
 from pathlib import Path
 
 js_tag = "<script src={}></script>"
@@ -34,7 +35,9 @@ def format_external_scripts(scripts, exp_location, static_location="/"):
     return "\n".join([*js, *css])
 
 
-def generate_experiment_context(experiment, static_location):
+def generate_experiment_context(
+    exp_fs_path, static_url_path, exp_url_path=None, static_rewrite=None
+):
     """context used in old template
     experiment_load - list of scripts
     uniqueId - put in trial data, used to signify real exp vs preview
@@ -47,22 +50,27 @@ def generate_experiment_context(experiment, static_location):
     """
 
     config = {}
-    with open(experiment / "config.json") as f:
+    with open(exp_fs_path / "config.json") as f:
         config = json.load(f)
         if isinstance(config, list):
             config = config[0]
 
-    # should be renamed to external_scripts or something
-    experiment_load = format_external_scripts(
-        config["run"], Path(static_location, exp_name)
-    )
+    # we pass in an exp_location if filesystem pathing and url pathing differ
+    if exp_url_path:
+        experiment_load = format_external_scripts(
+            config["run"], exp_url_path, static_url_path
+        )
+    else:
+        experiment_load = format_external_scripts(
+            config["run"], exp_fs_path, static_url_path
+        )
     uniqueId = 0
     context = {
         "experiment_load": experiment_load,
         "uniqueId": uniqueId,
         "post_url": "./serve",
         "next_page": "./serve",
-        "exp_id": exp_name,
+        "exp_id": exp_fs_path.stem,
         "exp_end": "./decline",
     }
     return context

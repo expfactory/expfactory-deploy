@@ -16,7 +16,7 @@ services:
       - mailhog
     volumes:
       - .:/app:z
-      - /home/rwblair/projects/expfactory/expfactory-experiments:/app/js_experiments:z
+      - /home/rwblair/projects/expfactory/expfactory-experiments:/app/deployment_assets/repos/expfactory-experiments:z
     env_file:
       - ./.envs/.local/.django
       - ./.envs/.local/.postgres
@@ -35,6 +35,17 @@ services:
       - local_postgres_data_backups:/backups:z
     env_file:
       - ./.envs/.local/.postgres
+
+  nginx:
+    restart: always
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./compose/local/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - .:/app:z
+    depends_on:
+      - django
 
   docs:
     image: expfactory_deploy_local_docs

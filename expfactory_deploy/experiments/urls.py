@@ -8,6 +8,11 @@ urlpatterns = [
         "experiments", views.ExperimentRepoList.as_view(), name="experiment-repo-list"
     ),
     path(
+        "preview/<int:exp_id>/",
+        views.Preview.as_view(),
+        name="preview",
+    ),
+    path(
         "experiment_repo/<int:pk>/",
         views.ExperimentRepoDetail.as_view(),
         name="experiment-repo-detail",

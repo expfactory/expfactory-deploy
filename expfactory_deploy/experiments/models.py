@@ -1,6 +1,7 @@
 import uuid
 from pathlib import Path
 
+import git
 import reversion
 from django.conf import settings
 from django.db import models
@@ -47,14 +48,15 @@ class RepoOrigin(models.Model):
         return repo.is_valid_commit(self.path, commit)
 
     def checkout_commit(self, commit):
+        base_repo = git.Repo(self.path)
         stem = Path(self.path).stem
-        deploy_to = Path(settings.DEFAULT_DEPLOYMENT_DIR, stem, commit)
-        if deploy_to in repo.git.worktree("list"):
+        deploy_to = str(Path(settings.DEPLOYMENT_DIR, stem, commit))
+        if deploy_to in base_repo.git.worktree("list"):
             return deploy_to
-        elif self.is_valid_commit(commit):
+        elif not repo.is_valid_commit(self.path, commit):
             return False
         else:
-            repo.git.worktree("add", deploy_to, commit)
+            base_repo.git.worktree("add", deploy_to, commit)
             return deploy_to
 
 

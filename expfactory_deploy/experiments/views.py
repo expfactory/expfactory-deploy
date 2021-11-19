@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.forms import formset_factory
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, View
@@ -147,18 +147,27 @@ class BatteryDeploymentDelete(DeleteView):
 class Preview(View):
     def get(self, request, *args, **kwargs):
         exp_id = self.kwargs.get("exp_id")
-        experiment = get_object_or_404(models.ExperimentRepo, exp_id)
+        experiment = get_object_or_404(models.ExperimentRepo, id=exp_id)
         # Could embed commit or instance id in kwargs, default to latest for now
         commit = experiment.get_latest_commit()
-        exp_instance, created = models.ExperimentInstance.get_or_create(
+        exp_instance, created = models.ExperimentInstance.objects.get_or_create(
             experiment_repo_id=exp_id, commit=commit
         )
-        deploy_static = exp_instance.deploy_static()
-        location = Path(deploy_static, Path(experiment.location).stem)
+        deploy_static_fs = exp_instance.deploy_static()
+        deploy_static_url = deploy_static_fs.replace(
+            settings.DEPLOYMENT_DIR, settings.STATIC_DEPLOYMENT_URL
+        )
+        exp_fs_path = Path(deploy_static_fs, Path(experiment.location).stem)
+        exp_url_path = Path(deploy_static_url, Path(experiment.location).stem)
 
-        # default template for our style experiments
+        # default template for poldracklab style experiments
         template = "experiments/jspsych_deploy.html"
-        context = generate_experiment_context(location, settings.STATIC_DIR)
+        # default js/css location for poldracklab style experiments
+        static_url_path = Path(settings.STATIC_NON_REPO_URL, "default")
+
+        context = generate_experiment_context(
+            exp_fs_path, static_url_path, exp_url_path
+        )
         return render(request, template, context)
 
 

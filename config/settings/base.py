@@ -312,5 +312,10 @@ CORS_URLS_REGEX = r"^/api/.*$"
 # Your stuff...
 # ------------------------------------------------------------------------------
 ADD_REVERSION_ADMIN = True
-DEFAULT_EXPERIMENT_DIR = str(ROOT_DIR / "js_experiments")
-DEFAULT_DEPLOYMENT_DIR = str(ROOT_DIR / "static_deployment")
+REPO_DIR = str(ROOT_DIR / "deployment_assets" / "repos")
+DEPLOYMENT_DIR = str(ROOT_DIR / "deployment_assets" / "workdirs")
+NON_REPO_FILES_DIR = str(ROOT_DIR / "deployment_assets" / "non_repo_files")
+
+# These values are determined by the nginx.conf location directives
+STATIC_DEPLOYMENT_URL = "/deployment/repo/"
+STATIC_NON_REPO_URL = "/deployment/non_repo/"
