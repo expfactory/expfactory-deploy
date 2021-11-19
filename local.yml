@@ -16,7 +16,7 @@ services:
       - mailhog
     volumes:
       - .:/app:z
-      - /home/rwblair/projects/expfactory/expfactory-experiments:/app/deployment_assets/repos/expfactory-experiments:z
+      - ${EXPFACTORY_EXPERIMENTS_PATH:-./deployment_assets/repos/expfactory-experiments}:/app/deployment_assets/repos/expfactory-experiments:z
     env_file:
       - ./.envs/.local/.django
       - ./.envs/.local/.postgres

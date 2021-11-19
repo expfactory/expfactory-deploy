@@ -80,6 +80,13 @@ class BatteryDetail(DetailView):
     model = models.Battery
 
 
+"""
+    View used for battery creation. Handles creating expdeirmentinstance
+    objects and order entries in the battery <-> experiment instance pivot table
+    as needed.
+"""
+
+
 class BatteryComplex(TemplateView):
     template_name = "experiments/battery_form.html"
     battery = None

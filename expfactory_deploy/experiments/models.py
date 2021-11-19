@@ -19,6 +19,7 @@ class SubjectTaskStatusModel(StatusModel):
     be in relation to either an experiment or a battery"""
 
     STATUS = Choices("not-started", "started", "completed", "failed")
+    status = StatusField()
     started_at = MonitorField(monitor="status", when=["started"])
     completed_at = MonitorField(monitor="status", when=["completed"])
     failed_at = MonitorField(monitor="status", when=["failed"])
@@ -109,6 +110,7 @@ class Battery(TimeStampedModel, StatusField):
     """
 
     STATUS = Choices("template", "draft", "published", "inactive")
+    status = StatusField()
     title = models.TextField()
     template_id = models.ForeignKey(
         "Battery", on_delete=models.CASCADE, blank=True, null=True

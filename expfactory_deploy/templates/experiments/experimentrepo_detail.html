@@ -3,6 +3,7 @@
 {% block content %}
 
 {# we may want to see all deployments of this experiment #}
+<h2>Commits and batteries using those commits:</h2>
 <ul>
 {% for exp in object.experimentinstance_set.all %}
   <li>
@@ -10,10 +11,11 @@
     <br/>
     {{ exp.note }}
     <br/>
+    <h3>
     <ul>
-      {% for deployment in exp.batterydeployment_set.all %}
+      {% for battery in exp.battery_set.all %}
         <li>
-          <a href="{% url 'battery-deployment-detail' deployment.id %}> {{ deployment.name }} - {{ deployment.status }} </a>
+          <a href="{% url 'experiments:battery-detail' battery.id %}" > {{ battery.title }} - {{ battery.status }} </a>
         </li>
       {% endfor %}
     </ul>
