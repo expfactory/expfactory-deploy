@@ -280,3 +280,4 @@ js_experiments/
 expfactory_deploy/sessions/*
 expfactory_deploy/static/*
 static_deployment/*
+deployment_assets/workdirs/
