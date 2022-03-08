@@ -13,7 +13,6 @@ services:
     container_name: django
     depends_on:
       - postgres
-      - mailhog
     volumes:
       - .:/app:z
       - ${EXPFACTORY_EXPERIMENTS_PATH:-./deployment_assets/repos/expfactory-experiments}:/app/deployment_assets/repos/expfactory-experiments:z
@@ -63,11 +62,11 @@ services:
       - "7000:7000"
     command: /start-docs
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.0
-    container_name: mailhog
-    ports:
-      - "8025:8025"
+  #mailhog:
+  #  image: mailhog/mailhog:v1.0.0
+  #  container_name: mailhog
+  #  ports:
+  #    - "8025:8025"
 
   redis:
     image: redis:5.0
@@ -80,7 +79,6 @@ services:
     depends_on:
       - redis
       - postgres
-      - mailhog
     ports: []
     command: /start-celeryworker
 
@@ -91,7 +89,6 @@ services:
     depends_on:
       - redis
       - postgres
-      - mailhog
     ports: []
     command: /start-celerybeat
 
