@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.forms import formset_factory
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, View
@@ -43,9 +43,9 @@ def add_new_experiments(request):
     created_repos, created_experiments = find_new_experiments()
     for repo in created_repos:
         messages.info(request, f"Tracking previously unseen repository {repo.origin}")
-    for experiment in created_experiemtns:
+    for experiment in created_experiments:
         messages.info(request, f"Added new experiment {experiment.name}")
-    return reverse_lazy("experiment-repo-list")
+    return redirect('/experiments')
 
 
 class ExperimentRepoUpdate(UpdateView):
@@ -55,7 +55,7 @@ class ExperimentRepoUpdate(UpdateView):
 
 class ExperimentRepoDelete(DeleteView):
     model = models.ExperimentRepo
-    success_url = reverse_lazy("expeirment-repo-list")
+    success_url = reverse_lazy("experiment-repo-list")
 
 
 # Battery Views
@@ -78,6 +78,7 @@ class BatteryList(ListView):
 
 class BatteryDetail(DetailView):
     model = models.Battery
+    queryset = models.Battery.objects.prefetch_related('experiment_instances')
 
 
 """
@@ -85,8 +86,6 @@ class BatteryDetail(DetailView):
     objects and order entries in the battery <-> experiment instance pivot table
     as needed.
 """
-
-
 class BatteryComplex(TemplateView):
     template_name = "experiments/battery_form.html"
     battery = None
@@ -158,7 +157,7 @@ class Preview(View):
         # Could embed commit or instance id in kwargs, default to latest for now
         commit = experiment.get_latest_commit()
         exp_instance, created = models.ExperimentInstance.objects.get_or_create(
-            experiment_repo_id=exp_id, commit=commit
+            experiment_repo_id=experiment, commit=commit
         )
         deploy_static_fs = exp_instance.deploy_static()
         deploy_static_url = deploy_static_fs.replace(

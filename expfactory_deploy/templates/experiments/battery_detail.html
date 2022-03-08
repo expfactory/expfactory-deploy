@@ -1,17 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Deployments</h1>
-  {% for deployment in object.batterydeployment_set %}
-    <li>
-      <a href="{% url 'batterydeployment_detail' deployment.id %}>
-        {{ deployment.name }} - {{ deployment.status }}
-      </a>
-    </li>
-  {% empty %}
-    <li> no deployments </li>
+  {{ object.title }} - {{ object.status }}
+  <br />
+  {% for batt_exp in object.batteryexperiments_set.all %}
+    <br />
+    {{ batt_exp.experiment_instance.experiment_repo_id }} - {{ batt_exp.experiment_instance }} - {{ batt_exp.order }}<br />
   {% endfor %}
-  <br>
-  <a href="{% url 'battery_delete' object.id %}>Delete</a>
-  <a href="{% url 'battery_update' object.id %}>Edit</a>
+  <a href="{% url 'experiments:battery-update' object.id %}">Edit</a>
 {% endblock %}

@@ -13,6 +13,18 @@ from model_utils.models import StatusModel, TimeStampedModel
 
 from .utils import repo as repo
 
+@reversion.register()
+class Framework(models.Model):
+    """ Framework used by experiments. """
+
+    name = models.TextField(unique=True)
+    template = models.TextField()
+
+
+class FrameworkResource(models.Model):
+    name = models.TextField(unique=True)
+    path = models.TextField()
+
 
 class SubjectTaskStatusModel(StatusModel):
     """Abstract class that tracks the various states a subject might
@@ -68,18 +80,24 @@ class ExperimentRepo(models.Model):
     name = models.TextField()
     origin = models.ForeignKey(RepoOrigin, null=True, on_delete=models.SET_NULL)
     location = models.TextField()
+    framework = models.ForeignKey(Framework, null=True, on_delete=models.SET_NULL)
+    active = models.BooleanField(default=True)
 
     def get_absolute_url(self):
         return reverse("experiment-repo-detail", kwargs={"pk": self.pk})
 
     """ We may want to just look at latest commit for files in its directory(location)
-        instead of getting entire repos latest commit """
+        instead of getting entire repos latest commit, case where exp removed from repo
+        at some point. """
 
     def get_latest_commit(self):
         return self.origin.get_latest_commit()
 
     def __str__(self):
-        return self.name
+        origin_url = self.origin.origin.replace("git@github.com:", "https://github.com/")
+        base_path = self.origin.path
+        exp_location = self.location.replace(base_path, "/tree/master")
+        return f"{origin_url}{exp_location}"
 
 
 @reversion.register()
@@ -121,7 +139,7 @@ class Battery(TimeStampedModel, StatusField):
     consent = models.TextField(blank=True)
     instructions = models.TextField(blank=True)
     advertisement = models.TextField(blank=True)
-    random_order = models.BooleanField(default="True")
+    random_order = models.BooleanField(default=True)
 
 
 class BatteryExperiments(models.Model):
@@ -136,18 +154,8 @@ class BatteryExperiments(models.Model):
         verbose_name="Experiment order",
     )
 
-
-@reversion.register()
-class Framework(models.Model):
-    """ Framework used by experiments. """
-
-    name = models.TextField(unique=True)
-    template = models.TextField()
-
-
-class FrameworkResource(models.Model):
-    name = models.TextField(unique=True)
-    path = models.TextField()
+    class Meta:
+        ordering = ('order',)
 
 
 class Subject(models.Model):
@@ -155,6 +163,7 @@ class Subject(models.Model):
     mturk_id = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True)
+    active = models.BooleanField(default=False)
 
 
 class Assignment(SubjectTaskStatusModel):

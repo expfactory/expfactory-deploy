@@ -19,7 +19,7 @@ urlpatterns = [
     ),
     path(
         "experiment_repo/add/",
-        views.find_new_experiments,
+        views.add_new_experiments,
         name="experiment-repo-create",
     ),
     path(
