@@ -79,6 +79,7 @@ class ExperimentRepo(models.Model):
 
     name = models.TextField()
     origin = models.ForeignKey(RepoOrigin, null=True, on_delete=models.SET_NULL)
+    branch = models.TextField(default="master")
     location = models.TextField()
     framework = models.ForeignKey(Framework, null=True, on_delete=models.SET_NULL)
     active = models.BooleanField(default=True)
@@ -93,11 +94,19 @@ class ExperimentRepo(models.Model):
     def get_latest_commit(self):
         return self.origin.get_latest_commit()
 
-    def __str__(self):
-        origin_url = self.origin.origin.replace("git@github.com:", "https://github.com/")
+    @property
+    def url(self):
         base_path = self.origin.path
-        exp_location = self.location.replace(base_path, "/tree/master")
+        exp_location = self.location
+        if "git@github.com:" in self.origin.origin:
+            origin_url = self.origin.origin.replace("git@github.com:", "https://github.com/")
+            exp_location = self.location.replace(base_path, f"/tree/{self.branch}")
+        else:
+            origin_url = self.origin.origin
         return f"{origin_url}{exp_location}"
+
+    def __str__(self):
+        return self.url
 
 
 @reversion.register()
@@ -109,6 +118,12 @@ class ExperimentInstance(models.Model):
     commit_date = models.DateField(blank=True, null=True)
     experiment_repo_id = models.ForeignKey(ExperimentRepo, on_delete=models.CASCADE)
 
+    @property
+    def remote_url(self):
+        url = self.experiment_repo_id.url
+        url = url.replace(self.experiment_repo_id.branch, self.commit)
+        return url
+
     def is_valid_commit(self):
         return self.experiment_repo_id.origin.is_valid_commit(self.commit)
 
@@ -116,7 +131,7 @@ class ExperimentInstance(models.Model):
         return self.experiment_repo_id.origin.checkout_commit(self.commit)
 
     def __str__(self):
-        return f"{self.commit}"
+        return f"{self.remote_url}"
 
 
 @reversion.register()

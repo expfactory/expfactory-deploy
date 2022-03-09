@@ -3,9 +3,27 @@
 {% block content %}
   {{ object.title }} - {{ object.status }}
   <br />
-  {% for batt_exp in object.batteryexperiments_set.all %}
-    <br />
-    {{ batt_exp.experiment_instance.experiment_repo_id }} - {{ batt_exp.experiment_instance }} - {{ batt_exp.order }}<br />
-  {% endfor %}
+  <table>
+    <thead>
+      <tr>
+        <th>order</th>
+        <th>experiment</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for batt_exp in object.batteryexperiments_set.all %}
+      <tr>
+        <td>
+          {{ batt_exp.order }}
+        </td>
+        <td>
+          <a href="{{ batt_exp.experiment_instance.remote_url }}">{{ batt_exp.experiment_instance.experiment_repo_id.name }}</a>
+        </td>
+        <td></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
   <a href="{% url 'experiments:battery-update' object.id %}">Edit</a>
 {% endblock %}

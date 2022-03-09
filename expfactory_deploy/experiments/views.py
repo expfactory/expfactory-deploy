@@ -40,11 +40,13 @@ class ExperimentRepoDetail(DetailView):
 
 
 def add_new_experiments(request):
-    created_repos, created_experiments = find_new_experiments()
+    created_repos, created_experiments, errors = find_new_experiments()
     for repo in created_repos:
         messages.info(request, f"Tracking previously unseen repository {repo.origin}")
     for experiment in created_experiments:
         messages.info(request, f"Added new experiment {experiment.name}")
+    for error in errors:
+        messages.error(request, error)
     return redirect('/experiments')
 
 

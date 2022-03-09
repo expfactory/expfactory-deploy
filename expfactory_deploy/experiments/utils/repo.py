@@ -16,6 +16,7 @@ def find_valid_dirs(repo):
     fp = open(pathlib.Path(__file__).parent.joinpath("experiment_schema.json"))
     schema = json.load(fp)
     valid_dirs = []
+    errors = []
     for root, dir, files in os.walk(repo):
         if "config.json" not in files:
             continue
@@ -24,9 +25,10 @@ def find_valid_dirs(repo):
             try:
                 validate = jsonschema.validate(config, schema)
                 valid_dirs.append(root)
-            except jsonschema.exceptions.ValidationError:
+            except jsonschema.exceptions.ValidationError as e:
+                errors.append(e)
                 print("invalid")
-    return valid_dirs
+    return valid_dirs, errors
 
 
 """
@@ -38,7 +40,7 @@ def find_new_experiments(search_dir=settings.REPO_DIR):
     from experiments.models import ExperimentRepo, RepoOrigin
 
     print(f"searching {search_dir}")
-    valid_dirs = find_valid_dirs(search_dir)
+    valid_dirs, errors = find_valid_dirs(search_dir)
     created_repos = []
     created_experiments = []
     for dir in valid_dirs:
@@ -57,7 +59,7 @@ def find_new_experiments(search_dir=settings.REPO_DIR):
         if experiment_created:
             print(f"created new experiment entry")
             created_experiments.append(experiment)
-    return (created_repos, created_experiments)
+    return (created_repos, created_experiments, errors)
 
 
 # find_valid_dirs('../expfactory-experiments')

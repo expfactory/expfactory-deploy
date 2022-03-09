@@ -1,15 +1,45 @@
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Field, Layout
 from django import forms
-from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.forms import (
     BaseFormSet,
     ModelForm,
     inlineformset_factory,
     modelformset_factory,
 )
+import git
+import pathlib
+from giturlparse import parse
 from experiments import models as models
 
+class ExperimentUploadForm(forms.Form):
+    url = forms.URLField()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        url = cleaned_data["url"]
+        gitparse_url = parse(url)
+        if not gitparse_url.valid:
+            self.add_error("url", "gitparseurl library could not validate repo url.")
+        url = gitparse_url.urls.get('https', url)
+        self.cleaned_data.update({'url', url})
+
+        path = pathlib.Path(settings.REPO_DIR, gitparse_url)
+        path.mkdir(parents=True, exists_ok=True)
+        try:
+            models.RepoOrigin.get(origin=url)
+            self.add_error("url", f"repository with this origin already exists")
+        except models.RepoOrigin.DoexNotExist:
+            db_repo_origin = models.RepoOrigin(origin=url, path=path)
+            try:
+                repo = git.Repo.clone_from(url, path)
+                db_repo_origin.save()
+            except git.exc.GitError as e:
+                self.add_error("url", e)
+
+        return cleaned_data
 
 class BatteryForm(ModelForm):
     def __init__(self, *args, **kwargs):
