@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-
 {% block content %}
     {% if object.pk %}
         <h2> Update Battery </h2>
@@ -11,6 +10,7 @@
     <input class="btn btn-primary" type="submit" name="action" value="Save"/>
     {% crispy form %}
     <h3>Experiments</h3>
+  <!--
     <nav>
       <div class="nav nav-tabs" id="nav-tab" role="tablist">
         <a class="nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab" aria-controls="nav-home" aria-selected="true">Available Experiments</a>
@@ -64,13 +64,90 @@
         </table>
         {{ exp_instance_formset.management_form }}
     </div>
+    -->
+    
+		<div class="row">
+      <div class="input-group">
+        <div class="input-group-prepend">
+          <span class="input-group-text">Search</span>
+        </div>
+        <input class="form-control" id="experimentlist-search" type="text" />
+      </div>
+    </div>
+		<div id="cloning" class="row">
+			<div id="experimentslist" class="list-group col">
+        {% for exp_repo in experiment_repo_list %}
+          <div class="list-group-item" data-id={{ exp_repo.name }}>
+            {{ exp_repo.name }} <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+          </div>
+        {% endfor %}
+			</div>
+
+			<div id="battexplist" class="list-group col">
+			</div> 
     </form>
-  </div>
 {% endblock %}
 
 
 {% block inline_javascript %}
 {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      let experimentslist = document.getElementById('experimentslist')
+      function searchOnChange(e) {
+        if (e.target.value === '') {
+           [...experimentslist.children].map(exp => exp.style.display = 'unset')
+        } else {
+          [...experimentslist.children].map(exp => {
+            !exp.innerText.includes(e.target.value) ?
+              exp.style.display = 'none' :
+              exp.style.display = 'unset'
+          })
+        }
+      }
+      document.getElementById("experimentlist-search").addEventListener("input", searchOnChange)
+      let exps = new Sortable(experimentslist, {
+          multiDrag: true,
+          selectedClass: 'selected',
+          group: {
+              name: 'shared',
+              pull: 'clone',
+              put: false // Do not allow items to be put into this list
+          },
+          animation: 150,
+          sort: false,
+          onClone: (evt) => {
+            var origEl = evt.item;
+            var cloneEl = evt.clone;
+            cloneEl.classList.add("added")
+            console.log(evt.item)
+            console.log(evt)
+          },
+      });
+
+      let batt_exps = new Sortable(battexplist, {
+          multiDrag: true,
+          selectedClass: 'selected',
+          group: 'shared',
+          animation: 150,
+          onAdd: (evt) => {
+            console.log(batt_exps.toArray())
+          },
+          filter: ".js-remove, .js-edit",
+          onFilter: function (evt) {
+            var item = evt.item,
+              ctrl = evt.target;
+            var dataId = item.getAttribute('data-id')
+            if (Sortable.utils.is(ctrl, ".js-remove")) {
+              document.getElementById("experimentslist").querySelector(`[data-id="${dataId}"]`).classList.remove("added")
+              item.parentNode.removeChild(item);
+            }
+          }
+      });
+    });
+  </script>
+  <!--
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
   <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
@@ -182,4 +259,5 @@
   const exp_repo_checkboxes = document.querySelectorAll(".exp_repo_checkbox")
   exp_repo_checkboxes.forEach(x => x.addEventListener("change", selectFromCheckbox))
   </script>
+  -->
 {% endblock %}

@@ -11,3 +11,19 @@
   background-color: #f2dede;
   border-color: #eed3d7;
 }
+
+.selected {
+	background-color: #f9c7c8;
+	border: solid red 1px !important;
+	z-index: 1 !important;
+}
+
+#experimentslist > .added {
+	background-color: #00ee00;
+	border: solid red 1px !important;
+	z-index: 1 !important;
+}
+
+#experimentslist .js-remove {
+    display: none;
+}
