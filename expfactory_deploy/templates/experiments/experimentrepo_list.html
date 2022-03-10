@@ -4,4 +4,12 @@
     <h2>Experiments</h2>
     {% include "experiments/experiments_table.html" with experiment_repo_list=object_list %}
     <a href="{% url 'experiments:experiment-repo-list' %}">Update Experiments</a>
+    <script>
+      const dataTable = new simpleDatatables.DataTable("#experiment-repo-table", {
+        searchable: true,
+        paging: false
+      })
+    </script>
+
+
 {% endblock %}

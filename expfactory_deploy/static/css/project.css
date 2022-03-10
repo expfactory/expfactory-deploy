@@ -27,3 +27,11 @@
 #experimentslist .js-remove {
     display: none;
 }
+
+#experimentslist .input-group {
+    display: none;
+}
+
+#experimentslist .order-container {
+    display: none;
+}

@@ -79,6 +79,21 @@
         {% for exp_repo in experiment_repo_list %}
           <div class="list-group-item" data-id={{ exp_repo.name }}>
             {{ exp_repo.name }} <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Commit</span>
+              </div>
+              <input class="form-control" type="text" value="latest" />
+            </div>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Note</span>
+              </div>
+              <input class="form-control" type="text"/>
+            </div>
+            <div class="order-container">
+              <span class="order badge badge-primary badge-pill"></span>
+            </div>
           </div>
         {% endfor %}
 			</div>
@@ -94,58 +109,77 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function(){
-      let experimentslist = document.getElementById('experimentslist')
-      function searchOnChange(e) {
-        if (e.target.value === '') {
-           [...experimentslist.children].map(exp => exp.style.display = 'unset')
-        } else {
-          [...experimentslist.children].map(exp => {
-            !exp.innerText.includes(e.target.value) ?
-              exp.style.display = 'none' :
-              exp.style.display = 'unset'
-          })
-        }
-      }
       document.getElementById("experimentlist-search").addEventListener("input", searchOnChange)
-      let exps = new Sortable(experimentslist, {
-          multiDrag: true,
-          selectedClass: 'selected',
-          group: {
-              name: 'shared',
-              pull: 'clone',
-              put: false // Do not allow items to be put into this list
-          },
-          animation: 150,
-          sort: false,
-          onClone: (evt) => {
-            var origEl = evt.item;
-            var cloneEl = evt.clone;
-            cloneEl.classList.add("added")
-            console.log(evt.item)
-            console.log(evt)
-          },
-      });
-
-      let batt_exps = new Sortable(battexplist, {
-          multiDrag: true,
-          selectedClass: 'selected',
-          group: 'shared',
-          animation: 150,
-          onAdd: (evt) => {
-            console.log(batt_exps.toArray())
-          },
-          filter: ".js-remove, .js-edit",
-          onFilter: function (evt) {
-            var item = evt.item,
-              ctrl = evt.target;
-            var dataId = item.getAttribute('data-id')
-            if (Sortable.utils.is(ctrl, ".js-remove")) {
-              document.getElementById("experimentslist").querySelector(`[data-id="${dataId}"]`).classList.remove("added")
-              item.parentNode.removeChild(item);
-            }
-          }
-      });
     });
+    function searchOnChange(e) {
+      let experimentslist = document.getElementById('experimentslist')
+      if (e.target.value === '') {
+         [...experimentslist.children].map(exp => exp.style.display = 'unset')
+      } else {
+        [...experimentslist.children].map(exp => {
+          !exp.innerText.includes(e.target.value) ?
+            exp.style.display = 'none' :
+            exp.style.display = 'unset'
+        })
+      }
+    }
+    let exps = new Sortable(experimentslist, {
+        multiDrag: true,
+        selectedClass: 'selected',
+        group: {
+            name: 'shared',
+            pull: 'clone',
+            put: false // Do not allow items to be put into this list
+        },
+        animation: 150,
+        sort: false,
+        onClone: (evt) => {
+          console.log(evt)
+          if (evt.clone) {
+            evt.clone.classList.add("added")
+          }
+          if (Array.isArray(evt.clones)) {
+            evt.clones.map(x => x.classList.add("added"))
+          }
+        },
+    });
+
+    let batt_exps = new Sortable(battexplist, {
+        multiDrag: true,
+        selectedClass: 'selected',
+        group: 'shared',
+        animation: 150,
+        onAdd: (evt) => {
+          // console.log(batt_exps.toArray())
+          updateOrderSpan()
+        },
+        onEnd: (evt) => {
+          updateOrderSpan()
+        },
+        onChange: (evt) => {
+          updateOrderSpan()
+        },
+        filter: ".js-remove, .js-edit",
+        onFilter: function (evt) {
+          var item = evt.item,
+            ctrl = evt.target;
+          var dataId = item.getAttribute('data-id')
+          if (Sortable.utils.is(ctrl, ".js-remove")) {
+            if (document.querySelectorAll(`#battexplist [data-id="${dataId}"]`).length < 2) {
+              document.querySelector(`#experimentslist [data-id="${dataId}"]`).classList.remove("added")
+            }
+            item.parentNode.removeChild(item);
+          }
+        }
+    });
+
+    function updateOrderSpan() {
+      [...document.querySelectorAll('#battexplist .order')].map((x, i) => {
+        x.innerText = i + 1
+      })
+    }
+    function submitBattery() {
+    }
   </script>
   <!--
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
