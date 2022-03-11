@@ -123,6 +123,8 @@ class BatteryComplex(TemplateView):
         return self.render_to_response(self.get_context_data())
 
     def post(self, request, *args, **kwargs):
+        print("POST")
+        print(self.request.POST)
         self.get_object()
         form = forms.BatteryForm(self.request.POST, **self.battery_kwargs)
         battery = form.save()
@@ -130,7 +132,6 @@ class BatteryComplex(TemplateView):
         ordering = models.ExperimentInstance.objects.filter(
             batteryexperiments__battery=self.battery
         ).order_by("batteryexperiments__order")
-
         exp_instance_formset = forms.ExpInstanceFormset(
             self.request.POST, form_kwargs={"battery_id": battery.id}
         )
@@ -142,6 +143,7 @@ class BatteryComplex(TemplateView):
         if form.is_valid():
             return HttpResponseRedirect("/battery/")
         else:
+            print(form.errors)
             return HttpResponseRedirect(reverse_lazy("battery-list"))
 
 

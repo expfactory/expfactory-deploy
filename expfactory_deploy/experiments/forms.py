@@ -66,6 +66,14 @@ class ExperimentInstanceForm(ModelForm):
             "commit": forms.TextInput(),
             "note": forms.Textarea(attrs={"cols": 40, "rows": 1}),
         }
+    
+    def save(self, commit=True):
+        exp_instance, _ = models.ExperimentInstance.objects.update_or_create(
+            commit=self.instance.commit,
+            experiment_repo_id=self.instance.experiment_repo_id,
+            defaults={'note': self.instance.note}
+        )
+        return exp_instance
 
 
 class ExperimentInstanceOrderForm(ExperimentInstanceForm):
@@ -132,4 +140,4 @@ ExpInstanceFormset = modelformset_factory(
     extra=0,
 )
 
-# class BaseBatteryExperimentFormSet(BaseFormSet):
+

@@ -6,65 +6,20 @@
     {% else %}
         <h2>Create Battery</h2>
     {% endif %}
-    <form id="experiment_instance_table" method="post" action="">
+    <form id="experiment_instance_table" method="post" onsubmit="return battexpSubmit()" action="">
     <input class="btn btn-primary" type="submit" name="action" value="Save"/>
     {% crispy form %}
-    <h3>Experiments</h3>
-  <!--
-    <nav>
-      <div class="nav nav-tabs" id="nav-tab" role="tablist">
-        <a class="nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab" aria-controls="nav-home" aria-selected="true">Available Experiments</a>
-        <a class="nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-profile" role="tab" aria-controls="nav-profile" aria-selected="false">Selected</a>
+      <div id="form-manager">
+      {{ exp_instance_formset.management_form }}
       </div>
-    </nav>
-    <div class="tab-content" id="nav-tabContent">
-      <div class="tab-pane active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
-        <table id="experiment-repo-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Name</th>
-              <th>Origin</th>
-            </tr>
-          </thead>
-          <tbody id="available_exp_list_tbody">
-            {% for exp_repo in experiment_repo_list %}
-            <tr>
-              <td>
-                <div style="display: none;" class="exp_repo_checked">false</div>
-                <input type="checkbox" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox">
-              </td>
-              <td>{{ exp_repo.name }}</td>
-              <td>{{ exp_repo.origin }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-    </div>
-    <div class="tab-pane" id="nav-profile">
-        <table id="exp_instance_table">
-          <thead>
-            <tr>
-              <th>Order</th>
-              <th>Note</th>
-              <th>Commit</th>
-              <th>Origin</th>
-            </tr>
-          </thead>
-          <tbody id="exp_instance_tbody">
-          {% for form in exp_instance_formset.forms %}
-            <tr>
-              <td> {{ form.exp_order }} </td>
-              <td> {{ form.note }} </td>
-              <td> {{ form.commit }} </td>
-              <td> {{ form.experiment_repo_id }} {{form.id }} </td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-        {{ exp_instance_formset.management_form }}
-    </div>
-    -->
+      <div id="battexpforms">
+        {% for form in exp_instance_formset.forms %}
+          {{ form }}
+        {% endfor %}
+      </div>
+    </form>
+
+    <h3>Experiments</h3>
     
 		<div class="row">
       <div class="input-group">
@@ -77,22 +32,24 @@
 		<div id="cloning" class="row">
 			<div id="experimentslist" class="list-group col">
         {% for exp_repo in experiment_repo_list %}
-          <div class="list-group-item" data-id={{ exp_repo.name }}>
+          <div class="list-group-item" data-id={{ exp_repo.name }} id="exp_repo_{{exp_repo.id}}">
             {{ exp_repo.name }} <i class="fa fa-trash js-remove" aria-hidden="true"></i>
             <div class="input-group">
               <div class="input-group-prepend">
                 <span class="input-group-text">Commit</span>
               </div>
-              <input class="form-control" type="text" value="latest" />
+              <input class="form-control instance_commit" type="text" value="latest" />
             </div>
             <div class="input-group">
               <div class="input-group-prepend">
                 <span class="input-group-text">Note</span>
               </div>
-              <input class="form-control" type="text"/>
+              <input class="form-control instance_note" type="text"/>
             </div>
+            <input class="instance_experiment_repo_id" type="hidden" value="{{exp_repo.id}}">
             <div class="order-container">
               <span class="order badge badge-primary badge-pill"></span>
+              <input class="instance_exp_order" type="hidden" value="0">
             </div>
           </div>
         {% endfor %}
@@ -100,7 +57,6 @@
 
 			<div id="battexplist" class="list-group col">
 			</div> 
-    </form>
 {% endblock %}
 
 
@@ -110,7 +66,34 @@
   <script>
     document.addEventListener("DOMContentLoaded", function(){
       document.getElementById("experimentlist-search").addEventListener("input", searchOnChange)
+      setInitialSelection()
     });
+
+    const expInstanceTmpl = (experiment_repo_id, note, commit, exp_order, name) => {
+        return `
+          <div class="list-group-item" data-id=${ name }>
+            ${ name } <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Commit</span>
+              </div>
+              <input class="form-control instance_commit" type="text" value="${commit}" />
+            </div>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">Note</span>
+              </div>
+              <input class="form-control instance_note" type="text" value="${note}"/>
+            </div>
+            <input class="instance_experiment_repo_id" type="hidden" value="${experiment_repo_id}">
+            <div class="order-container">
+              <span class="order badge badge-primary badge-pill">${exp_order}</span>
+              <input class="instance_exp_order" type="hidden" value="${exp_order}">
+            </div>
+          </div>
+      `
+    }
+
     function searchOnChange(e) {
       let experimentslist = document.getElementById('experimentslist')
       if (e.target.value === '') {
@@ -123,7 +106,13 @@
         })
       }
     }
-    let exps = new Sortable(experimentslist, {
+
+    const form_count_id = "id_form-TOTAL_FORMS"
+    const empty_prefix = '__prefix__'
+    const empty_form = `{{ exp_instance_formset.empty_form }}`
+    const fields = ['experiment_repo_id', 'note', 'commit', 'exp_order']
+
+    const exps = new Sortable(experimentslist, {
         multiDrag: true,
         selectedClass: 'selected',
         group: {
@@ -134,7 +123,6 @@
         animation: 150,
         sort: false,
         onClone: (evt) => {
-          console.log(evt)
           if (evt.clone) {
             evt.clone.classList.add("added")
           }
@@ -144,13 +132,12 @@
         },
     });
 
-    let batt_exps = new Sortable(battexplist, {
+    const batt_exps = new Sortable(battexplist, {
         multiDrag: true,
         selectedClass: 'selected',
         group: 'shared',
         animation: 150,
         onAdd: (evt) => {
-          // console.log(batt_exps.toArray())
           updateOrderSpan()
         },
         onEnd: (evt) => {
@@ -174,124 +161,66 @@
     });
 
     function updateOrderSpan() {
-      [...document.querySelectorAll('#battexplist .order')].map((x, i) => {
-        x.innerText = i + 1
+      [...document.querySelectorAll('#battexplist .order-container')].map((x, i) => {
+        x.getElementsByClassName('order')[0].innerText = i
+        x.getElementsByClassName('instance_exp_order')[0].value = i
       })
     }
-    function submitBattery() {
-    }
-  </script>
-  <!--
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
-  <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
-  <script>
-  function updateOrder() {
-    const rows = document.querySelectorAll('#exp_instance_tbody tr');
-    rows.forEach((row) => {
-      row.setAttribute("data-id", row.rowIndex - 1)
-      row.children[0].querySelector('input').value = row.rowIndex - 1
-      // row.children[0].innerText = row.rowIndex
-    })
-  }
 
-  Sortable.create(exp_instance_tbody, {
-    onUpdate: function(evt) {
-      updateOrder()
-    }
-  })
-
-  const dataTable = new simpleDatatables.DataTable("#experiment-repo-table", {
-    searchable: true,
-    paging: false
-  })
-
-  const form_count_id = "id_form-TOTAL_FORMS"
-  const form_table_id = "exp_instance_table"
-  const form_tbody_id = "exp_instance_tbody"
-  const order_template = `{{ exp_instance_formset.empty_form.exp_order }}`
-  const note_template = `{{ exp_instance_formset.empty_form.note }}`
-  const commit_template = `{{ exp_instance_formset.empty_form.commit }}`
-  const origin_template = `{{ exp_instance_formset.empty_form.experiment_repo_id }}`
-  const empty_prefix = '__prefix__'
-
-
-  function increment_form_count() {
-    const elem = document.getElementById(form_count_id)
-    elem.value++
-    return elem.value
-  }
-
-  function decrement_form_count() {
-    const elem = document.getElementById(form_count_id)
-    if (elem.value === 0) {
-      return 0
-    }
-    elem.value--
-    return elem.value
-  }
-
-  function add_row(value) {
-    const prefix = increment_form_count() - 1
-    row = document.getElementById(form_tbody_id).insertRow()
-    row.setAttribute("data-id", row.rowIndex - 1)
-    row.insertCell().innerHTML = order_template.replaceAll(empty_prefix, prefix)
-    row.insertCell().innerHTML = note_template.replaceAll(empty_prefix, prefix)
-    row.insertCell().innerHTML = commit_template.replaceAll(empty_prefix, prefix)
-    let exp_select = row.insertCell()
-    exp_select.innerHTML = origin_template.replaceAll(empty_prefix, prefix)
-    exp_select = exp_select.querySelector('select')
-    exp_select.value  = value
-    return row
-  }
-
-  function remove_row(value) {
-    const tbody = document.getElementById(form_tbody_id)
-    const table = document.getElementById(form_table_id)
-    const remRows = [...tbody.querySelectorAll('tr')].filter(row => {
-      return row.querySelector('select').value === String(value)
-    })
-    remRows.map(row => {
-      table.deleteRow(row.rowIndex)
-      decrement_form_count()
-    })
-  }
-
-  /* When we select an experiment from the table, update the select input used
-     by django.
-   */
-  function selectFromCheckbox(event) {
-    const value = event.target.value
-    const checked = event.target.checked
-    event.target.previousElementSibling.textContent = checked
-    if (checked) {
-      if (Array.from(document.querySelectorAll(`#${form_tbody_id} select`)).some(select => select.value === value)) {
-        console.log('already selected?')
-      } else {
-        const row = add_row(value)
+    function setInitialSelection() {
+      const form_count = document.getElementById(form_count_id).value
+      const expbattlist = document.getElementById('battexplist')
+      let forms_to_display = []
+      for (i = 0; i < form_count; i++) {
+        let exp_values = []
+        fields.map(field => {
+          const targetId = `id_form-${i}-${field}`
+          exp_values.push(document.getElementById(targetId).value)
+        })
+        let exp_list_elem = document.getElementById(`exp_repo_${exp_values[0]}`)
+        exp_list_elem.classList.add("added")
+        let name = exp_list_elem.getAttribute('data-id')
+        exp_values.push(name)
+        console.log(exp_values)
+        console.log(expInstanceTmpl(...exp_values))
+        forms_to_display.push(expInstanceTmpl(...exp_values))
       }
-    } else {
-      if (Array.from(document.querySelectorAll(`#${form_tbody_id} select`)).some(select => select.value === value)) {
-        remove_row(value)
-      }
+      expbattlist.innerHTML = forms_to_display.join(' ')
     }
-    updateOrder()
-  }
 
-  /* To run on initial load, assumes that we are using experiment's database
-     IDs as the value for options and as the checkbox id attribute
-   */
-  function checkBoxesFromSelect() {
-    document.querySelectorAll(`#${form_tbody_id} select`).forEach(opt => {
-      const cb = document.getElementById(String(opt.value))
-      cb.checked = true
-      cb.previousElementSibling.textContent = true
-    })
-  }
-  checkBoxesFromSelect()
+    function setFormsForSubmit() {
+      const battexpforms = document.getElementById('battexpforms');
+      const formList = [...document.querySelectorAll('#battexplist .list-group-item')]
+      const formElements = formList.map((x, i) => {
+        const prefix = i
+        let newForm = empty_form.replaceAll(empty_prefix, prefix)
+        return newForm
+      })
+      battexpforms.innerHTML = formElements.join(' ')
 
-  const exp_repo_checkboxes = document.querySelectorAll(".exp_repo_checkbox")
-  exp_repo_checkboxes.forEach(x => x.addEventListener("change", selectFromCheckbox))
+      formList.map((x, i) => {
+        const prefix = i
+        fields.map(field => {
+          const srcClass = `instance_${field}`
+          const targetId = `id_form-${prefix}-${field}`
+          let src = x.getElementsByClassName(srcClass)
+          if (src[0]) {
+            document.getElementById(targetId).value = src[0].value
+          }
+        })
+      })
+
+      const form_count = document.getElementById(form_count_id)
+      form_count.value = formList.length
+    }
+
+    function battexpSubmit() {
+      setFormsForSubmit()
+      document.getElementById("id_form-INITIAL_FORMS").value = 0
+      return true;
+    }
+
   </script>
-  -->
+
 {% endblock %}
+
