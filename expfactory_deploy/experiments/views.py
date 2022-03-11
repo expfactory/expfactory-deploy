@@ -123,8 +123,6 @@ class BatteryComplex(TemplateView):
         return self.render_to_response(self.get_context_data())
 
     def post(self, request, *args, **kwargs):
-        print("POST")
-        print(self.request.POST)
         self.get_object()
         form = forms.BatteryForm(self.request.POST, **self.battery_kwargs)
         battery = form.save()
@@ -137,7 +135,8 @@ class BatteryComplex(TemplateView):
         )
         valid = exp_instance_formset.is_valid()
         if valid:
-            exp_instance_formset.save()
+            ei = exp_instance_formset.save()
+            battery.batteryexperiments_set.exclude(experiment_instance__in=ei).delete()
         elif not valid:
             print(exp_instance_formset.errors)
         if form.is_valid():

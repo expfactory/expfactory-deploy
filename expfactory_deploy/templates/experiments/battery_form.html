@@ -181,8 +181,6 @@
         exp_list_elem.classList.add("added")
         let name = exp_list_elem.getAttribute('data-id')
         exp_values.push(name)
-        console.log(exp_values)
-        console.log(expInstanceTmpl(...exp_values))
         forms_to_display.push(expInstanceTmpl(...exp_values))
       }
       expbattlist.innerHTML = forms_to_display.join(' ')
@@ -215,6 +213,7 @@
     }
 
     function battexpSubmit() {
+      updateOrderSpan()
       setFormsForSubmit()
       document.getElementById("id_form-INITIAL_FORMS").value = 0
       return true;
