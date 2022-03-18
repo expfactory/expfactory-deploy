@@ -1,5 +1,5 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Field, Layout
+from crispy_forms.layout import Field, Layout, Submit
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -41,6 +41,14 @@ class ExperimentUploadForm(forms.Form):
 
         return cleaned_data
 
+class SubjectCount(forms.Form):
+    count = forms.IntegerField(required=True, label="Number of subjects to create")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.add_input(Submit('submit', 'Submit'))
+
 class BatteryForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -49,12 +57,13 @@ class BatteryForm(ModelForm):
 
     class Meta:
         model = models.Battery
-        fields = ["title", "consent", "instructions", "advertisement"]
+        fields = ["title", "consent", "instructions", "advertisement", "status", "public"]
         widgets = {
             "title": forms.TextInput(),
             "consent": forms.Textarea(attrs={"cols": 80, "rows": 2}),
             "instructions": forms.Textarea(attrs={"cols": 80, "rows": 2}),
             "advertisement": forms.Textarea(attrs={"cols": 80, "rows": 2}),
+            "status": forms.HiddenInput(),
         }
 
 

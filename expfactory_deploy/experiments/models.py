@@ -146,7 +146,8 @@ class Battery(TimeStampedModel, StatusField):
     status = StatusField()
     title = models.TextField()
     template_id = models.ForeignKey(
-        "Battery", on_delete=models.CASCADE, blank=True, null=True
+        "Battery", on_delete=models.CASCADE, blank=True, null=True,
+        related_name="children"
     )
     experiment_instances = models.ManyToManyField(
         ExperimentInstance, through="BatteryExperiments"
@@ -155,6 +156,26 @@ class Battery(TimeStampedModel, StatusField):
     instructions = models.TextField(blank=True)
     advertisement = models.TextField(blank=True)
     random_order = models.BooleanField(default=True)
+    public = models.BooleanField(default=False)
+    inter_task_break = models.DurationField(default=0)
+
+    def duplicate(self, status='draft'):
+        """ passing object we wish to clone through model constructor allows
+        created field to be properly set
+        """
+        old_batt = Battery.objects.get(id=self.id)
+        new_batt = Battery(old_batt)
+        new_batt.pk = None
+        new_batt.id = None
+        new_batt.template_id = self
+        new_batt.status = status
+        new_batt.save()
+        for batt_exp in list(self.batteryexperiments_set.all()):
+            batt_exp.battery = new_batt
+            batt_exp.pk = None
+            batt_exp.id = None
+            batt_exp.save()
+        return new_batt
 
 
 class BatteryExperiments(models.Model):
@@ -178,7 +199,7 @@ class Subject(models.Model):
     mturk_id = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True)
-    active = models.BooleanField(default=False)
+    active = models.BooleanField(default=True)
 
 
 class Assignment(SubjectTaskStatusModel):

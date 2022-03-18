@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, View
-from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
 from experiments import forms as forms
 from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
@@ -73,6 +73,9 @@ def add_experiment_repos(context):
 class BatteryList(ListView):
     model = models.Battery
 
+    def get_queryset(self):
+        return models.Battery.objects.filter(status='template').prefetch_related("children")
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         return context
@@ -120,6 +123,8 @@ class BatteryComplex(TemplateView):
 
     def get(self, request, *args, **kwargs):
         self.get_object()
+        if self.battery.status in ['published', 'inactive']:
+            return redirect("experiments:battery-detail", pk=self.battery.id) 
         return self.render_to_response(self.get_context_data())
 
     def post(self, request, *args, **kwargs):
@@ -145,6 +150,11 @@ class BatteryComplex(TemplateView):
             print(form.errors)
             return HttpResponseRedirect(reverse_lazy("battery-list"))
 
+class BatteryClone(View):
+    def get(self, request, *args, **kwargs):
+        pk = self.kwargs.get("pk")
+        batt = get_object_or_404(models.Battery, pk=pk)
+        return redirect('experiments:battery-list')
 
 """
 class BatteryDeploymentDelete(DeleteView):
@@ -198,12 +208,17 @@ class Serve(TemplateView):
         return context
 
     def set_objects(self):
+        subject_id = self.kwargs.get("subject_id")
+        battery_id = self.kwargs.get("battery_id")
         """ we might accept the uuid assocaited with the worker instead of its id """
-        self.subject = get_object_or_404(
-            models.Subject, pk=self.kwargs.get("subject_id")
-        )
+        if subject_id is not None:
+            self.subject = get_object_or_404(
+                models.Subject, id=subject_id
+            )
+        else:
+            self.subject = None
         self.battery = get_object_or_404(
-            models.Battery, pk=self.kwargs.get("battery_id")
+            models.Battery, id=battery_id
         )
         try:
             self.assignment = models.Assignment.get(
@@ -224,3 +239,15 @@ class Serve(TemplateView):
 
     def post(self, request, *args, **kwargs):
         return
+
+class SubjectList(ListView):
+    model = models.Subject
+
+class CreateSubjects(FormView):
+    template_name = 'experiments/create_subjects.html'
+    form_class = forms.SubjectCount
+    success_url = reverse_lazy('experiments:subject-list')
+    def form_valid(self, form):
+        new_subjects = [models.Subject() for i in range(form.cleaned_data['count'])]
+        models.Subject.objects.bulk_create(new_subjects)
+        return super().form_valid(form)

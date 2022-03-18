@@ -35,6 +35,7 @@ urlpatterns = [
     path("battery/", views.BatteryList.as_view(), name="battery-list"),
     path("battery/<int:pk>/", views.BatteryDetail.as_view(), name="battery-detail"),
     path("battery/create/", views.BatteryComplex.as_view(), name="battery-create"),
+    path("battery/<int:pk>/clone", views.BatteryClone.as_view(), name="battery-clone"),
     path(
         "battery/<int:pk>/update/",
         views.BatteryComplex.as_view(),
@@ -50,6 +51,8 @@ urlpatterns = [
         views.Serve.as_view(),
         name="serve",
     ),
+    path("subjects/", views.SubjectList.as_view(), name="subject-list"),
+    path("subjects/create", views.CreateSubjects.as_view(), name="subjects-create"),
 ]
 
 """ urls we may want
