@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from pathlib import Path
 
@@ -31,7 +32,7 @@ class SubjectTaskStatusModel(StatusModel):
     be in relation to either an experiment or a battery"""
 
     STATUS = Choices("not-started", "started", "completed", "failed")
-    status = StatusField()
+    status = StatusField(default="not-started")
     started_at = MonitorField(monitor="status", when=["started"])
     completed_at = MonitorField(monitor="status", when=["completed"])
     failed_at = MonitorField(monitor="status", when=["failed"])
@@ -157,7 +158,7 @@ class Battery(TimeStampedModel, StatusField):
     advertisement = models.TextField(blank=True)
     random_order = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
-    inter_task_break = models.DurationField(default=0)
+    inter_task_break = models.DurationField(default=datetime.timedelta())
 
     def duplicate(self, status='draft'):
         """ passing object we wish to clone through model constructor allows
@@ -201,6 +202,16 @@ class Subject(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True)
     active = models.BooleanField(default=True)
 
+class Result(TimeStampedModel, SubjectTaskStatusModel):
+    """ Results from a particular experiment returned by subjects """
+    assignment = models.ForeignKey(
+        'Assignment', on_delete=models.SET_NULL, null=True
+    )
+    battery_experiment = models.ForeignKey(
+        BatteryExperiments, on_delete=models.SET_NULL, null=True
+    )
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
+    data = models.TextField(blank=True)
 
 class Assignment(SubjectTaskStatusModel):
     """ Associate a subject with a battery deployment that they should complete """
@@ -211,18 +222,19 @@ class Assignment(SubjectTaskStatusModel):
 
     def get_next_experiment(self):
         order = "?" if self.battery.random_order else "order"
-        experiments = (
+        batt_exps = (
             BatteryExperiments.objects.filter(battery=self.battery)
-            .values("experiment_instance")
+            .select_related("experiment_instance")
             .order_by(order)
         )
+        experiments = [x.experiment_instance for x in batt_exps]
         exempt = list(
-            Results.objects.filter(
-                Q(status=Results.STATUS.completed) | Q(status=Results.STATUS.failed),
+            Result.objects.filter(
+                Q(status=Result.STATUS.completed) | Q(status=Result.STATUS.failed),
                 subject=self.subject,
-            )
+            ).values_list('battery_experiment__experiment_instance', flat=True)
         )
-        unfinished = [exp for exp in experiments if exp not in exempt]
+        unfinished = [exp for exp in experiments if exp.id not in exempt]
         if len(unfinished):
             return unfinished[0]
         else:
@@ -236,11 +248,4 @@ class Assignment(SubjectTaskStatusModel):
         ]
 
 
-class Result(TimeStampedModel, SubjectTaskStatusModel):
-    """ Results from a particular experiment returned by subjects """
 
-    battery_experiment = models.ForeignKey(
-        BatteryExperiments, on_delete=models.SET_NULL, null=True
-    )
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
-    data = models.TextField(blank=True)

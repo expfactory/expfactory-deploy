@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-js_tag = "<script src={}></script>"
+js_tag = '<script src="{}"></script>'
 css_tag = '<link rel="stylesheet" type="text/css" href="{}">'
 """ Poldrack lab expfactory-experiments/surveys config files have an array
     strings that are resources that need to be loaded for experiment to work.
@@ -36,7 +36,7 @@ def format_external_scripts(scripts, exp_location, static_location="/"):
 
 
 def generate_experiment_context(
-    exp_fs_path, static_url_path, exp_url_path=None, static_rewrite=None
+    exp_fs_path, static_url_path, exp_url_path=None, static_rewrite=None, post_url="./serve", next_page="./serve"
 ):
     """context used in old template
     experiment_load - list of scripts
@@ -68,8 +68,8 @@ def generate_experiment_context(
     context = {
         "experiment_load": experiment_load,
         "uniqueId": uniqueId,
-        "post_url": "./serve",
-        "next_page": "./serve",
+        "post_url": post_url,
+        "next_page": next_page,
         "exp_id": exp_fs_path.stem,
         "exp_end": "./decline",
     }

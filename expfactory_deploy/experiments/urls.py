@@ -47,12 +47,18 @@ urlpatterns = [
         name="battery-create",
     ),
     path(
-        "serve/<int:worker_id>/<int:battery_id>/<int:experiment_id>/",
+        "serve/<int:subject_id>/<int:battery_id>/",
         views.Serve.as_view(),
-        name="serve",
+        name="serve-battery",
+    ),
+    path(
+        "serve/<int:subject_id>/<int:battery_id>/<int:experiment_id>/",
+        views.Serve.as_view(),
+        name="serve-experiment",
     ),
     path("subjects/", views.SubjectList.as_view(), name="subject-list"),
     path("subjects/create", views.CreateSubjects.as_view(), name="subjects-create"),
+    path("sync/<int:assignment_id>/<int:experiment_id>/", views.Results.as_view(), name="push-results"),
 ]
 
 """ urls we may want

@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -6,7 +7,7 @@ from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.forms import formset_factory
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse_lazy
 from django.views import View
@@ -162,36 +163,39 @@ class BatteryDeploymentDelete(DeleteView):
     success_url = reverse_lazy('battery-list')
 """
 
+def jspsych_context(exp_instance): 
+    deploy_static_fs = exp_instance.deploy_static()
+    deploy_static_url = deploy_static_fs.replace(
+        settings.DEPLOYMENT_DIR, settings.STATIC_DEPLOYMENT_URL
+    )
+    location = exp_instance.experiment_repo_id.location
+    exp_fs_path = Path(deploy_static_fs, Path(location).stem)
+    exp_url_path = Path(deploy_static_url, Path(location).stem)
+
+    # default js/css location for poldracklab style experiments
+    static_url_path = Path(settings.STATIC_NON_REPO_URL, "default")
+
+    return generate_experiment_context(
+        exp_fs_path, static_url_path, exp_url_path
+    )
 
 class Preview(View):
     def get(self, request, *args, **kwargs):
         exp_id = self.kwargs.get("exp_id")
         experiment = get_object_or_404(models.ExperimentRepo, id=exp_id)
-        # Could embed commit or instance id in kwargs, default to latest for now
         commit = experiment.get_latest_commit()
         exp_instance, created = models.ExperimentInstance.objects.get_or_create(
             experiment_repo_id=experiment, commit=commit
         )
-        deploy_static_fs = exp_instance.deploy_static()
-        deploy_static_url = deploy_static_fs.replace(
-            settings.DEPLOYMENT_DIR, settings.STATIC_DEPLOYMENT_URL
-        )
-        exp_fs_path = Path(deploy_static_fs, Path(experiment.location).stem)
-        exp_url_path = Path(deploy_static_url, Path(experiment.location).stem)
 
+        # Could embed commit or instance id in kwargs, default to latest for now
         # default template for poldracklab style experiments
         template = "experiments/jspsych_deploy.html"
-        # default js/css location for poldracklab style experiments
-        static_url_path = Path(settings.STATIC_NON_REPO_URL, "default")
-
-        context = generate_experiment_context(
-            exp_fs_path, static_url_path, exp_url_path
-        )
+        context = jspsych_context(exp_instance)
         return render(request, template, context)
 
-
 class Serve(TemplateView):
-    worker = None
+    subjectg = None
     battery = None
     experiment = None
     assignment = None
@@ -201,7 +205,7 @@ class Serve(TemplateView):
         Return a list of template names to be used for the request. Must return
         a list. May not be called if render_to_response() is overridden.
         """
-        return ["experiments/____.html"]
+        return ["experiments/jspsych_deploy.html"]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -210,7 +214,7 @@ class Serve(TemplateView):
     def set_objects(self):
         subject_id = self.kwargs.get("subject_id")
         battery_id = self.kwargs.get("battery_id")
-        """ we might accept the uuid assocaited with the worker instead of its id """
+        """ we might accept the uuid assocaited with the subject instead of its id """
         if subject_id is not None:
             self.subject = get_object_or_404(
                 models.Subject, id=subject_id
@@ -221,12 +225,16 @@ class Serve(TemplateView):
             models.Battery, id=battery_id
         )
         try:
-            self.assignment = models.Assignment.get(
+            self.assignment = models.Assignment.objects.get(
                 subject=self.subject, battery=self.battery
             )
         except ObjectDoesNotExist:
-            # make new one?
-            pass
+            # make new assignment for testing, in future 404.
+            assignment = models.Assignment(
+                subject_id=subject_id, battery_id=battery_id, 
+            )
+            assignment.save()
+            self.assignment = assignment
 
     def get(self, request, *args, **kwargs):
         self.set_objects()
@@ -234,11 +242,40 @@ class Serve(TemplateView):
             # display instructions and consent
             pass
 
-        self.assignment.get_next_experiment()
-        return self.render_to_response(self.get_context_data())
+        self.experiment = self.assignment.get_next_experiment()
+        exp_context = jspsych_context(self.experiment)
+        exp_context["post_url"] = reverse_lazy("experiments:push-results", args=[self.assignment.id, self.experiment.id])
+        exp_context["next_page"] = reverse_lazy("serve-battery", args=[self.subject.id, self.battery.id])
+        context = {**self.get_context_data(), **exp_context}
+        return self.render_to_response(context)
 
     def post(self, request, *args, **kwargs):
         return
+
+class Results(View):
+    # If more frameworks are added this would dispatch to their respective
+    # versions of this function.
+    # expfactory-docker purges keys and process survey data at this step
+    def process_exp_data(self, post_data, assignment):
+        data = json.loads(post_data)
+        finished = data.get("status") == "finished"
+        if finished:
+           assignment.status = "completed"
+        elif assignment.status == "not-started":
+            assignment.status = "started"
+        return data, finished
+
+    def post(self, request, *args, **kwargs):
+        assignment_id = self.kwargs.get("assignment_id")
+        experiment_id = self.kwargs.get("experiment_id")
+        exp_instance = get_object_or_404(models.ExperimentInstance, id=experiment_id)
+        assignment = get_object_or_404(models.Assignment, id=assignment_id)
+        batt_exp = get_object_or_404(models.BatteryExperiments, battery=assignment.battery, experiment_instance=exp_instance)
+        data, finished = self.process_exp_data(request.body, assignment)
+        if finished:
+            models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status="completed").save()
+        assignment.save()
+        return HttpResponse('recieved')
 
 class SubjectList(ListView):
     model = models.Subject
