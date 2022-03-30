@@ -65,10 +65,16 @@ def find_new_experiments(search_dir=settings.REPO_DIR):
 # find_valid_dirs('../expfactory-experiments')
 
 
-def get_latest_commit(repo_location):
+def get_latest_commit(repo_location, sub_dir=None):
     repo = git.Repo(repo_location)
     return repo.head.commit.hexsha
-
+    '''
+    if sub_dir is None:
+        return repo.head.commit.hexsha
+    else:
+        commits = repo.git.log(path, pretty="format:%H").split('\n')
+        return commits.split('\n')[0]
+    '''
 
 def is_valid_commit(repo_location, commit):
     try:
@@ -77,3 +83,7 @@ def is_valid_commit(repo_location, commit):
         return True
     except GitError as e:
         return False
+
+def pull_origin(repo_location):
+    repo = git.Repo(repo_location)
+    repo.remotes.origin.pull()

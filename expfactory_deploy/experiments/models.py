@@ -73,6 +73,20 @@ class RepoOrigin(models.Model):
             base_repo.git.worktree("add", deploy_to, commit)
             return deploy_to
 
+    def pull_origin(self):
+        repo.pull_origin(self.path)
+        self.update_dependents()
+
+    def update_dependents(self):
+        latest = self.get_latest_commit()
+        instances = ExperimentInstance.objects.filter(experiment_repo_id__origin=self.id).exclude(commit=latest)
+        # we will want to filter battexps on use_latest in production
+        battexps = BatteryExperiments.objects.filter(experiment_instance__id__in=instances.values_list('id', flat=True))
+        for battexp in battexps:
+            new_instance, _ = ExperimentInstance.objects.get_or_create(experiment_repo_id=battexp.experiment_instance.experiment_repo_id, commit=latest)
+            battexp.experiment_instance = new_instance
+            battexp.save()
+
 
 @reversion.register()
 class ExperimentRepo(models.Model):
@@ -190,9 +204,11 @@ class BatteryExperiments(models.Model):
         default=0,
         verbose_name="Experiment order",
     )
+    use_latest = models.BooleanField(default=False)
 
     class Meta:
         ordering = ('order',)
+    
 
 
 class Subject(models.Model):
