@@ -1,15 +1,50 @@
 {% extends "base.html" %}
 
+
 {% block content %}
+
+
     <h2>Subjects</h2>
-    <ul>
-        {% for subject in object_list %}
-            <li>
-              {{ subject.uuid }}
-            </li>
+<table id="subject-table">
+  <thead>
+    <tr>
+      <th></th>
+      <th>Subject ID</th>
+      <th>Assignments</th>
+    </tr>
+  </thead>
+  <tbody id="subject_tbody">
+    {% for subject in object_list %}
+    <tr>
+      <td>
+        <div style="display: none;" class="exp_repo_checked">false</div>
+        <input type="checkbox" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox">
+      </td>
+      <td><a href="">{{ subject.uuid }}</a></td>
+      <td>
+        {% for assignment in subject.assignment_set.all %}
+          <a href="{% url 'experiments:battery-detail'  assignment.battery.id %}">
+            {{ assignment.battery.title }}
+          </a>
         {% empty %}
-          <li> No Subjects</li>
+          None
         {% endfor %}
-    </ul>
-    <a href="{% url 'experiments:subjects-create' %}"> create </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<a href="{% url 'experiments:subjects-create' %}"> create </a>
 {% endblock %}
+
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dataTable = new simpleDatatables.DataTable("#subject-table", {
+    searchable: true,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}
+

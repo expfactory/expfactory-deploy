@@ -1,0 +1,11 @@
+
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+    {% if object.pk %}
+        <h2> Update Repository URL </h2>
+    {% else %}
+        <h2>Add New Repository</h2>
+    {% endif %}
+    {% crispy form %}
+{% endblock %}

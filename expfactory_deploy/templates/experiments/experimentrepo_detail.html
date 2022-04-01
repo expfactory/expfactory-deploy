@@ -2,7 +2,10 @@
 
 {% block content %}
 
-<h2>Commits and batteries using those commits:</h2>
+<h2>{{ object.name }}</h2>
+{{ object.origin }}
+
+<h3>Commits and batteries using those commits:</h3>
 <ul>
 {% for exp in object.experimentinstance_set.all %}
   <li>
@@ -14,12 +17,48 @@
     <ul>
       {% for battery in exp.battery_set.all %}
         <li>
-          <a href="{% url 'experiments:battery-detail' battery.id %}" > {{ battery.title }} - {{ battery.status }} </a>
+          <a href="{% url 'experiments:battery-detail' battery.id %}" > {{ battery.title }} - {{ battery.status }} </a> <br/>
         </li>
       {% endfor %}
     </ul>
   </li>
 {% endfor %}
 </ul>
-
+<h3>Results for experiment:</h3>
+<table id="result-table">
+  <thead>
+    <tr>
+      <th>Battery</th>
+      <th>Status</th>
+      <th>Results</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for battery, results in batt_results %}
+    <tr>
+      <td>
+          <a href="{% url 'experiments:battery-detail' battery.id %}" > {{ battery.title }}</a>
+      </td>
+      <td> {{ battery.status }} </td>
+      <td>
+        {% for result in results %}
+          {{ result }}
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
+
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dataTable = new simpleDatatables.DataTable("#result-table", {
+    searchable: true,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}
+

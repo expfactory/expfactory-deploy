@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-  {{ object.title }} - {{ object.status }}
+  <h2>{{ object.title }} - {{ object.status }}</h2>
   <br />
-  <table>
+  <h3> Experiments </h3>
+  <table id="experiment-table">
     <thead>
       <tr>
         <th>order</th>
@@ -26,4 +27,51 @@
     </tbody>
   </table>
   <a href="{% url 'experiments:battery-update' object.id %}">Edit</a>
+  <h3> Assignments </h3>
+  <table id="subject-table">
+    <thead>
+      <tr>
+        <th>subject</th>
+        <th>started</th>
+        <th>completed</th>
+        <th>results</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for asig in object.assignment_set.all %}
+      <tr>
+        <td>
+          <a href="{{ asig.subject.id }}">{{ asig.subject.uuid }}</a>
+        </td>
+        <td>
+          {{ asig.started_at }}
+        </td>
+        <td>
+          {{ asig.completed_at }}
+        </td>
+        <td>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+
 {% endblock %}
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  const subjectTable = new simpleDatatables.DataTable("#subject-table", {
+    searchable: true,
+    paging: false
+  })
+
+  const experimentTable = new simpleDatatables.DataTable("#experiment-table", {
+    searchable: true,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}
+
