@@ -14,31 +14,40 @@ import pathlib
 from giturlparse import parse
 from experiments import models as models
 
-class ExperimentUploadForm(forms.Form):
-    url = forms.URLField()
+class RepoOriginForm(ModelForm):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.add_input(Submit('submit', 'Submit'))
+
+    class Meta:
+        model  = models.RepoOrigin
+        fields = ["url"]
+        widgets = {
+            "url": forms.TextInput(),
+        }
+
+    # Todo: extract user/org name and use them in path and name 
+    # could also imagine adding index for collisions.
     def clean(self):
         cleaned_data = super().clean()
         url = cleaned_data["url"]
         gitparse_url = parse(url)
         if not gitparse_url.valid:
             self.add_error("url", "gitparseurl library could not validate repo url.")
-        url = gitparse_url.urls.get('https', url)
-        self.cleaned_data.update({'url', url})
-
-        path = pathlib.Path(settings.REPO_DIR, gitparse_url)
-        path.mkdir(parents=True, exists_ok=True)
-        try:
-            models.RepoOrigin.get(origin=url)
-            self.add_error("url", f"repository with this origin already exists")
-        except models.RepoOrigin.DoexNotExist:
-            db_repo_origin = models.RepoOrigin(origin=url, path=path)
+        else:
+            name = gitparse_url.name
+            path = pathlib.Path(settings.REPO_DIR, name)
+            path.mkdir(parents=True, exist_ok=True)
+            self.instance.path = path
+            self.instance.name = name
             try:
-                repo = git.Repo.clone_from(url, path)
-                db_repo_origin.save()
-            except git.exc.GitError as e:
-                self.add_error("url", e)
-
+                models.RepoOrigin.objects.get(name=name, path=path)
+            except ObjectDoesNotExist:
+                pass
+            else:
+                self.add_error('Repository with this name currently exists')
         return cleaned_data
 
 class SubjectCount(forms.Form):
@@ -117,7 +126,7 @@ class ExperimentInstanceOrderForm(ExperimentInstanceForm):
         # should we return gitpython error message here?
         if not exp_instance.origin.is_valid_commit(commit):
             raise forms.ValidationError(
-                f"Commit '{commit}' is invalid for {exp_instance.origin}"
+                f"Commit '{commit}' is invalid for {exp_instance.url}"
             )
 
         cleaned_data["commit"] = commit

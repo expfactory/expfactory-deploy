@@ -7,7 +7,9 @@ import reversion
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.dispatch import receiver
 from django.urls import reverse
+from giturlparse import parse
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from model_utils.models import StatusModel, TimeStampedModel
@@ -48,12 +50,12 @@ class SubjectTaskStatusModel(StatusModel):
 class RepoOrigin(models.Model):
     """ Location of a repository that contains an experiment """
 
-    origin = models.URLField(unique=True)
-    path = models.TextField()
+    url = models.TextField(unique=True)
+    path = models.TextField(unique=True)
     name = models.TextField(blank=True, unique=True)
 
     def __str__(self):
-        return self.origin
+        return self.url
 
     def get_latest_commit(self):
         return repo.get_latest_commit(self.path)
@@ -87,6 +89,16 @@ class RepoOrigin(models.Model):
             battexp.experiment_instance = new_instance
             battexp.save()
 
+    def clone(self):
+        repo = git.Repo.clone_from(self.url, self.path)
+
+
+
+''' Will likely want to have clone be called as a task from here
+@receiver(models.signals.post_save, sender=RepoOrigin)
+def execute_after_save(sender, instance, created, *args, **kwargs):
+    if created:
+'''
 
 @reversion.register()
 class ExperimentRepo(models.Model):
@@ -113,11 +125,11 @@ class ExperimentRepo(models.Model):
     def url(self):
         base_path = self.origin.path
         exp_location = self.location
-        if "git@github.com:" in self.origin.origin:
-            origin_url = self.origin.origin.replace("git@github.com:", "https://github.com/")
+        if "git@github.com:" in self.origin.url:
+            origin_url = self.origin.url.replace("git@github.com:", "https://github.com/")
             exp_location = self.location.replace(base_path, f"/tree/{self.branch}")
         else:
-            origin_url = self.origin.origin
+            origin_url = self.origin.url
         return f"{origin_url}{exp_location}"
 
     def __str__(self):

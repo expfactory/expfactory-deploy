@@ -23,6 +23,11 @@ urlpatterns = [
         name="experiment-repo-create",
     ),
     path(
+        "repo/add/",
+        views.RepoOriginCreate.as_view(),
+        name="repo-origin-create",
+    ),
+    path(
         "experiment_repo/<int:pk>/update/",
         views.ExperimentRepoUpdate.as_view(),
         name="experiment-repo-update",

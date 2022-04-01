@@ -32,4 +32,4 @@ About
 This repository is intended as a replacement for
 `expfactory-docker<https://github.com/expfactory/expfactory-docker>`_ and
 seeks to expand on the ease of use of the first iteration of expfactory and
-integrate the tenets of reproducibility from the second iteration.
+integrate the tenets of reproducibility from the second iteration. 

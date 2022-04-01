@@ -13,12 +13,17 @@ Given a repo, crawl its subdirectories and return paths to directories with vali
 
 
 def find_valid_dirs(repo):
-    fp = open(pathlib.Path(__file__).parent.joinpath("experiment_schema.json"))
-    schema = json.load(fp)
+    with open(pathlib.Path(__file__).parent.joinpath("experiment_schema.json")) as fp:
+        schema = json.load(fp)
     valid_dirs = []
     errors = []
+    # switch to scandir if too slow
     for root, dir, files in os.walk(repo):
         if "config.json" not in files:
+            continue
+
+        if "config.json" in files and "index.html" in files:
+            # expfactory2 - todo
             continue
         with open(os.path.join(root, "config.json")) as config_fp:
             config = json.load(config_fp)

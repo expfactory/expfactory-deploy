@@ -21,6 +21,21 @@ sys.path.append(Path(settings.ROOT_DIR, "expfactory_deploy_local"))
 
 from expfactory_deploy_local.utils import generate_experiment_context
 
+# Repo Views
+
+class RepoOriginListView(ListView):
+    model = models.RepoOrigin
+    queryset = models.RepoOrigin.objects.prefetch_related("experimentrepo_set")
+
+class RepoOriginCreate(CreateView):
+    model = models.RepoOrigin
+    form_class = forms.RepoOriginForm
+    success_url = reverse_lazy("experiments:experiment-repo-list")
+
+    def form_valid(self, form): 
+        response = super().form_valid(form)
+        self.object.clone()
+        return response
 
 # Experiment Views
 def experiment_instances_from_latest(experiment_repos):
@@ -38,12 +53,20 @@ class ExperimentRepoList(ListView):
 
 class ExperimentRepoDetail(DetailView):
     model = models.ExperimentRepo
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        batteries = models.Battery.objects.filter(batteryexperiments__experiment_instance__experiment_repo_id=self.get_object())
+        results = models.Result.objects.filter(battery_experiment__experiment_instance__experiment_repo_id=self.get_object())
+        batt_results = [(batt, list(results.filter(battery_experiment__battery=batt))) for batt in batteries]
+        context['batt_results'] = batt_results
+        return context
 
 
 def add_new_experiments(request):
     created_repos, created_experiments, errors = find_new_experiments()
     for repo in created_repos:
-        messages.info(request, f"Tracking previously unseen repository {repo.origin}")
+        messages.info(request, f"Tracking previously unseen repository {repo.url}")
     for experiment in created_experiments:
         messages.info(request, f"Added new experiment {experiment.name}")
     for error in errors:
@@ -84,7 +107,7 @@ class BatteryList(ListView):
 
 class BatteryDetail(DetailView):
     model = models.Battery
-    queryset = models.Battery.objects.prefetch_related('experiment_instances')
+    queryset = models.Battery.objects.prefetch_related("assignment_set", "experiment_instances")
 
 
 """
@@ -279,6 +302,8 @@ class Results(View):
 
 class SubjectList(ListView):
     model = models.Subject
+    queryset = models.Subject.objects.prefetch_related("assignment_set")
+    
 
 class CreateSubjects(FormView):
     template_name = 'experiments/create_subjects.html'
