@@ -37,6 +37,19 @@ urlpatterns = [
         views.ExperimentRepoDelete.as_view(),
         name="experiment-repo-delete",
     ),
+
+    path(
+        "experiment_repo/tags/add/",
+        views.ExperimentRepoBulkTag.as_view(),
+        name="experiment-repo-bulk-tag-add",
+        kwargs={'action': 'add'}
+    ),
+    path(
+        "experiment_repo/tags/remove/",
+        views.ExperimentRepoBulkTag.as_view(),
+        name="experiment-repo-bulk-tag-remove",
+        kwargs={'action': 'remove'}
+    ),
     path("battery/", views.BatteryList.as_view(), name="battery-list"),
     path("battery/<int:pk>/", views.BatteryDetail.as_view(), name="battery-detail"),
     path("battery/create/", views.BatteryComplex.as_view(), name="battery-create"),
@@ -62,13 +75,11 @@ urlpatterns = [
         name="serve-experiment",
     ),
     path("subjects/", views.SubjectList.as_view(), name="subject-list"),
+    path("subjects/toggle", views.ToggleSubjectActivation.as_view(), name="subject-toggle"),
+    path("subjects/assign", views.AssignSubject.as_view(), name="subject-assign"),
     path("subjects/create", views.CreateSubjects.as_view(), name="subjects-create"),
+    path("subjects/<int:pk>/", views.SubjectDetail.as_view(), name="subject-detail"),
     path("sync/<int:assignment_id>/<int:experiment_id>/", views.Results.as_view(), name="push-results"),
 ]
 
-""" urls we may want
-path('battery/<int:pk>/preview/', views.battery_preview, name='battery-preview'),
-path('battery/<int:pk>/serve/', views.battery_serve, name='battery-serve'),
-path('results/<int:bid>/<int:expid>/<int:wid>/ views.results, name='results'),
-"""
 app_name = "experiments"

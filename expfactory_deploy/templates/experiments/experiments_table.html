@@ -1,11 +1,10 @@
-<link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
-<script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
 <table id="experiment-repo-table">
   <thead>
     <tr>
       <th></th>
       <th>Name</th>
       <th>Origin</th>
+      <th>Tags</th>
       <th></th>
     </tr>
   </thead>
@@ -13,11 +12,15 @@
     {% for exp_repo in experiment_repo_list %}
     <tr>
       <td>
-        <div style="display: none;" class="exp_repo_checked">false</div>
         <input type="checkbox" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox">
       </td>
       <td><a href="/experiment_repo/{{ exp_repo.id }}/">{{ exp_repo.name }}</a></td>
       <td><a href="{{ exp_repo }}">{{ exp_repo }}</a></td>
+      <td>
+        {% for tag in exp_repo.tags.all %}
+          {{ tag }} 
+        {% endfor %}
+      </td>
       <td><a href="preview/{{ exp_repo.id }}">Preview</a></td>
     </tr>
     {% endfor %}

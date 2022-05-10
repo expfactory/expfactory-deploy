@@ -9,6 +9,8 @@ from django.forms import (
     inlineformset_factory,
     modelformset_factory,
 )
+from django.urls import reverse_lazy
+from taggit.forms import TagField
 import git
 import pathlib
 from giturlparse import parse
@@ -50,6 +52,51 @@ class RepoOriginForm(ModelForm):
                 self.add_error('Repository with this name currently exists')
         return cleaned_data
 
+'''
+    Here we make a widget and field to make partial use of form validation
+    for the checkboxes that are manually rendered in subject-list.
+    Exposing instance and relation data in a nice table takes more work
+    with custom widget templates. In lieu of that we manually render the
+    inputs in the template, and keep our feel bad hacks small.
+'''
+class NoRenderWidget(forms.SelectMultiple):
+    def render(*args, **kwargs):
+        return ""
+
+'''
+    TypedMultipleChoiceField understands the arrays that html post
+    data sends in, but it expects 'valid_values' to be pre specified
+    a la choices tupoles. We bypass this check with the valid_value override.
+    Validate is still called, which attempts to coerce the values.
+'''
+class IdList(forms.TypedMultipleChoiceField):
+    def __init__(self, *args, **kwargs):
+        self.coerce = int
+        super().__init__(*args, **kwargs)
+
+    def valid_value(self, value):
+        return True
+
+class SubjectActionForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.add_input(Submit('deactivate', 'Deactivate', formaction='/subjects/toggle'))
+        self.helper.add_input(Submit('assign', 'Assign', formaction='/subjects/assign'))
+        self.helper.form_tag = False
+
+    batteries = forms.ModelMultipleChoiceField(
+        queryset=models.Battery.objects.all(),
+        widget=forms.CheckboxSelectMultiple, 
+        required=False
+    )
+    subjects = IdList(
+        widget=NoRenderWidget,
+        required=False,
+        label=False
+    )
+
+
 class SubjectCount(forms.Form):
     count = forms.IntegerField(required=True, label="Number of subjects to create")
 
@@ -57,6 +104,48 @@ class SubjectCount(forms.Form):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.add_input(Submit('submit', 'Submit'))
+
+
+class ExperimentRepoForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_tag = True
+        self.helper.add_input(Submit('submit', 'Update'))
+
+    class Meta:
+        model = models.ExperimentRepo
+        fields = ["name", "tags"]
+        widgets = {
+            "name": forms.TextInput()
+        }
+
+class ExperimentRepoBulkTagForm(forms.Form):
+    tags = TagField()
+    experiments = IdList(
+        widget=NoRenderWidget,
+        required=False,
+        label=False
+    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.add_input(
+            Submit(
+                'add_tags',
+                'Add Tags',
+                formaction=reverse_lazy("experiments:experiment-repo-bulk-tag-add")
+            )
+        )
+        self.helper.add_input(
+            Submit(
+                'add_tags',
+                'Add Tags',
+                formaction=reverse_lazy("experiments:experiment-repo-bulk-tag-remove")
+            )
+        )
+        self.helper.form_id = 'experiment-repo-bulk-tag'
+
 
 class BatteryForm(ModelForm):
     def __init__(self, *args, **kwargs):

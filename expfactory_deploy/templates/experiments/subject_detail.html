@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>{{ object.uuid }}</h2>
+<table id="result-table">
+  <thead>
+    <tr>
+      <th>Battery</th>
+      <th>Status</th>
+      <th>Results</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for assignment in object.assignment_set.all %}
+    <tr>
+      <td>
+          <a href="{% url 'experiments:battery-detail' assignment.battery.id %}" > {{ assignment.battery.title }}</a>
+      </td>
+      <td> {{ assignment.status }} </td>
+      <td>
+        {% for result in assignment.results %}
+          {{ result.battery_experiment.experiment_instance.experiment_repo_id.name }}
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dataTable = new simpleDatatables.DataTable("#result-table", {
+    searchable: true,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}
+

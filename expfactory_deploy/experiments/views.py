@@ -2,17 +2,22 @@ import json
 import sys
 from pathlib import Path
 
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Field, Layout, Submit
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F
-from django.forms import formset_factory
+from django.core.serializers import serialize
+from django.db.models import F, Q
+from django.forms import formset_factory, TextInput
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
+from taggit.models import Tag
+
 from experiments import forms as forms
 from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
@@ -50,6 +55,13 @@ class ExperimentRepoList(ListView):
     model = models.ExperimentRepo
     queryset = models.ExperimentRepo.objects.prefetch_related("origin")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tags = [x['name'] for x in Tag.objects.all().values('name')]
+        tags.append('')
+        context['tags'] = json.dumps(tags)
+        context['tag_form'] = forms.ExperimentRepoBulkTagForm()
+        return context
 
 class ExperimentRepoDetail(DetailView):
     model = models.ExperimentRepo
@@ -76,12 +88,14 @@ def add_new_experiments(request):
 
 class ExperimentRepoUpdate(UpdateView):
     model = models.ExperimentRepo
-    fields = ["name"]
+    form_class = forms.ExperimentRepoForm
+    success_url = reverse_lazy("experiments:experiment-repo-list")
+
 
 
 class ExperimentRepoDelete(DeleteView):
     model = models.ExperimentRepo
-    success_url = reverse_lazy("experiment-repo-list")
+    success_url = reverse_lazy("experiments:experiment-repo-list")
 
 
 # Battery Views
@@ -218,7 +232,7 @@ class Preview(View):
         return render(request, template, context)
 
 class Serve(TemplateView):
-    subjectg = None
+    subject = None
     battery = None
     experiment = None
     assignment = None
@@ -266,6 +280,10 @@ class Serve(TemplateView):
             pass
 
         self.experiment = self.assignment.get_next_experiment()
+
+        if self.experiment is None:
+            return redirect('experiments:battery-list')
+
         exp_context = jspsych_context(self.experiment)
         exp_context["post_url"] = reverse_lazy("experiments:push-results", args=[self.assignment.id, self.experiment.id])
         exp_context["next_page"] = reverse_lazy("serve-battery", args=[self.subject.id, self.battery.id])
@@ -282,9 +300,7 @@ class Results(View):
     def process_exp_data(self, post_data, assignment):
         data = json.loads(post_data)
         finished = data.get("status") == "finished"
-        if finished:
-           assignment.status = "completed"
-        elif assignment.status == "not-started":
+        if assignment.status == "not-started":
             assignment.status = "started"
         return data, finished
 
@@ -300,10 +316,17 @@ class Results(View):
         assignment.save()
         return HttpResponse('recieved')
 
+class SubjectDetail(DetailView):
+    model = models.Subject
+
 class SubjectList(ListView):
     model = models.Subject
-    queryset = models.Subject.objects.prefetch_related("assignment_set")
-    
+    queryset = models.Subject.objects.filter(active=True).prefetch_related("assignment_set")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['subject_select'] = forms.SubjectActionForm()
+        return context
 
 class CreateSubjects(FormView):
     template_name = 'experiments/create_subjects.html'
@@ -313,3 +336,46 @@ class CreateSubjects(FormView):
         new_subjects = [models.Subject() for i in range(form.cleaned_data['count'])]
         models.Subject.objects.bulk_create(new_subjects)
         return super().form_valid(form)
+
+class SubjectListAction(FormView):
+    template_name = 'experiments/subject_list.html'
+    form_class = forms.SubjectActionForm
+    success_url = reverse_lazy('experiments:subject-list')
+
+class ToggleSubjectActivation(SubjectListAction):
+    def form_valid(self, form):
+        models.Subject.objects.filter(id__in=form.cleaned_data['subjects']).update(active=Q(active=False))
+        return super().form_valid(form)
+
+class AssignSubject(SubjectListAction):
+    def form_valid(self, form):
+        subs = models.Subject.objects.filter(id__in=form.cleaned_data['subjects'])
+        batts = models.Battery.objects.filter(id__in=form.cleaned_data['batteries'])
+        assignments = []
+        for batt in batts:
+            for sub in subs:
+                try:
+                    models.Assignment.objects.get(subject=sub, battery=batt)
+                except ObjectDoesNotExist:
+                    assignments.append(models.Assignment(subject=sub, battery=batt))
+        
+        models.Assignment.objects.bulk_create(assignments)
+
+        return super().form_valid(form)
+
+class ExperimentRepoBulkTag(FormView):
+    form_class = forms.ExperimentRepoBulkTagForm
+    success_url = reverse_lazy('experiments:experiment-repo-list')
+    def form_valid(self, form):
+        exp_repos = models.ExperimentRepo.objects.filter(id__in=form.cleaned_data['experiments'])
+        print(form.cleaned_data['experiments'])
+        print(form.cleaned_data['tags'])
+        action = self.kwargs.get('action')
+        for exp_repo in exp_repos:
+            if action == 'add':
+                exp_repo.tags.add(*form.cleaned_data['tags'])
+            elif action == 'remove':
+                exp_repo.tags.remove(*form.cleaned_data['tags'])
+            exp_repo.save()
+        return super().form_valid(form)
+

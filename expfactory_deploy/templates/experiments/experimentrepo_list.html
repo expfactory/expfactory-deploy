@@ -1,8 +1,39 @@
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 
 {% block content %}
+  <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
+  <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
     <h2>Experiments</h2>
-    {% include "experiments/experiments_table.html" with experiment_repo_list=object_list %}
+    {% crispy tag_form %}
+    <table id="experiment-repo-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Name</th>
+          <th>Origin</th>
+          <th>Tags</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="available_exp_list_tbody">
+        {% for exp_repo in object_list %}
+        <tr>
+          <td>
+            <input type="checkbox" name="experiments" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox" form="experiment-repo-bulk-tag">
+          </td>
+          <td><a href="/experiment_repo/{{ exp_repo.id }}/">{{ exp_repo.name }}</a></td>
+          <td><a href="{{ exp_repo }}">{{ exp_repo }}</a></td>
+          <td>
+            {% for tag in exp_repo.tags.all %}
+              {{ tag }} 
+            {% endfor %}
+          </td>
+          <td><a href="preview/{{ exp_repo.id }}">Preview</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
     <a href="{% url 'experiments:experiment-repo-list' %}">Update Experiments</a>
     <script>
       const dataTable = new simpleDatatables.DataTable("#experiment-repo-table", {

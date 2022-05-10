@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 
 
 {% block content %}
@@ -10,7 +11,7 @@
     <tr>
       <th></th>
       <th>Subject ID</th>
-      <th>Assignments</th>
+      <th>Assignments - Results</th>
     </tr>
   </thead>
   <tbody id="subject_tbody">
@@ -18,13 +19,13 @@
     <tr>
       <td>
         <div style="display: none;" class="exp_repo_checked">false</div>
-        <input type="checkbox" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox">
+        <input type="checkbox" name="subjects" value="{{ subject.id }}" class="exp_repo_checkbox" form="subject-select-form">
       </td>
-      <td><a href="">{{ subject.uuid }}</a></td>
+      <td><a href="{% url 'experiments:subject-detail' subject.id %}">{{ subject.uuid }}</a></td>
       <td>
         {% for assignment in subject.assignment_set.all %}
           <a href="{% url 'experiments:battery-detail'  assignment.battery.id %}">
-            {{ assignment.battery.title }}
+            {{ assignment.battery.title }} - {{ assignment.result_status.total }}
           </a>
         {% empty %}
           None
@@ -34,7 +35,10 @@
     {% endfor %}
   </tbody>
 </table>
+<form  id="subject-select-form" method="post">
 <a href="{% url 'experiments:subjects-create' %}"> create </a>
+{% crispy subject_select %}
+</form>
 {% endblock %}
 
 {% block inline_javascript %}

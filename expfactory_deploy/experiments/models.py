@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from collections import defaultdict
 from pathlib import Path
 
 import git
@@ -13,6 +14,7 @@ from giturlparse import parse
 from model_utils import Choices
 from model_utils.fields import MonitorField, StatusField
 from model_utils.models import StatusModel, TimeStampedModel
+from taggit.managers import TaggableManager
 
 from .utils import repo as repo
 
@@ -94,7 +96,7 @@ class RepoOrigin(models.Model):
 
 
 
-''' Will likely want to have clone be called as a task from here
+''' Will likely want to have git clone be called as a task from here
 @receiver(models.signals.post_save, sender=RepoOrigin)
 def execute_after_save(sender, instance, created, *args, **kwargs):
     if created:
@@ -110,6 +112,8 @@ class ExperimentRepo(models.Model):
     location = models.TextField()
     framework = models.ForeignKey(Framework, null=True, on_delete=models.SET_NULL)
     active = models.BooleanField(default=True)
+    cogat_id = models.TextField(blank=True)
+    tags = TaggableManager()
 
     def get_absolute_url(self):
         return reverse("experiment-repo-detail", kwargs={"pk": self.pk})
@@ -224,11 +228,19 @@ class BatteryExperiments(models.Model):
 
 
 class Subject(models.Model):
+    handle = models.TextField(blank=True)
     email = models.TextField(blank=True)
     mturk_id = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True)
     active = models.BooleanField(default=True)
+    tags = TaggableManager()
+
+    def __str__(self):
+        if self.handle:
+            return f"{self.handle}"
+        return f"{self.uuid}"
+
 
 class Result(TimeStampedModel, SubjectTaskStatusModel):
     """ Results from a particular experiment returned by subjects """
@@ -238,6 +250,7 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
     battery_experiment = models.ForeignKey(
         BatteryExperiments, on_delete=models.SET_NULL, null=True
     )
+    # in case we want to collect results without an assignment
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     data = models.TextField(blank=True)
 
@@ -247,6 +260,20 @@ class Assignment(SubjectTaskStatusModel):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
     consent_accepted = models.BooleanField(null=True)
+    note = models.TextField(blank=True)
+
+    @property
+    def results(self):
+        return Result.objects.filter(battery_experiment__battery__assignment=self)
+
+    @property
+    def result_status(self):
+        results = self.results
+        status = defaultdict(lambda: 0)
+        status['total'] = len(results)
+        for result in results:
+            status[result.status] += 1
+        return status
 
     def get_next_experiment(self):
         order = "?" if self.battery.random_order else "order"
