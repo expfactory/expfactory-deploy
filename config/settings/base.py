@@ -73,12 +73,13 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "reversion",
     "reversion_compare",
+    "taggit",
 ]
 
 LOCAL_APPS = [
     "expfactory_deploy.users.apps.UsersConfig",
     # Your stuff: custom apps go here
-    "experiments",
+    "expfactory_deploy.experiments.apps.ExperimentsConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -3,6 +3,8 @@ import os
 import sys
 from pathlib import Path
 
+from django.conf import settings
+
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 
@@ -22,6 +24,12 @@ if __name__ == "__main__":
             )
 
         raise
+
+    if settings.DEBUG:
+        if os.environ.get('RUN_MAIN') or os.environ.get('WERKZEUG_RUN_MAIN'):
+            import debugpy
+            debugpy.listen(("0.0.0.0", 4000))
+            print('Attached!')
 
     # This allows easy placement of apps within the interior
     # expfactory_deploy directory.
