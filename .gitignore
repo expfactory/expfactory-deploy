@@ -275,6 +275,7 @@ expfactory_deploy/media/
 .ipython/
 .env
 .envs/*
+.vscode
 
 js_experiments/
 expfactory_deploy/sessions/*
@@ -282,3 +283,4 @@ expfactory_deploy/static/*
 static_deployment/*
 deployment_assets/workdirs/
 deployment_assets/repos/*
+
