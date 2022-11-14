@@ -6,6 +6,8 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Field, Layout, Submit
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.serializers import serialize
 from django.db.models import F, Q
@@ -37,7 +39,7 @@ class RepoOriginCreate(CreateView):
     form_class = forms.RepoOriginForm
     success_url = reverse_lazy("experiments:experiment-repo-list")
 
-    def form_valid(self, form): 
+    def form_valid(self, form):
         response = super().form_valid(form)
         self.object.clone()
         return response
@@ -53,7 +55,7 @@ def experiment_instances_from_latest(experiment_repos):
 
 class ExperimentRepoList(ListView):
     model = models.ExperimentRepo
-    queryset = models.ExperimentRepo.objects.prefetch_related("origin")
+    queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -65,7 +67,7 @@ class ExperimentRepoList(ListView):
 
 class ExperimentRepoDetail(DetailView):
     model = models.ExperimentRepo
- 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         batteries = models.Battery.objects.filter(batteryexperiments__experiment_instance__experiment_repo_id=self.get_object())
@@ -90,8 +92,6 @@ class ExperimentRepoUpdate(UpdateView):
     model = models.ExperimentRepo
     form_class = forms.ExperimentRepoForm
     success_url = reverse_lazy("experiments:experiment-repo-list")
-
-
 
 class ExperimentRepoDelete(DeleteView):
     model = models.ExperimentRepo
@@ -122,6 +122,7 @@ class BatteryList(ListView):
 class BatteryDetail(DetailView):
     model = models.Battery
     queryset = models.Battery.objects.prefetch_related("assignment_set", "experiment_instances")
+    context_object_name = "battery"
 
 
 """
@@ -140,10 +141,9 @@ class BatteryComplex(TemplateView):
         qs = models.ExperimentInstance.objects.none()
         ordering = None
         if self.battery:
-            qs = models.ExperimentInstance.objects.filter(
-                batteryexperiments__battery=self.battery
-            ).order_by("batteryexperiments__order")
-            ordering = qs.annotate(exp_order=F("batteryexperiments__order"))
+            qs = self.battery.experiment_instances.all()
+            ordering = qs.annotate(exp_order=F('batteryexperiments__order'))
+            context['battery'] = self.battery
         context["form"] = forms.BatteryForm(**self.battery_kwargs)
 
         add_experiment_repos(context)
@@ -161,8 +161,8 @@ class BatteryComplex(TemplateView):
 
     def get(self, request, *args, **kwargs):
         self.get_object()
-        if self.battery.status in ['published', 'inactive']:
-            return redirect("experiments:battery-detail", pk=self.battery.id) 
+        if self.battery and self.battery.status in ['published', 'inactive']:
+            return redirect("experiments:battery-detail", pk=self.battery.id)
         return self.render_to_response(self.get_context_data())
 
     def post(self, request, *args, **kwargs):
@@ -188,6 +188,31 @@ class BatteryComplex(TemplateView):
             print(form.errors)
             return HttpResponseRedirect(reverse_lazy("battery-list"))
 
+@login_required
+def publish_battery(request, pk):
+    battery = get_object_or_404(models.Battery, pk=pk)
+    battery.status = "published"
+    battery.save()
+    return HttpResponseRedirect(reverse_lazy("experiments:battery-detail", {pk:pk}))
+
+@login_required
+def publish_battery_confirmation(request, pk):
+    battery = get_object_or_404(models.Battery, pk=pk)
+    return render(request, 'experiments/battery_publish_confirmation.html', {battery: battery})
+
+@login_required
+def deactivate_battery(request, pk):
+    battery = get_object_or_404(models.Battery, pk=pk)
+    battery.status = "inactive"
+    battery.save()
+    return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
+
+@login_required
+def deactivate_battery_confirmation(request, pk):
+    battery = get_object_or_404(models.Battery, pk=pk)
+    return render(request, 'experiments/battery_deactivate_confirmation.html', {battery: battery})
+
+
 class BatteryClone(View):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
@@ -200,7 +225,7 @@ class BatteryDeploymentDelete(DeleteView):
     success_url = reverse_lazy('battery-list')
 """
 
-def jspsych_context(exp_instance): 
+def jspsych_context(exp_instance):
     deploy_static_fs = exp_instance.deploy_static()
     deploy_static_url = deploy_static_fs.replace(
         settings.DEPLOYMENT_DIR, settings.STATIC_DEPLOYMENT_URL
@@ -268,7 +293,7 @@ class Serve(TemplateView):
         except ObjectDoesNotExist:
             # make new assignment for testing, in future 404.
             assignment = models.Assignment(
-                subject_id=subject_id, battery_id=battery_id, 
+                subject_id=subject_id, battery_id=battery_id,
             )
             assignment.save()
             self.assignment = assignment
@@ -358,7 +383,7 @@ class AssignSubject(SubjectListAction):
                     models.Assignment.objects.get(subject=sub, battery=batt)
                 except ObjectDoesNotExist:
                     assignments.append(models.Assignment(subject=sub, battery=batt))
-        
+
         models.Assignment.objects.bulk_create(assignments)
 
         return super().form_valid(form)

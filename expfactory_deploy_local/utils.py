@@ -36,7 +36,7 @@ def format_external_scripts(scripts, exp_location, static_location="/"):
 
 
 def generate_experiment_context(
-    exp_fs_path, static_url_path, exp_url_path=None, static_rewrite=None, post_url="./serve", next_page="./serve"
+    exp_fs_path, static_url_path='/', exp_url_path=None, static_rewrite=None, post_url="./serve", next_page="./serve"
 ):
     """context used in old template
     experiment_load - list of scripts
@@ -50,7 +50,7 @@ def generate_experiment_context(
     """
 
     config = {}
-    with open(exp_fs_path / "config.json") as f:
+    with open(Path(exp_fs_path, "config.json")) as f:
         config = json.load(f)
         if isinstance(config, list):
             config = config[0]

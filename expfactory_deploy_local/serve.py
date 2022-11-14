@@ -5,6 +5,8 @@ import sys
 import urllib
 from pathlib import Path
 
+from utils import generate_experiment_context
+
 import web
 from web.contrib.template import render_jinja
 
@@ -16,12 +18,19 @@ session = web.session.Session(
 )
 
 parser = argparse.ArgumentParser(description="Start local deployment of battery")
-parser.add_argument(
+group = parser.add_mutually_exclusive_group()
+group.add_argument(
     "exp_config",
     metavar="EXP_config",
     type=Path,
-    nargs=1,
     help="configuration file to run experiments",
+    nargs='?'
+)
+group.add_argument(
+    '-e',
+    '--exps',
+    help="comma delimited list of paths to experiments",
+    type=lambda x: [Path(y) for y in x.split(',')]
 )
 args = parser.parse_args()
 
@@ -33,8 +42,13 @@ results_dir = ""
 template_dir = "templates"
 render = render_jinja(template_dir, encoding="utf-8")
 
-with open(args.exp_config[0]) as fp:
-    experiments = [Path(x.strip()) for x in fp.readlines()]
+if (args.exps is not None):
+    experiments = args.exps
+else if (args.exp_config is not None):
+    with open(args.exp_config) as fp:
+        experiments = [Path(x.strip()) for x in fp.readlines()]
+else:
+    experiments=[os.getcwd()]
 
 for experiment in experiments:
     try:
@@ -46,7 +60,7 @@ for experiment in experiments:
 
 def serve_experiment(experiment):
     exp_name = experiment.stem
-    context = generate_experiment_context(exp_name, "/static")
+    context = generate_experiment_context(Path("./static", exp_name), "/", f"/static/{exp_name}")
     return render.deploy_template(**context)
 
 

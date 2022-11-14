@@ -54,6 +54,10 @@ urlpatterns = [
     path("battery/<int:pk>/", views.BatteryDetail.as_view(), name="battery-detail"),
     path("battery/create/", views.BatteryComplex.as_view(), name="battery-create"),
     path("battery/<int:pk>/clone", views.BatteryClone.as_view(), name="battery-clone"),
+    path("battery/<int:pk>/publish", views.publish_battery, name="battery-publish"),
+    path("battery/<int:pk>/publish/confirm", views.publish_battery_confirmation, name="battery-publish-confirm"),
+    path("battery/<int:pk>/deactivate", views.deactivate_battery, name="battery-deactivate"),
+    path("battery/<int:pk>/deactivate/confirm", views.deactivate_battery_confirmation, name="battery-deactivate-confirm"),
     path(
         "battery/<int:pk>/update/",
         views.BatteryComplex.as_view(),

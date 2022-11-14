@@ -1,14 +1,11 @@
-{% extends "base.html" %}
 {% load crispy_forms_tags %}
-{% block content %}
-    {% if battery.id %}
+    {% if battery.pk %}
         <h2> Update Battery </h2>
-        <input class="btn btn-primary" type="submit" name="action" form="experiment_instance_table" value="Save Changes"/>
-        <a class="btn btn-primary" href="{% url 'experiments:battery-publish' battery.id %}">Publish</a>
     {% else %}
         <h2>Create Battery</h2>
     {% endif %}
     <form id="experiment_instance_table" method="post" onsubmit="return battexpSubmit()" action="">
+    <input class="btn btn-primary" type="submit" name="action" value="Save"/>
     {% crispy form %}
       <div id="form-manager">
       {{ exp_instance_formset.management_form }}
@@ -55,14 +52,11 @@
           </div>
         {% endfor %}
 			</div>
-
 			<div id="battexplist" class="list-group col">
 			</div>
-{% endblock %}
+    </div>
 
 
-{% block inline_javascript %}
-{{ block.super }}
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function(){
@@ -220,7 +214,5 @@
       return true;
     }
 
-  </script>
-
-{% endblock %}
+    </script>
 

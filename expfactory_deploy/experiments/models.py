@@ -6,6 +6,7 @@ from pathlib import Path
 import git
 import reversion
 from django.conf import settings
+from django.contrib.auth.models import Group, User
 from django.db import models
 from django.db.models import Q
 from django.dispatch import receiver
@@ -94,6 +95,13 @@ class RepoOrigin(models.Model):
     def clone(self):
         repo = git.Repo.clone_from(self.url, self.path)
 
+    @property
+    def display_url(self):
+        if "git@github.com:" in self.url:
+            return self.origin.url.replace("git@github.com:", "https://github.com/")
+        return self.url
+
+
 
 
 ''' Will likely want to have git clone be called as a task from here
@@ -131,13 +139,14 @@ class ExperimentRepo(models.Model):
         exp_location = self.location
         if "git@github.com:" in self.origin.url:
             origin_url = self.origin.url.replace("git@github.com:", "https://github.com/")
+            origin_url = origin_url.replace(".git", "")
             exp_location = self.location.replace(base_path, f"/tree/{self.branch}")
         else:
             origin_url = self.origin.url
         return f"{origin_url}{exp_location}"
 
     def __str__(self):
-        return self.url
+        return self.name
 
 
 @reversion.register()
@@ -162,7 +171,7 @@ class ExperimentInstance(models.Model):
         return self.experiment_repo_id.origin.checkout_commit(self.commit)
 
     def __str__(self):
-        return f"{self.remote_url}"
+        return f"{self.name}"
 
 
 @reversion.register()
@@ -189,6 +198,8 @@ class Battery(TimeStampedModel, StatusField):
     random_order = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
     inter_task_break = models.DurationField(default=datetime.timedelta())
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
 
     def duplicate(self, status='draft'):
         """ passing object we wish to clone through model constructor allows
@@ -224,7 +235,7 @@ class BatteryExperiments(models.Model):
 
     class Meta:
         ordering = ('order',)
-    
+
 
 
 class Subject(models.Model):

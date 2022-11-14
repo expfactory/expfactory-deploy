@@ -30,7 +30,7 @@ class RepoOriginForm(ModelForm):
             "url": forms.TextInput(),
         }
 
-    # Todo: extract user/org name and use them in path and name 
+    # Todo: extract user/org name and use them in path and name
     # could also imagine adding index for collisions.
     def clean(self):
         cleaned_data = super().clean()
@@ -87,7 +87,7 @@ class SubjectActionForm(forms.Form):
 
     batteries = forms.ModelMultipleChoiceField(
         queryset=models.Battery.objects.all(),
-        widget=forms.CheckboxSelectMultiple, 
+        widget=forms.CheckboxSelectMultiple,
         required=False
     )
     subjects = IdList(
@@ -139,8 +139,8 @@ class ExperimentRepoBulkTagForm(forms.Form):
         )
         self.helper.add_input(
             Submit(
-                'add_tags',
-                'Add Tags',
+                'remove_tags',
+                'Remove Tags',
                 formaction=reverse_lazy("experiments:experiment-repo-bulk-tag-remove")
             )
         )
@@ -173,7 +173,7 @@ class ExperimentInstanceForm(ModelForm):
             "commit": forms.TextInput(),
             "note": forms.Textarea(attrs={"cols": 40, "rows": 1}),
         }
-    
+
     def save(self, commit=True):
         exp_instance, _ = models.ExperimentInstance.objects.update_or_create(
             commit=self.instance.commit,

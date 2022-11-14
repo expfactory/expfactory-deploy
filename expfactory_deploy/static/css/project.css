@@ -39,3 +39,31 @@
 #battexpforms {
     display: none;
 }
+
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.radiotab {
+  display: none;
+}
+
+.label {
+  order: 1;
+  flex-grow: 1;
+  border-width: 1px;
+  border-style: solid;
+  border-color: black;
+  padding: .25em;
+}
+
+.radiotab ~ .panel {
+  display: none;
+}
+
+.radiotab:checked + .label + .panel {
+  width: 100%;
+  order: 2;
+}
