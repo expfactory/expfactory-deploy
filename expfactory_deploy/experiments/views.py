@@ -30,7 +30,7 @@ from expfactory_deploy_local.utils import generate_experiment_context
 
 # Repo Views
 
-class RepoOriginListView(ListView):
+class RepoOriginList(ListView):
     model = models.RepoOrigin
     queryset = models.RepoOrigin.objects.prefetch_related("experimentrepo_set")
 
@@ -55,7 +55,7 @@ def experiment_instances_from_latest(experiment_repos):
 
 class ExperimentRepoList(ListView):
     model = models.ExperimentRepo
-    queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags")
+    queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -101,10 +101,16 @@ class ExperimentRepoDelete(DeleteView):
 # Battery Views
 
 # Inject list of experiment repos into a context and the id attribute used by the form
-def add_experiment_repos(context):
+def add_experiment_repos(context, battery=None):
+    if battery:
+        qs = models.ExperimentRepo.objects.filter(
+            Q(origin__active=True) | Q(experimentinstance__battery__id=battery.id)
+        ).all().prefetch_related("origin")
+    else:
+        qs = models.ExperimentRepo.objects.filter(origin__active=True).all().prefetch_related("origin")
     context[
         "experiment_repo_list"
-    ] = models.ExperimentRepo.objects.all().prefetch_related("origin")
+    ] = qs
     context["exp_repo_select_id"] = "place_holder"
 
 
@@ -116,6 +122,8 @@ class BatteryList(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        statuses = [x[0] for x in self.model.STATUS]
+        context['statuses'] = statuses
         return context
 
 
@@ -146,7 +154,7 @@ class BatteryComplex(TemplateView):
             context['battery'] = self.battery
         context["form"] = forms.BatteryForm(**self.battery_kwargs)
 
-        add_experiment_repos(context)
+        add_experiment_repos(context, self.battery)
         context["exp_instance_formset"] = forms.ExpInstanceFormset(
             queryset=qs, form_kwargs={"ordering": ordering}
         )
@@ -168,6 +176,7 @@ class BatteryComplex(TemplateView):
     def post(self, request, *args, **kwargs):
         self.get_object()
         form = forms.BatteryForm(self.request.POST, **self.battery_kwargs)
+        form.instance.user = request.user
         battery = form.save()
 
         ordering = models.ExperimentInstance.objects.filter(
@@ -198,7 +207,7 @@ def publish_battery(request, pk):
 @login_required
 def publish_battery_confirmation(request, pk):
     battery = get_object_or_404(models.Battery, pk=pk)
-    return render(request, 'experiments/battery_publish_confirmation.html', {battery: battery})
+    return render(request, 'experiments/battery_publish_confirmation.html', {'battery': battery})
 
 @login_required
 def deactivate_battery(request, pk):
@@ -210,8 +219,20 @@ def deactivate_battery(request, pk):
 @login_required
 def deactivate_battery_confirmation(request, pk):
     battery = get_object_or_404(models.Battery, pk=pk)
-    return render(request, 'experiments/battery_deactivate_confirmation.html', {battery: battery})
+    return render(request, 'experiments/battery_deactivate_confirmation.html', {'battery': battery})
 
+@login_required
+def deactivate_repo(request, pk):
+    repo = get_object_or_404(models.RepoOrigin, pk=pk)
+    repo.active = False
+    repo.save()
+    return HttpResponseRedirect(reverse_lazy("experiments:experiment-repo-list"))
+
+@login_required
+def deactivate_repo_confirmation(request, pk):
+    repo = get_object_or_404(models.RepoOrigin, pk=pk)
+    print(repo.url)
+    return render(request, 'experiments/repo_deactivate_confirmation.html', {'repo': repo})
 
 class BatteryClone(View):
     def get(self, request, *args, **kwargs):

@@ -2,22 +2,23 @@
 
 {% block content %}
     <h2>Battery Templates</h2>
-    <ul>
-        {% for battery in object_list %}
-            <li>
-              <a href="{% url 'experiments:battery-update'  battery.id %}">{{ battery.title }}</a> - <a href=""> Deploy</a>
-              <h3>Deployments</h3>
+      {% for battery in object_list %}
+        {% regroup battery.children.all by status as child_list %}
+            <h3><a href="{% url 'experiments:battery-update'  battery.id %}">{{ battery.title }}</a> - <a href=""> Deploy</a></h3>
+              {% for status, children in child_list %}
+              <h4>{{ status }}</h4>
               <ul>
-                {% for child in battery.children.all %}
-                  <li> 
-                    <a href="{% url 'experiments:battery-update'  child.id %}">{{ child.title|default:"No Title" }}</a> - {{ child.status }} <a href="experiments:battery-clone child.id">Clone</a>
+                {% for child in children %}
+                  <li>
+                    <a href="{% url 'experiments:battery-update'  child.id %}">{{ child.title|default:"No Title" }}</a> - <a href="experiments:battery-clone child.id">Clone</a>
                   </li>
                 {% endfor %}
               </ul>
+              {% endfor %}
             </li>
-        {% empty %}
-          <li> No Batteries</li>
-        {% endfor %}
-    </ul>
+      {% empty %}
+        <li> No Batteries</li>
+      {% endfor %}
+  </ul>
     <a href="{% url 'experiments:battery-create' %}"> create </a>
 {% endblock %}

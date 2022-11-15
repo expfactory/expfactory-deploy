@@ -213,6 +213,8 @@ CSRF_COOKIE_HTTPONLY = True
 SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
 X_FRAME_OPTIONS = "DENY"
+# https://docs.djangoproject.com/en/dev/ref/settings/#std-setting-SECURE_CONTENT_TYPE_NOSNIFF
+SECURE_CONTENT_TYPE_NOSNIFF = False
 
 # EMAIL
 # ------------------------------------------------------------------------------

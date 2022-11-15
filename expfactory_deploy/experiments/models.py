@@ -2,11 +2,12 @@ import datetime
 import uuid
 from collections import defaultdict
 from pathlib import Path
+import os
 
 import git
 import reversion
 from django.conf import settings
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import Group
 from django.db import models
 from django.db.models import Q
 from django.dispatch import receiver
@@ -56,6 +57,7 @@ class RepoOrigin(models.Model):
     url = models.TextField(unique=True)
     path = models.TextField(unique=True)
     name = models.TextField(blank=True, unique=True)
+    active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.url
@@ -93,6 +95,7 @@ class RepoOrigin(models.Model):
             battexp.save()
 
     def clone(self):
+        os.makedirs(self.path, exist_ok=True)
         repo = git.Repo.clone_from(self.url, self.path)
 
     @property
@@ -198,8 +201,8 @@ class Battery(TimeStampedModel, StatusField):
     random_order = models.BooleanField(default=True)
     public = models.BooleanField(default=False)
     inter_task_break = models.DurationField(default=datetime.timedelta())
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
 
     def duplicate(self, status='draft'):
         """ passing object we wish to clone through model constructor allows

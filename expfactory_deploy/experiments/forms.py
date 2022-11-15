@@ -1,5 +1,5 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Field, Layout, Submit
+from crispy_forms.layout import Button, Field, Layout, Submit
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -9,7 +9,8 @@ from django.forms import (
     inlineformset_factory,
     modelformset_factory,
 )
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.utils.html import format_html
 from taggit.forms import TagField
 import git
 import pathlib
@@ -20,8 +21,17 @@ class RepoOriginForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        cancel_url = reverse('experiments:repo-origin-list')
         self.helper = FormHelper(self)
         self.helper.add_input(Submit('submit', 'Submit'))
+        self.helper.add_input(
+            Button(
+                'cancel',
+                'Cancel',
+                css_class='btn-primary',
+                onclick=f'window.location.href = "{cancel_url}"'
+            )
+        )
 
     class Meta:
         model  = models.RepoOrigin
@@ -77,15 +87,20 @@ class IdList(forms.TypedMultipleChoiceField):
     def valid_value(self, value):
         return True
 
+class BatteryMultipleChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj):
+        url = reverse_lazy('experiments:battery-detail', args=[obj.pk])
+        return format_html('<a href="{}"> {} </a> - {}', url, obj.title, obj.status)
+
 class SubjectActionForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper(self)
-        self.helper.add_input(Submit('deactivate', 'Deactivate', formaction='/subjects/toggle'))
-        self.helper.add_input(Submit('assign', 'Assign', formaction='/subjects/assign'))
+        self.helper.add_input(Submit('deactivate', 'Deactivate Selected Subjects', formaction='/subjects/toggle'))
+        self.helper.add_input(Submit('assign', 'Assign Batteries', formaction='/subjects/assign'))
         self.helper.form_tag = False
 
-    batteries = forms.ModelMultipleChoiceField(
+    batteries = BatteryMultipleChoiceField(
         queryset=models.Battery.objects.all(),
         widget=forms.CheckboxSelectMultiple,
         required=False

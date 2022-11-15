@@ -28,6 +28,13 @@ urlpatterns = [
         name="repo-origin-create",
     ),
     path(
+        "repo/list/",
+        views.RepoOriginList.as_view(),
+        name="repo-origin-list",
+    ),
+    path("repo/<int:pk>/deactivate", views.deactivate_repo, name="repo-deactivate"),
+    path("repo/<int:pk>/deactivate/confirm", views.deactivate_repo_confirmation, name="repo-deactivate-confirm"),
+    path(
         "experiment_repo/<int:pk>/update/",
         views.ExperimentRepoUpdate.as_view(),
         name="experiment-repo-update",
@@ -84,6 +91,7 @@ urlpatterns = [
     path("subjects/create", views.CreateSubjects.as_view(), name="subjects-create"),
     path("subjects/<int:pk>/", views.SubjectDetail.as_view(), name="subject-detail"),
     path("sync/<int:assignment_id>/<int:experiment_id>/", views.Results.as_view(), name="push-results"),
+
 ]
 
 app_name = "experiments"

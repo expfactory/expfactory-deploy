@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Repositories</h2>
+  <table id="repo-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>URL</th>
+      <th>Deactivate</th>
+    </tr>
+  </thead>
+  <tbody id="repo_tbody">
+    {% for repo in object_list %}
+    <tr>
+      <td>{{ repo.name }}</td>
+      <td>
+        <a href="{{ repo.url }}"> {{ repo.url }}</a>
+      </td>
+      <td>
+      {% if repo.active %}
+        <a href="{% url 'experiments:repo-deactivate-confirm' repo.id %}">deactivate</a></td>
+      {% else %}
+        Inactive
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<a href="{% url 'experiments:repo-origin-create' %}"> add new </a>
+{% endblock %}
+
+

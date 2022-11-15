@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Deactivate {{ repo.url }}?</h2>
+  <p>Deactivating a repository will hide all of its experiments from future use in new batteries. Existing uses in batteries and existing results are unaffected.</p>
+  <a href="{% url 'experiments:repo-deactivate' repo.pk %}">Deactivate repository</a><br />
+  <a href="{% url 'experiments:repo-origin-list' %}"> Keep repository active </a>
+
+
+{% endblock %}
