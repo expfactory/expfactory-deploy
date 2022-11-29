@@ -41,7 +41,7 @@
     {% for asig in object.assignment_set.all %}
       <tr>
         <td>
-          <a href="{{ asig.subject.id }}">{{ asig.subject.uuid }}</a>
+          <a href="{% url 'experiments:subject-detail' asig.subject.id %}">{{ asig.subject }}</a>
         </td>
         <td>
           {{ asig.started_at }}
@@ -50,6 +50,9 @@
           {{ asig.completed_at }}
         </td>
         <td>
+          {% for result in asig.results %}
+            {{ result.battery_experiment.experiment_instance.experiment_repo_id.name }}
+          {% endfor %}
         </td>
       </tr>
     {% endfor %}

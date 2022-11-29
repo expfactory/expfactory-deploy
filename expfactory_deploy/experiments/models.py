@@ -39,9 +39,9 @@ class SubjectTaskStatusModel(StatusModel):
 
     STATUS = Choices("not-started", "started", "completed", "failed")
     status = StatusField(default="not-started")
-    started_at = MonitorField(monitor="status", when=["started"])
-    completed_at = MonitorField(monitor="status", when=["completed"])
-    failed_at = MonitorField(monitor="status", when=["failed"])
+    started_at = MonitorField(monitor="status", when=["started"], default=None, null=True)
+    completed_at = MonitorField(monitor="status", when=["completed"], default=None, null=True)
+    failed_at = MonitorField(monitor="status", when=["failed"], default=None, null=True)
 
     @property
     def completed(self):

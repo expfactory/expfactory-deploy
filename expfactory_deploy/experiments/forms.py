@@ -12,6 +12,7 @@ from django.forms import (
 from django.urls import reverse, reverse_lazy
 from django.utils.html import format_html
 from taggit.forms import TagField
+from taggit.models import Tag
 import git
 import pathlib
 from giturlparse import parse
@@ -136,7 +137,11 @@ class ExperimentRepoForm(ModelForm):
         }
 
 class ExperimentRepoBulkTagForm(forms.Form):
-    tags = TagField()
+    # tags = TagField()
+    choices = [ (x.name, x.name) for x in Tag.objects.all() ]
+    choices = [('', ''), *choices]
+
+    tags = forms.MultipleChoiceField(choices=choices)
     experiments = IdList(
         widget=NoRenderWidget,
         required=False,
@@ -148,18 +153,19 @@ class ExperimentRepoBulkTagForm(forms.Form):
         self.helper.add_input(
             Submit(
                 'add_tags',
-                'Add Tags',
+                'Add to Selected Experiments',
                 formaction=reverse_lazy("experiments:experiment-repo-bulk-tag-add")
             )
         )
         self.helper.add_input(
             Submit(
                 'remove_tags',
-                'Remove Tags',
+                'Remove From Selected Experiments',
                 formaction=reverse_lazy("experiments:experiment-repo-bulk-tag-remove")
             )
         )
         self.helper.form_id = 'experiment-repo-bulk-tag'
+        self.helper.form_method = 'POST'
 
 
 class BatteryForm(ModelForm):
@@ -196,7 +202,6 @@ class ExperimentInstanceForm(ModelForm):
             defaults={'note': self.instance.note}
         )
         return exp_instance
-
 
 class ExperimentInstanceOrderForm(ExperimentInstanceForm):
     exp_order = forms.IntegerField()
@@ -262,4 +267,21 @@ ExpInstanceFormset = modelformset_factory(
     extra=0,
 )
 
+class BatteryExperimentsForm(ModelForm):
+    class Meta:
+        model = models.BatteryExperiments
+        fields = ["order", "use_latest", "experiment_instance"]
 
+BatteryExperimentsFormset = modelformset_factory(
+    models.BatteryExperiments,
+    form=BatteryExperimentsForm,
+    can_delete=True,
+    extra=0,
+)
+
+TestExpInstanceFormset = modelformset_factory(
+    models.ExperimentInstance,
+    form=ExperimentInstanceForm,
+    can_delete=True,
+    extra=0,
+)

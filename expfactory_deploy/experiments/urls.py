@@ -13,6 +13,11 @@ urlpatterns = [
         name="preview",
     ),
     path(
+        "battery/preview/<int:battery_id>/",
+        views.PreviewBattery.as_view(),
+        name="preview-battery",
+    ),
+    path(
         "experiment_repo/<int:pk>/",
         views.ExperimentRepoDetail.as_view(),
         name="experiment-repo-detail",
@@ -56,6 +61,21 @@ urlpatterns = [
         views.ExperimentRepoBulkTag.as_view(),
         name="experiment-repo-bulk-tag-remove",
         kwargs={'action': 'remove'}
+    ),
+    path(
+        "experiment_instance/<int:pk>/update/",
+        views.ExperimentInstanceUpdate,
+        name="experiment-instance-update"
+    ),
+    path(
+        "experiment_instance/add/",
+        views.ExperimentInstanceCreate,
+        name="experiment-instance-create"
+    ),
+    path(
+        "experiment_instance/<int:pk>",
+        views.ExperimentInstanceDetail,
+        name="experiment-instance-detail"
     ),
     path("battery/", views.BatteryList.as_view(), name="battery-list"),
     path("battery/<int:pk>/", views.BatteryDetail.as_view(), name="battery-detail"),
