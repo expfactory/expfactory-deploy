@@ -35,7 +35,9 @@
 			<div id="experimentslist" class="list-group col">
         {% for exp_repo in experiment_repo_list %}
           <div class="list-group-item" data-id={{ exp_repo.name }} id="exp_repo_{{exp_repo.id}}">
-            {{ exp_repo.name }} <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+            <i class="fa fa-arrows-h"></i>
+            {{ exp_repo.name }}
+            <i class="fa fa-trash js-remove" aria-hidden="true"></i>
             <div class="input-group">
               <div class="input-group-prepend">
                 <span class="input-group-text">Commit</span>
@@ -74,7 +76,9 @@
     const expInstanceTmpl = (experiment_repo_id, note, commit, exp_order, name) => {
         return `
           <div class="list-group-item" data-id=${ name }>
-            ${ name } <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+            <i class="fa fa-arrows-v"></i>
+            ${ name }
+            <i class="fa fa-trash js-remove" aria-hidden="true"></i>
             <div class="input-group">
               <div class="input-group-prepend">
                 <span class="input-group-text">Commit</span>
