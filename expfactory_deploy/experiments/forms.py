@@ -1,5 +1,5 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Button, Field, Layout, Submit
+from crispy_forms.layout import Button, Field, Layout, Submit, Div
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -204,30 +204,49 @@ class ExperimentInstanceForm(ModelForm):
         return exp_instance
 
 class ExperimentInstanceOrderForm(ExperimentInstanceForm):
+    template_name = "experiments/experiment_instance_order_form.html"
     exp_order = forms.IntegerField()
+    use_latest = forms.BooleanField()
+    exp_instance_select = forms.ModelChoiceField(queryset=models.ExperimentRepo.objects.none(), required=False)
     battery_id = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, repo_id=-1, *args, **kwargs):
         ordering = kwargs.pop("ordering", None)
         self.battery_id = kwargs.pop("battery_id", None)
         super().__init__(*args, **kwargs)
         if ordering and self.instance.id:
-            self.fields["exp_order"].initial = ordering.get(
-                id=self.instance.id
-            ).exp_order
-        self.fields["commit"].initial = "latest"
-        self.helper = FormHelper(self)
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Field("exp_order", css_class="exp-order-input"),
-            Field("note", css_class="exp-note-input"),
-            Field("commit", css_class="exp-commit-input"),
-            Field("experiment_repo_id", css_class="exp-repo-input"),
-        )
+            order_inst = ordering.get(id=self.instance.id)
+            self.fields["exp_order"].initial = order_inst.exp_order
+            self.fields["exp_instance_select"].initial = self.instance
+            repo_id = self.instance.experiment_repo_id.id
+        if not self.instance.id:
+            self.fields["commit"].initial = "latest"
+            self.fields["use_latest"].initial = True
+        self.fields["exp_order"].widget = forms.HiddenInput()
+        self.fields["experiment_repo_id"].widget = forms.HiddenInput()
+        self.fields["experiment_repo_id"].initial = repo_id
+        if repo_id > -1:
+            try:
+                repo = models.ExperimentRepo.objects.get(id=repo_id)
+                self.fields["exp_instance_select"].queryset = repo.experimentinstance_set
+                if repo.experimentinstance_set.count == 0:
+                    self.fields["commit"].initial = "latest"
+                    self.fields["use_latest"].initial = True
+                self.name = repo.name
+                hx_url = reverse('experiments:instance-order-form', args=[repo_id ])
+                self.fields["exp_instance_select"].widget.attrs['hx-get'] = hx_url
+                self.fields["exp_instance_select"].widget.attrs['hx-target'] = 'closest .list-group-item'
+                self.fields["exp_instance_select"].widget.attrs['hx-swap'] = 'outerHTML'
+
+            except ObjectDoesNotExist:
+                pass
+        self.set_classes()
+
 
     def clean(self):
         cleaned_data = super().clean()
         commit = cleaned_data["commit"]
+        print(cleaned_data)
         exp_instance = cleaned_data["experiment_repo_id"]
         if commit == "latest":
             commit = exp_instance.get_latest_commit()
@@ -244,6 +263,9 @@ class ExperimentInstanceOrderForm(ExperimentInstanceForm):
     def save(self, *args, **kwargs):
         exp_instance = super().save(*args, **kwargs)
         exp_repo_id = exp_instance.experiment_repo_id_id
+        print("in save")
+        print(exp_instance)
+        print(self.battery_id)
         battery = models.Battery.objects.get(id=self.battery_id)
         try:
             batt_exp = models.BatteryExperiments.objects.get(
@@ -258,6 +280,12 @@ class ExperimentInstanceOrderForm(ExperimentInstanceForm):
             )
         batt_exp.save()
         return exp_instance
+
+    def set_classes(self):
+        class_pattern = "instance_{}"
+        for field in self.fields:
+            self.fields[field].widget.attrs.update({'class': class_pattern.format(field)})
+
 
 
 ExpInstanceFormset = modelformset_factory(
@@ -275,13 +303,6 @@ class BatteryExperimentsForm(ModelForm):
 BatteryExperimentsFormset = modelformset_factory(
     models.BatteryExperiments,
     form=BatteryExperimentsForm,
-    can_delete=True,
-    extra=0,
-)
-
-TestExpInstanceFormset = modelformset_factory(
-    models.ExperimentInstance,
-    form=ExperimentInstanceForm,
     can_delete=True,
     extra=0,
 )

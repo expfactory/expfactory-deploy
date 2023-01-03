@@ -38,6 +38,10 @@
     display: none;
 }
 
+#battexplist .right-hide {
+    display: none;
+}
+
 
 .tabs {
   display: flex;
@@ -64,4 +68,8 @@
 .radiotab:checked + .label + .panel {
   width: 100%;
   order: 2;
+}
+
+.use-latest-span {
+  padding: .25em;
 }

@@ -15,9 +15,6 @@
       {{ exp_instance_formset.management_form }}
       </div>
       <div id="battexpforms">
-        {% for form in exp_instance_formset.forms %}
-          {{ form }}
-        {% endfor %}
       </div>
     </form>
 
@@ -37,40 +34,26 @@
           <div class="list-group-item" data-id={{ exp_repo.name }} id="exp_repo_{{exp_repo.id}}">
             <i class="fa fa-arrows-h"></i>
             {{ exp_repo.name }}
-            <i class="fa fa-trash js-remove" aria-hidden="true"></i>
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <span class="input-group-text">Commit</span>
-              </div>
-              <input class="form-control instance_commit" type="text" value="latest" />
-            </div>
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <span class="input-group-text">Note</span>
-              </div>
-              <input class="form-control instance_note" type="text"/>
-            </div>
             <input class="instance_experiment_repo_id" type="hidden" value="{{exp_repo.id}}">
-            <div class="order-container">
-              <span class="order badge badge-primary badge-pill"></span>
-              <input class="instance_exp_order" type="hidden" value="0">
-            </div>
           </div>
         {% endfor %}
 			</div>
 
 			<div id="battexplist" class="list-group col">
+        {{ exp_instance_formset }}
 			</div>
 {% endblock %}
 
 
 {% block inline_javascript %}
-{{ block.super }}
+  {{ block.super }}
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <script>
+    htmx.logAll();
     document.addEventListener("DOMContentLoaded", function(){
       document.getElementById("experimentlist-search").addEventListener("input", searchOnChange)
-      setInitialSelection()
+      updateOrderSpan()
+      // setInitialSelection()
     });
 
     const expInstanceTmpl = (experiment_repo_id, note, commit, exp_order, name) => {
@@ -116,7 +99,7 @@
     const form_count_id = "id_form-TOTAL_FORMS"
     const empty_prefix = '__prefix__'
     const empty_form = `{{ exp_instance_formset.empty_form }}`
-    const fields = ['experiment_repo_id', 'note', 'commit', 'exp_order']
+    const fields = ['experiment_repo_id', 'note', 'commit', 'exp_order', 'use_latest', 'exp_instance_select']
 
     const exps = new Sortable(experimentslist, {
         multiDrag: true,
@@ -129,8 +112,14 @@
         animation: 150,
         sort: false,
         onClone: (evt) => {
+          console.log(evt)
           if (evt.clone) {
             evt.clone.classList.add("added")
+            let repo_id = evt.clone.querySelector('.instance_experiment_repo_id').value
+            evt.item.setAttribute("hx-get", `/repo/form/${repo_id}/`)
+            evt.item.setAttribute("hx-trigger", "revealed")
+            evt.item.classList.remove("list-group-item")
+            htmx.process(evt.item)
           }
           if (Array.isArray(evt.clones)) {
             evt.clones.map(x => x.classList.add("added"))
@@ -173,6 +162,7 @@
       })
     }
 
+    /*
     function setInitialSelection() {
       const form_count = document.getElementById(form_count_id).value
       const expbattlist = document.getElementById('battexplist')
@@ -191,6 +181,7 @@
       }
       expbattlist.innerHTML = forms_to_display.join(' ')
     }
+    */
 
     function setFormsForSubmit() {
       const battexpforms = document.getElementById('battexpforms');

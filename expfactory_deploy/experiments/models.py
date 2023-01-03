@@ -174,7 +174,7 @@ class ExperimentInstance(models.Model):
         return self.experiment_repo_id.origin.checkout_commit(self.commit)
 
     def __str__(self):
-        return f"{self.name}"
+        return f"{self.commit}"
 
 
 @reversion.register()

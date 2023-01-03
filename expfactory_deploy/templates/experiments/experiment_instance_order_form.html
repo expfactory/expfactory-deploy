@@ -1,0 +1,30 @@
+<div class="list-group-item" data-id="{{ form.name }}">
+  {{ form.errors }}
+  <i class="fa fa-arrows-v"></i>
+  {{ form.name }}
+  <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+  <div class="input-group">
+    <div class="input-group-prepend">
+      <span class="input-group-text">Commit</span>
+    </div>
+    {{ form.commit }}
+  </div>
+  <div class="input-group">
+    <div class="input-group-prepend">
+      <span class="input-group-text">Note</span>
+    </div>
+    {{ form.note }}
+  </div>
+  <div class="input-group">
+  {{ form.exp_instance_select }}
+  </div>
+  <div class="input-group">
+  <span class="use-latest-span">Use Latest</span>
+  {{ form.use_latest }}
+  </div>
+  {{ form.experiment_repo_id }}
+  <div class="order-container">
+    <span class="order badge badge-primary badge-pill">{{ form.exp_order.data }}</span>
+    {{ form.exp_order }}
+  </div>
+</div>

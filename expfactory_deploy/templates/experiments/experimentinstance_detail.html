@@ -1,3 +1,3 @@
-<div>
-{{ object }}
-</div>
+{% for instance in instances %}
+  <option value={{ instance.id }}>{{ instance.commit }} {{ instance.note }}</option>
+{% endfor %}

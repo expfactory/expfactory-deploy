@@ -49,7 +49,7 @@ class RepoOriginCreate(CreateView):
 def experiment_instances_from_latest(experiment_repos):
     for experiment_repo in experiment_repos:
         latest = get_latest_commit(experiment_repo.location)
-        ExperimentInstance.get_or_create(
+        models.ExperimentInstance.get_or_create(
             experiment_repo_id=experiment_repo.id, commit=latest
         )
 
@@ -114,6 +114,26 @@ class ExperimentInstanceUpdate(UpdateView):
 class ExperimentInstanceDetail(DetailView):
     model = models.ExperimentInstance
 
+'''
+    This is called via HTMX when a new experiment_instance is selected from
+    the drop down in the form, or an experiment_repo is dragged over to the
+    batteries current experiments colomn. In the case of the select HTMX
+    encodes the select value as a query param whose key is the html `name`
+    attribute. The value changes since the form is part of a formset, but
+    always ends with the same value, this is retrieved with the next iterator
+    call.
+'''
+def instance_order_form(request, *args, **kwargs):
+    repo_id = kwargs.get("repo_id", -1)
+    params = request.GET.items()
+    instance_id = next((x[1] for x in params if x[0].endswith("exp_instance_select")), None)
+
+    if instance_id is None:
+        form = forms.ExperimentInstanceOrderForm(repo_id=repo_id)
+    elif instance_id is not None:
+        instance = models.ExperimentInstance.objects.get(id=instance_id)
+        form = forms.ExperimentInstanceOrderForm(instance=instance, repo_id=repo_id)
+    return render(request, "experiments/experimentinstance_form.html", {"form": form, "text": "wat"})
 
 # Battery Views
 
@@ -169,18 +189,30 @@ class BatteryComplex(TemplateView):
             qs = self.battery.experiment_instances.all()
             ordering = qs.annotate(exp_order=F('batteryexperiments__order'))
             context['battery'] = self.battery
-        context["form"] = forms.BatteryForm(**self.battery_kwargs)
+        if "form" not in kwargs:
+            context["form"] = forms.BatteryForm(**self.battery_kwargs)
+        else:
+            context["form"] = kwargs.get("form")
+
+        if "exp_instance_formset" not in kwargs:
+            context["exp_instance_formset"] = forms.ExpInstanceFormset(
+                queryset=qs, form_kwargs={"ordering": ordering}
+            )
+        else:
+            context["exp_instance_formset"] = kwargs.get("exp_instance_formset")
 
         add_experiment_repos(context, self.battery)
-        context["exp_instance_formset"] = forms.ExpInstanceFormset(
-            queryset=qs, form_kwargs={"ordering": ordering}
-        )
+
+        '''
+            We could attempt to seperate out ordering (handled as a
+            BatteryExperiment) and ExperimentInstance creation.
         context["test_exp_instance_formset"] = forms.TestExpInstanceFormset(
             queryset=qs
         )
         context["battery_experiments_formset"] = forms.BatteryExperimentsFormset(
             queryset=self.battery.batteryexperiments_set.all()
         )
+        '''
         return context
 
     def get_object(self):
@@ -199,21 +231,25 @@ class BatteryComplex(TemplateView):
     def post(self, request, *args, **kwargs):
         self.get_object()
         form = forms.BatteryForm(self.request.POST, **self.battery_kwargs)
-        form.instance.user = request.user
+        try:
+            form.instance.user = request.user
+        except:
+            pass
         battery = form.save()
 
         ordering = models.ExperimentInstance.objects.filter(
             batteryexperiments__battery=self.battery
         ).order_by("batteryexperiments__order")
         exp_instance_formset = forms.ExpInstanceFormset(
-            self.request.POST, form_kwargs={"battery_id": battery.id}
+            self.request.POST, form_kwargs={"battery_id": battery.id, "ordering": ordering}
         )
         valid = exp_instance_formset.is_valid()
         if valid:
             ei = exp_instance_formset.save()
             battery.batteryexperiments_set.exclude(experiment_instance__in=ei).delete()
         elif not valid:
-            print(exp_instance_formset.errors)
+            return self.render_to_response(self.get_context_data(form=form, exp_instance_formset=exp_instance_formset))
+
         if form.is_valid():
             return HttpResponseRedirect("/battery/")
         else:
@@ -453,8 +489,6 @@ class ExperimentRepoBulkTag(FormView):
     success_url = reverse_lazy('experiments:experiment-repo-list')
     def form_valid(self, form):
         exp_repos = models.ExperimentRepo.objects.filter(id__in=form.cleaned_data['experiments'])
-        print(form.cleaned_data['experiments'])
-        print(form.cleaned_data['tags'])
         action = self.kwargs.get('action')
         for exp_repo in exp_repos:
             if action == 'add':

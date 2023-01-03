@@ -64,18 +64,23 @@ urlpatterns = [
     ),
     path(
         "experiment_instance/<int:pk>/update/",
-        views.ExperimentInstanceUpdate,
+        views.ExperimentInstanceUpdate.as_view(),
         name="experiment-instance-update"
     ),
     path(
         "experiment_instance/add/",
-        views.ExperimentInstanceCreate,
+        views.ExperimentInstanceCreate.as_view(),
         name="experiment-instance-create"
     ),
     path(
         "experiment_instance/<int:pk>",
-        views.ExperimentInstanceDetail,
+        views.ExperimentInstanceDetail.as_view(),
         name="experiment-instance-detail"
+    ),
+    path(
+        "repo/form/<int:repo_id>/",
+        views.instance_order_form,
+        name="instance-order-form"
     ),
     path("battery/", views.BatteryList.as_view(), name="battery-list"),
     path("battery/<int:pk>/", views.BatteryDetail.as_view(), name="battery-detail"),
