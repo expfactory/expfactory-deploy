@@ -7,7 +7,6 @@ import os
 import git
 import reversion
 from django.conf import settings
-from django.contrib.auth.models import Group
 from django.db import models
 from django.db.models import Q
 from django.dispatch import receiver
@@ -19,6 +18,7 @@ from model_utils.models import StatusModel, TimeStampedModel
 from taggit.managers import TaggableManager
 
 from .utils import repo as repo
+from users.models import Group
 
 @reversion.register()
 class Framework(models.Model):
@@ -237,6 +237,7 @@ class BatteryExperiments(models.Model):
     use_latest = models.BooleanField(default=False)
 
     class Meta:
+        # should order by battery_id then order, to group things properly?
         ordering = ('order',)
 
 

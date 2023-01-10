@@ -8,6 +8,7 @@
         <a class="btn btn-primary" href="{% url 'experiments:preview-battery' battery.id %}">Preview</a>
     {% else %}
         <h2>Create Battery</h2>
+        <input class="btn btn-primary" type="submit" name="action" form="experiment_instance_table" value="Save Changes"/>
     {% endif %}
     <form id="experiment_instance_table" method="post" onsubmit="return battexpSubmit()" action="">
     {% crispy form %}

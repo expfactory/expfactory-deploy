@@ -10,7 +10,9 @@
               <ul>
                 {% for child in children %}
                   <li>
-                    <a href="{% url 'experiments:battery-update'  child.id %}">{{ child.title|default:"No Title" }}</a> - <a href="experiments:battery-clone child.id">Clone</a>
+                    <a href="{% url 'experiments:battery-update'  child.id %}">
+                      {{ child.title|default:"No Title" }}
+                    </a> - <a href="{% url 'experiments:battery-clone' child.id%}">Clone</a>
                   </li>
                 {% endfor %}
               </ul>

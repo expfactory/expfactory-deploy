@@ -25,7 +25,7 @@ from experiments import forms as forms
 from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
 
-sys.path.append(Path(settings.ROOT_DIR, "expfactory_deploy_local"))
+sys.path.append(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/expfactory_deploy_local"))
 
 from expfactory_deploy_local.utils import generate_experiment_context
 
@@ -35,7 +35,7 @@ class RepoOriginList(ListView):
     model = models.RepoOrigin
     queryset = models.RepoOrigin.objects.prefetch_related("experimentrepo_set")
 
-class RepoOriginCreate(CreateView):
+class RepoOriginCreate(LoginRequiredMixin, CreateView):
     model = models.RepoOrigin
     form_class = forms.RepoOriginForm
     success_url = reverse_lazy("experiments:experiment-repo-list")
@@ -54,7 +54,7 @@ def experiment_instances_from_latest(experiment_repos):
         )
 
 
-class ExperimentRepoList(ListView):
+class ExperimentRepoList(LoginRequiredMixin, ListView):
     model = models.ExperimentRepo
     queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True)
 
@@ -66,7 +66,7 @@ class ExperimentRepoList(ListView):
         context['tag_form'] = forms.ExperimentRepoBulkTagForm()
         return context
 
-class ExperimentRepoDetail(DetailView):
+class ExperimentRepoDetail(LoginRequiredMixin, DetailView):
     model = models.ExperimentRepo
 
     def get_context_data(self, **kwargs):
@@ -92,26 +92,26 @@ def repo_instances(request, pk):
     instances = models.ExperimentInstances.objects.filter(experiment_repo_id=pk).all()
     render(request, "experiments/experimentinstances_select.html", {instances: instances})
 
-class ExperimentRepoUpdate(UpdateView):
+class ExperimentRepoUpdate(LoginRequiredMixin, UpdateView):
     model = models.ExperimentRepo
     form_class = forms.ExperimentRepoForm
     success_url = reverse_lazy("experiments:experiment-repo-list")
 
-class ExperimentRepoDelete(DeleteView):
+class ExperimentRepoDelete(LoginRequiredMixin, DeleteView):
     model = models.ExperimentRepo
     success_url = reverse_lazy("experiments:experiment-repo-list")
 
-class ExperimentInstanceCreate(CreateView):
+class ExperimentInstanceCreate(LoginRequiredMixin, CreateView):
     model = models.ExperimentInstance
     form_class = forms.ExperimentInstanceForm
     success_url = reverse_lazy("experiments:experiment-instance-detail")
 
-class ExperimentInstanceUpdate(UpdateView):
+class ExperimentInstanceUpdate(LoginRequiredMixin, UpdateView):
     model = models.ExperimentInstance
     form_class = forms.ExperimentInstanceForm
     success_url = reverse_lazy("experiments:experiment-instance-detail")
 
-class ExperimentInstanceDetail(DetailView):
+class ExperimentInstanceDetail(LoginRequiredMixin, DetailView):
     model = models.ExperimentInstance
 
 '''
@@ -151,7 +151,7 @@ def add_experiment_repos(context, battery=None):
     context["exp_repo_select_id"] = "place_holder"
 
 
-class BatteryList(ListView):
+class BatteryList(LoginRequiredMixin, ListView):
     model = models.Battery
 
     def get_queryset(self):
@@ -164,7 +164,7 @@ class BatteryList(ListView):
         return context
 
 
-class BatteryDetail(DetailView):
+class BatteryDetail(LoginRequiredMixin, DetailView):
     model = models.Battery
     queryset = models.Battery.objects.prefetch_related("assignment_set", "experiment_instances")
     context_object_name = "battery"
@@ -175,7 +175,7 @@ class BatteryDetail(DetailView):
     objects and order entries in the battery <-> experiment instance pivot table
     as needed.
 """
-class BatteryComplex(TemplateView):
+class BatteryComplex(LoginRequiredMixin, TemplateView):
     template_name = "experiments/battery_form.html"
     battery = None
     battery_kwargs = {}
@@ -186,7 +186,7 @@ class BatteryComplex(TemplateView):
         qs = models.ExperimentInstance.objects.none()
         ordering = None
         if self.battery:
-            qs = self.battery.experiment_instances.all()
+            qs = models.ExperimentInstance.objects.filter(battery=self.battery).order_by('batteryexperiments__order').all()
             ordering = qs.annotate(exp_order=F('batteryexperiments__order'))
             context['battery'] = self.battery
         if "form" not in kwargs:
@@ -231,23 +231,23 @@ class BatteryComplex(TemplateView):
     def post(self, request, *args, **kwargs):
         self.get_object()
         form = forms.BatteryForm(self.request.POST, **self.battery_kwargs)
-        try:
-            form.instance.user = request.user
-        except:
-            pass
+        form.instance.user = request.user
         battery = form.save()
 
+        '''
         ordering = models.ExperimentInstance.objects.filter(
             batteryexperiments__battery=self.battery
         ).order_by("batteryexperiments__order")
+        '''
         exp_instance_formset = forms.ExpInstanceFormset(
-            self.request.POST, form_kwargs={"battery_id": battery.id, "ordering": ordering}
+            self.request.POST, form_kwargs={"battery_id": battery.id}
         )
         valid = exp_instance_formset.is_valid()
         if valid:
             ei = exp_instance_formset.save()
             battery.batteryexperiments_set.exclude(experiment_instance__in=ei).delete()
         elif not valid:
+            print(exp_instance_formset.errors)
             return self.render_to_response(self.get_context_data(form=form, exp_instance_formset=exp_instance_formset))
 
         if form.is_valid():
@@ -290,10 +290,9 @@ def deactivate_repo(request, pk):
 @login_required
 def deactivate_repo_confirmation(request, pk):
     repo = get_object_or_404(models.RepoOrigin, pk=pk)
-    print(repo.url)
     return render(request, 'experiments/repo_deactivate_confirmation.html', {'repo': repo})
 
-class BatteryClone(View):
+class BatteryClone(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
         batt = get_object_or_404(models.Battery, pk=pk)
@@ -334,7 +333,6 @@ class Preview(View):
         # default template for poldracklab style experiments
         template = "experiments/jspsych_deploy.html"
         context = jspsych_context(exp_instance)
-        return render(request, template, context)
 
 class PreviewBattery(View):
     def get(self, request, *args, **kwargs):
@@ -436,10 +434,31 @@ class Results(View):
         assignment.save()
         return HttpResponse('recieved')
 
-class SubjectDetail(DetailView):
+def download_results(request, *args, **kwargs):
+    params = [
+        ('sid', 'subject__id__in'),
+        ('bid', 'battery_experiment__id__in'),
+        ('expid', 'battery_experiment__experiment_instance__experiment_repo_id__id__in')
+    ]
+    query = {}
+    for param in params:
+        ids = request.GET.get(param[0])
+        if ids is None:
+            continue
+        if type(ids) is str:
+            ids = [ids]
+        query[param[0]] = ids
+    # found_results = models.Results.filter(**query).annotate('data', 'subject__uuid', '
+
+
+def format_results(result):
+    return
+
+
+class SubjectDetail(LoginRequiredMixin, DetailView):
     model = models.Subject
 
-class SubjectList(ListView):
+class SubjectList(LoginRequiredMixin, ListView):
     model = models.Subject
     queryset = models.Subject.objects.filter(active=True).prefetch_related("assignment_set")
 
@@ -448,7 +467,7 @@ class SubjectList(ListView):
         context['subject_select'] = forms.SubjectActionForm()
         return context
 
-class CreateSubjects(FormView):
+class CreateSubjects(LoginRequiredMixin, FormView):
     template_name = 'experiments/create_subjects.html'
     form_class = forms.SubjectCount
     success_url = reverse_lazy('experiments:subject-list')
@@ -457,7 +476,7 @@ class CreateSubjects(FormView):
         models.Subject.objects.bulk_create(new_subjects)
         return super().form_valid(form)
 
-class SubjectListAction(FormView):
+class SubjectListAction(LoginRequiredMixin, FormView):
     template_name = 'experiments/subject_list.html'
     form_class = forms.SubjectActionForm
     success_url = reverse_lazy('experiments:subject-list')
@@ -483,7 +502,7 @@ class AssignSubject(SubjectListAction):
 
         return super().form_valid(form)
 
-class ExperimentRepoBulkTag(FormView):
+class ExperimentRepoBulkTag(LoginRequiredMixin, FormView):
     form_class = forms.ExperimentRepoBulkTagForm
     template_name = 'experiments/experimentrepo_list.html'
     success_url = reverse_lazy('experiments:experiment-repo-list')

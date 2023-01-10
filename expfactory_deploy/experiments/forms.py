@@ -246,7 +246,6 @@ class ExperimentInstanceOrderForm(ExperimentInstanceForm):
     def clean(self):
         cleaned_data = super().clean()
         commit = cleaned_data["commit"]
-        print(cleaned_data)
         exp_instance = cleaned_data["experiment_repo_id"]
         if commit == "latest":
             commit = exp_instance.get_latest_commit()
@@ -263,22 +262,18 @@ class ExperimentInstanceOrderForm(ExperimentInstanceForm):
     def save(self, *args, **kwargs):
         exp_instance = super().save(*args, **kwargs)
         exp_repo_id = exp_instance.experiment_repo_id_id
-        print("in save")
-        print(exp_instance)
-        print(self.battery_id)
         battery = models.Battery.objects.get(id=self.battery_id)
         try:
-            batt_exp = models.BatteryExperiments.objects.get(
-                battery=battery, experiment_instance__experiment_repo_id=exp_repo_id
-            )
+            batt_exp = battery.batteryexperiments_set.get(experiment_instance__experiment_repo_id=exp_repo_id)
             batt_exp.order = self.cleaned_data.get("exp_order", -1)
+            batt_exp.save()
         except ObjectDoesNotExist:
             batt_exp = models.BatteryExperiments(
                 battery=battery,
                 experiment_instance=exp_instance,
                 order=self.cleaned_data.get("exp_order", -1),
             )
-        batt_exp.save()
+            batt_exp.save()
         return exp_instance
 
     def set_classes(self):
