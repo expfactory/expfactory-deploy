@@ -5,7 +5,7 @@ import sys
 import urllib
 from pathlib import Path
 
-from utils import generate_experiment_context
+from .utils import generate_experiment_context
 
 import web
 from web.contrib.template import render_jinja
@@ -26,6 +26,7 @@ group.add_argument(
     help="configuration file to run experiments",
     nargs='?'
 )
+
 group.add_argument(
     '-e',
     '--exps',
@@ -36,9 +37,12 @@ group.add_argument(
 experiments = []
 exp_location = ""
 order = "random"
-output_file = Path("./results.txt")
+output_file = Path(os.getcwd(), "./results.txt")
+
+package_dir = os.path.dirname(os.path.abspath(__file__))
 results_dir = ""
-template_dir = "templates"
+template_dir = Path(package_dir, "templates")
+static_dir = Path(package_dir, "static/")
 render = render_jinja(template_dir, encoding="utf-8")
 
 def run(args=None):
@@ -46,25 +50,30 @@ def run(args=None):
     if (args.exps is not None):
         experiments = args.exps
     elif (args.exp_config is not None):
-        with open(args.exp_config) as fp:
-            experiments = [Path(x.strip()) for x in fp.readlines()]
+        if (args.exp_config.is_file()):
+            with open(args.exp_config) as fp:
+                experiments = [Path(x.strip()) for x in fp.readlines()]
+        else:
+            experiments=[args.exp_config]
     else:
         experiments=[os.getcwd()]
 
     for experiment in experiments:
         try:
-            os.symlink(experiment, Path("./static/", experiment.stem))
+            os.symlink(experiment, Path(static_dir, experiment.stem))
         except FileExistsError:
-            os.unlink(Path("./static/", experiment.stem))
-            os.symlink(experiment, Path("./static/", experiment.stem))
-    print("EXPS")
-    print(experiments)
+            os.unlink(Path(static_dir, experiment.stem))
+            os.symlink(experiment, Path(static_dir, experiment.stem))
+
     web.config.update({'experiments': experiments})
+    # I think directory with a period in dirname of sys.argv[0] threw run func for a loop.
+    # We don't need argv anymore so can clear it.
+    sys.argv = []
     app.run()
 
 def serve_experiment(experiment):
     exp_name = experiment.stem
-    context = generate_experiment_context(Path("./static", exp_name), "/", f"/static/{exp_name}")
+    context = generate_experiment_context(Path(static_dir, exp_name), "/", f"/static/{exp_name}")
     return render.deploy_template(**context)
 
 
