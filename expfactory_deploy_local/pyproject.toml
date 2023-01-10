@@ -1,0 +1,14 @@
+[project]
+name = "expfactory-deploy-local"
+version = "0.1.0"
+description = ""
+authors = ["Ross Blair <rosswilsonblair@gmail.com>"]
+readme = "README.md"
+packages = [{include = "expfactory_deploy_local"}]
+requires-python = ">=3.8"
+
+[project.dependencies]
+"web.py" = "^0.62"
+
+[project.scripts]
+expfactory_deploy_local = 'expfactory_deploy_local.serve:run'
