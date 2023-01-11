@@ -278,10 +278,16 @@ expfactory_deploy/media/
 .vscode
 
 js_experiments/
-expfactory_deploy/sessions/*
-expfactory_deploy/static/*
-sessions/*
-jspsych7/examples/
+**/expfactory_deploy/static/*
+sessions/
 static_deployment/*
 deployment_assets/workdirs/
 deployment_assets/repos/*
+test_config
+/**/expfactory_deploy_local/static/*
+!/**/expfactory_deploy_local/static/css
+!/**/expfactory_deploy_local/static/favicon.ico
+!/**/expfactory_deploy_local/static/fonts
+!/**/expfactory_deploy_local/static/images
+!/**/expfactory_deploy_local/static/js
+!/**/expfactory_deploy_local/static/jspsych7
