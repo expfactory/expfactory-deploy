@@ -10,11 +10,13 @@ from .utils import generate_experiment_context
 import web
 from web.contrib.template import render_jinja
 
+package_dir = os.path.dirname(os.path.abspath(__file__))
+
 urls = ("/", "serve", "/serve", "serve", "/decline", "decline")
 web.config.debug = False
 app = web.application(urls, globals())
 session = web.session.Session(
-    app, web.session.DiskStore("sessions"), initializer={"incomplete": None}
+    app, web.session.DiskStore(Path(package_dir, "sessions")), initializer={"incomplete": None}
 )
 
 parser = argparse.ArgumentParser(description="Start a local deployment of a battery")
@@ -34,11 +36,8 @@ group.add_argument(
 )
 
 experiments = []
-exp_location = ""
-order = "random"
-output_file = Path(os.getcwd(), "./results.txt")
 
-package_dir = os.path.dirname(os.path.abspath(__file__))
+output_file = Path(os.getcwd(), "./results.txt")
 template_dir = Path(package_dir, "templates")
 static_dir = Path(package_dir, "static/")
 render = render_jinja(template_dir, encoding="utf-8")

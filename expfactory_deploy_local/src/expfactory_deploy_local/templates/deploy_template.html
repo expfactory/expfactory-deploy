@@ -72,8 +72,7 @@
                   <button id="next_experiment_button" type="button" class="btn btn-success">Next Experiment</button>
                   <button type="button" id="redo_experiment_button" class="btn btn-danger">Redo Experiment</button>
               </div>`;
-            let data = {}
-            if jsPsych.data.hasOwnProperty('getData') {
+            if (jsPsych.data.hasOwnProperty('getData')) {
               data = jsPsych.data.getData()
             } else {
               data = jsPsych.data.get().json()
