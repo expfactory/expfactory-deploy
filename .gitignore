@@ -280,9 +280,8 @@ expfactory_deploy/media/
 js_experiments/
 expfactory_deploy/sessions/*
 expfactory_deploy/static/*
-expfactory_deploy_local/sessions/*
-expfactory_deploy_local/static/*
+sessions/*
+jspsych7/examples/
 static_deployment/*
 deployment_assets/workdirs/
 deployment_assets/repos/*
-
