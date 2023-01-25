@@ -25,7 +25,7 @@ from experiments import forms as forms
 from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
 
-sys.path.append(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/expfactory_deploy_local"))
+sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
 
 from expfactory_deploy_local.utils import generate_experiment_context
 
@@ -333,6 +333,7 @@ class Preview(View):
         # default template for poldracklab style experiments
         template = "experiments/jspsych_deploy.html"
         context = jspsych_context(exp_instance)
+        return render(request, template, context)
 
 class PreviewBattery(View):
     def get(self, request, *args, **kwargs):

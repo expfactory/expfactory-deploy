@@ -148,7 +148,7 @@
             ctrl = evt.target;
           var dataId = item.getAttribute('data-id')
           if (Sortable.utils.is(ctrl, ".js-remove")) {
-            if (document.querySelectorAll(`#battexplist [data-id="${dataId}"]`).length < 2) {
+            if (document.querySelectorAll(`#battexplist .list-group-item[data-id="${dataId}"]`).length < 2) {
               document.querySelector(`#experimentslist [data-id="${dataId}"]`).classList.remove("added")
             }
             item.parentNode.removeChild(item);
