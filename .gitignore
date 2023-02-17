@@ -291,3 +291,5 @@ test_config
 !/**/expfactory_deploy_local/static/images
 !/**/expfactory_deploy_local/static/js
 !/**/expfactory_deploy_local/static/jspsych7
+!/**/expfactory_deploy_local/static/experiments
+
