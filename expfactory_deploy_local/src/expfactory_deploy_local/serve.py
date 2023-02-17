@@ -16,7 +16,7 @@ urls = ("/", "serve", "/serve", "serve", "/decline", "decline")
 web.config.debug = False
 app = web.application(urls, globals())
 session = web.session.Session(
-    app, web.session.DiskStore(Path(package_dir, "sessions")), initializer={"incomplete": None}
+    app, web.session.DiskStore(Path(package_dir, "sessions")), initializer={"incomplete": None }
 )
 
 parser = argparse.ArgumentParser(description="Start a local deployment of a battery")
@@ -40,6 +40,7 @@ experiments = []
 output_file = Path(os.getcwd(), "./results.txt")
 template_dir = Path(package_dir, "templates")
 static_dir = Path(package_dir, "static/")
+experiments_dir = Path(static_dir, "experiments/")
 render = render_jinja(template_dir, encoding="utf-8")
 
 def run(args=None):
@@ -68,10 +69,10 @@ def run(args=None):
 
     for experiment in experiments:
         try:
-            os.symlink(experiment, Path(static_dir, experiment.stem))
+            os.symlink(experiment, Path(experiments_dir, experiment.stem))
         except FileExistsError:
-            os.unlink(Path(static_dir, experiment.stem))
-            os.symlink(experiment, Path(static_dir, experiment.stem))
+            os.unlink(Path(experiments_dir, experiment.stem))
+            os.symlink(experiment, Path(experiments_dir, experiment.stem))
 
     web.config.update({'experiments': experiments})
     # I think a directory starting with a period in the dirname of
@@ -82,15 +83,21 @@ def run(args=None):
 
 def serve_experiment(experiment):
     exp_name = experiment.stem
-    context = generate_experiment_context(Path(static_dir, exp_name), "/", f"/static/{exp_name}")
+    context = generate_experiment_context(Path(experiments_dir, exp_name), "/", f"/static/experiments/{exp_name}")
     return render.deploy_template(**context)
 
 
 class serve:
     def GET(self):
         experiments = web.config.experiments
+        if session.get('experiments') == None:
+            session.experiments = [*experiments]
+        if set(experiments) != set(session.experiments):
+            session.experiments = [*experiments]
+            session.incomplete = [*experiments]
         if session.get('incomplete') == None:
             session.incomplete = [*experiments]
+
         if len(session.incomplete) == 0:
             return render.finished()
         exp_to_serve = session.incomplete[-1]

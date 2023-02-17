@@ -12,8 +12,6 @@ css_tag = '<link rel="stylesheet" type="text/css" href="{}">'
 
 
 def format_external_scripts(scripts, exp_location, static_location="/"):
-    print(scripts)
-    print(exp_location)
     js = []
     css = []
     for script in scripts:
