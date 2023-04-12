@@ -49,7 +49,7 @@ var jsPoldracklabStopSignal = (function (jspsych) {
       },
       correct_choice: {
         type: jspsych.KEY,
-        default: "NO_KEYS"
+        default: null
       },
     }
   }
@@ -91,6 +91,7 @@ var jsPoldracklabStopSignal = (function (jspsych) {
         }
 
         // gather the data to store for the trial
+        console.log(response.key)
         var trial_data = {
           "rt": response.rt,
           "response": response.key,
