@@ -45,12 +45,11 @@ var jsPoldracklabStopSignal = (function (jspsych) {
         default: ""
       },
       choices: {
-        type: jspsych.KEYS,
-        default: ""
+        type: jspsych.KEYS
       },
       correct_choice: {
         type: jspsych.KEY,
-        default: ""
+        default: "NO_KEYS"
       },
     }
   }
