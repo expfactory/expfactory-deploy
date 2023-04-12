@@ -20,11 +20,11 @@ var jsPoldracklabStopSignal = (function (jspsych) {
         type: jspsych.STRING,
         default: undefined
       },
-      timing_stim: {
+      stimulus_duration: {
         type: jspsych.INT,
         default: -1
       },
-      timing_SS: {
+      SS_duration: {
         type: jspsych.INT,
         default: -1
       },
@@ -36,13 +36,9 @@ var jsPoldracklabStopSignal = (function (jspsych) {
         type: jspsych.INT,
         default: undefined
       },
-      timing_post_trial: {
+      post_trial_gap: {
         type: jspsych.INT,
         default: 1000
-      },
-      is_html: {
-        type: jspsych.BOOL,
-        default: false
       },
       prompt: {
         type: jspsych.STRING,
@@ -77,11 +73,11 @@ var jsPoldracklabStopSignal = (function (jspsych) {
 
       // display stimulus
       const elemId = 'jspsych-stop-signal-stimulus'
-      const elemType = trial.is_html ? 'div' : 'img'
+      const elemType = 'div'
       display_element.innerHTML = `<${elemType} id='${elemId}'>${trial.stimulus}</${elemType}>${trial.prompt}`
 
       // store response
-      var response = {rt: -1, key: -1};
+      var response = {rt: null, key: null};
 
       // function to end trial when it is time
       var end_trial = function() {
@@ -98,7 +94,7 @@ var jsPoldracklabStopSignal = (function (jspsych) {
         // gather the data to store for the trial
         var trial_data = {
           "rt": response.rt,
-          "key_press": response.key,
+          "response": response.key,
           "correct": response.key === trial.correct_choice
         };
 
@@ -111,8 +107,8 @@ var jsPoldracklabStopSignal = (function (jspsych) {
             stimulus: true,
             SS_stimulus: true,
             SS_trial_type: true,
-            timing_stim: true,
-            timing_SS: true,
+            stimulus_duration: true,
+            SS_duration: true,
             trial_duration: true,
             SSD: true,
             choices: true,
@@ -133,7 +129,7 @@ var jsPoldracklabStopSignal = (function (jspsych) {
         $("#jspsych-stop-signal-stimulus").addClass('responded');
 
         // only record the first response
-        if(response.key == -1){
+        if(response.key == null){
           response = info;
         }
 
@@ -152,10 +148,10 @@ var jsPoldracklabStopSignal = (function (jspsych) {
       });
 
       // hide image if timing is set
-      if (trial.timing_stim > 0) {
+      if (trial.stimulus_duration > 0) {
         var t1 = setTimeout(function() {
-          document.getElementById('jspsych-stop-signal-stimulus').setAttribute('hidden', 'foo')
-        }, trial.timing_stim);
+          document.getElementById('jspsych-stop-signal-stimulus').setAttribute('hidden', 'foo');
+        }, trial.stimulus_duration);
         setTimeoutHandlers.push(t1);
       }
 
@@ -177,10 +173,10 @@ var jsPoldracklabStopSignal = (function (jspsych) {
         }
 
         // hide SS after a fixed interval (or when stimulus ends)
-        if (trial.timing_SS > 0) {
+        if (trial.SS_duration > 0) {
           var t4 = setTimeout(function() {
             document.getElementById('jspsych-stop-signal-SS').setAttribute('hidden', 'foo');
-          }, trial.timing_SS+trial.SSD);
+          }, trial.SS_duration+trial.SSD);
           setTimeoutHandlers.push(t4);
         }
       }
