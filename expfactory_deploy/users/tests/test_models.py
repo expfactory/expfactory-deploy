@@ -1,6 +1,6 @@
 import pytest
 
-from expfactory_deploy.users.models import User
+from users.models import User
 
 pytestmark = pytest.mark.django_db
 

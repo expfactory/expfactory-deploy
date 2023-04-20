@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<table>
+  <thead>
+    <tr>
+      <th>url</th>
+      <th>HIT Id</th>
+      <th>Title</th>
+      <th>HIT status</th>
+      <th>Assignments Pending</th>
+      <th>Assignments Available</th>
+      <th>Assignments Completed</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for url, hits in hits_by_url %}
+    <tr>
+    {% for hit in hits %}
+      <td>{{ url }}:</td>
+      <td>hit.HITId</td>
+      <td>hit.Title</td>
+      <td>hit.HITStatus</td>
+      <td>{{ hit.NumberOfAssignmentsPending }}</td>
+      <td>{{ hit.NumberOfAssignmentsAvailable }}</td>
+      <td>{{ hit.NumberOfAssignmentsCompleted }}</td>
+    {% endfor %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

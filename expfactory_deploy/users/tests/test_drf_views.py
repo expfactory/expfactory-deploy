@@ -2,7 +2,7 @@ import pytest
 from django.test import RequestFactory
 
 from expfactory_deploy.users.api.views import UserViewSet
-from expfactory_deploy.users.models import User
+from users.models import User
 
 pytestmark = pytest.mark.django_db
 

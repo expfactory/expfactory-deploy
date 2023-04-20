@@ -106,6 +106,11 @@ urlpatterns = [
         name="serve-battery",
     ),
     path(
+        "serve/<int:battery_id>/",
+        views.Serve.as_view(),
+        name="serve-battery",
+    ),
+    path(
         "serve/<int:subject_id>/<int:battery_id>/<int:experiment_id>/",
         views.Serve.as_view(),
         name="serve-experiment",

@@ -8,7 +8,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from expfactory_deploy.users.forms import UserChangeForm
-from expfactory_deploy.users.models import User
+from users.models import User
 from expfactory_deploy.users.tests.factories import UserFactory
 from expfactory_deploy.users.views import (
     UserRedirectView,
