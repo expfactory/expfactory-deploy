@@ -208,11 +208,11 @@ class Battery(TimeStampedModel, StatusField):
         """ passing object we wish to clone through model constructor allows
         created field to be properly set
         """
-        old_batt = Battery.objects.get(id=self.id)
-        new_batt = Battery(old_batt)
+        new_batt = Battery.objects.get(id=self.id)
         new_batt.pk = None
         new_batt.id = None
-        new_batt.template_id = self
+        if self.template_id is None:
+            new_batt.template_id = self
         new_batt.status = status
         new_batt.save()
         for batt_exp in list(self.batteryexperiments_set.all()):

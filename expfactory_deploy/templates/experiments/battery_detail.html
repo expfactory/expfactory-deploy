@@ -1,80 +1,73 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2>{{ object.title }} - {{ object.status }}</h2>
-  <br />
-  <h3> Experiments </h3>
-  <table id="experiment-table">
-    <thead>
-      <tr>
-        <th>order</th>
-        <th>experiment</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
+<h2>{{ object.title }} - {{ object.status }}</h2>
+<br />
+<h3> Experiments </h3>
+<table id="experiment-table">
+  <thead>
+    <tr>
+      <th>order</th>
+      <th>experiment</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
     {% for batt_exp in object.batteryexperiments_set.all %}
-      <tr>
-        <td>
-          {{ batt_exp.order }}
-        </td>
-        <td>
-          <a href="{{ batt_exp.experiment_instance.remote_url }}">{{ batt_exp.experiment_instance.experiment_repo_id.name }}</a>
-        </td>
-        <td></td>
-      </tr>
+    <tr>
+      <td>
+        {{ batt_exp.order }}
+      </td>
+      <td>
+        <a href="{{ batt_exp.experiment_instance.remote_url }}">{{ batt_exp.experiment_instance.experiment_repo_id.name
+          }}</a>
+      </td>
+      <td></td>
+    </tr>
     {% endfor %}
-    </tbody>
-  </table>
-  <a href="{% url 'experiments:battery-update' object.id %}">Edit</a>
-  <h3> Assignments </h3>
-  <table id="subject-table">
-    <thead>
-      <tr>
-        <th>subject</th>
-        <th>started</th>
-        <th>completed</th>
-        <th>results</th>
-      </tr>
-    </thead>
-    <tbody>
+  </tbody>
+</table>
+<a href="{% url 'experiments:battery-update' object.id %}">Edit</a>
+<h3> Assignments </h3>
+<table id="subject-table">
+  <thead>
+    <tr>
+      <th>subject</th>
+      <th>started</th>
+      <th>completed</th>
+      <th>results</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for asig in object.assignment_set.all %}
-      <tr>
-        <td>
-          <a href="{% url 'experiments:subject-detail' asig.subject.id %}">{{ asig.subject }}</a>
-        </td>
-        <td>
-          {{ asig.started_at }}
-        </td>
-        <td>
-          {{ asig.completed_at }}
-        </td>
-        <td>
-          {% for result in asig.results %}
-            {{ result.battery_experiment.experiment_instance.experiment_repo_id.name }}
-          {% endfor %}
-        </td>
-      </tr>
+    <tr>
+      <td>
+        <a href="{% url 'experiments:subject-detail' asig.subject.id %}">{{ asig.subject }}</a>
+      </td>
+      <td>
+        {{ asig.started_at }}
+      </td>
+      <td>
+        {{ asig.completed_at }}
+      </td>
+      <td>
+        {% for result in asig.results %}
+        {{ result.battery_experiment.experiment_instance.experiment_repo_id.name }}
+        {% endfor %}
+      </td>
+    </tr>
     {% endfor %}
-    </tbody>
-  </table>
-
+  </tbody>
+</table>
+<a class="btn btn-primary" href="{% url 'mturk:create-hit' battery.id %}">Create HIT</a>
 
 {% endblock %}
 {% block inline_javascript %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function () {
 
-  const subjectTable = new simpleDatatables.DataTable("#subject-table", {
-    searchable: true,
-    paging: false
-  })
-
-  const experimentTable = new simpleDatatables.DataTable("#experiment-table", {
-    searchable: true,
-    paging: false
-  })
-}, false);
+    const subjectTable = new simpleDatatables.DataTable(" #subject-table", { searchable: true, paging: false }) const
+      experimentTable = new simpleDatatables.DataTable("#experiment-table", { searchable: true, paging: false })
+  }, false);
 </script>
 {% endblock inline_javascript %}
-

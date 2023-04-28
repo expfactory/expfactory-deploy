@@ -5,8 +5,9 @@ import time
 import uuid
 
 test_url = f"https://example.com/{uuid.uuid4()}"
-class BotoUtils(TestCase):
 
+
+class BotoUtils(TestCase):
     def setup(self):
         er = models.ExperimentRepo.create(name="text_experiment_repo", location="/tmp/")
         ei = models.ExperimentInstance.create(experiment_repo_id=er)
@@ -27,7 +28,7 @@ class BotoUtils(TestCase):
         hit = bu.generate_hit(Title=title, Question=question)
         response = bw.create_hit_batches(hit)
         time.sleep(10)
-        all_hits = bw.get_all_hits()
+        all_hits = bw.get_hits()
         self.assertIn(test_url, all_hits)
         time.sleep(10)
         hits = bw.get_active_hits()

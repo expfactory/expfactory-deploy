@@ -1,34 +1,56 @@
 {% extends "base.html" %}
 
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/simple-datatables@7/dist/style.css" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/simple-datatables@7" type="text/javascript"></script>
 
-<table>
+
+{% if all %}
+<h2>All Hits</h2>
+{% else %}
+<h2>Hits for {{ url }}</h2>
+{% endif %}
+
+<table id="hitsTable">
   <thead>
     <tr>
       <th>url</th>
-      <th>HIT Id</th>
       <th>Title</th>
       <th>HIT status</th>
       <th>Assignments Pending</th>
       <th>Assignments Available</th>
       <th>Assignments Completed</th>
+      <th>Expiration</th>
+      <th>Expire/Delete</th>
     </tr>
   </thead>
   <tbody>
-  {% for url, hits in hits_by_url %}
+    {% for url, hits in hits_by_url.items %}
     <tr>
-    {% for hit in hits %}
-      <td>{{ url }}:</td>
-      <td>hit.HITId</td>
-      <td>hit.Title</td>
-      <td>hit.HITStatus</td>
+      {% for hit in hits %}
+      <td>
+        <details>
+          <summary>{{ url }}</summary>
+          {{ hit.HITId }}
+        </details>
+      </td>
+      <td>{{ hit.Title }}</td>
+      <td>{{ hit.HITStatus }}</td>
       <td>{{ hit.NumberOfAssignmentsPending }}</td>
       <td>{{ hit.NumberOfAssignmentsAvailable }}</td>
       <td>{{ hit.NumberOfAssignmentsCompleted }}</td>
-    {% endfor %}
+      <td>{{ hit.Expiration }}</td>
+      <td><a href="{% url 'mturk:expire-hit' hit.HITId %}">Expire/Delete</a></td>
+      {% endfor %}
     </tr>
-  {% endfor %}
+    {% endfor %}
   </tbody>
 </table>
+
+<script>
+  const dataTable = new simpleDatatables.DataTable("#hitsTable", {
+    searchable: true,
+  })
+</script>
 
 {% endblock %}

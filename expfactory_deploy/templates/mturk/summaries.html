@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/simple-datatables@7/dist/style.css" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/simple-datatables@7" type="text/javascript"></script>
+<h2>Mturk Summaries by Battery</h2>
+<table id="summariesTable">
+    <thead>
+        <tr>
+            <th>Battery Details</th>
+            <th>Pending</th>
+            <th>Available</th>
+            <th>Complete</th>
+            <th>Earliest Expiration</th>
+            <th>Total Hits</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for summary in summaries %}
+        <tr>
+            {% if summary.detail_url %}
+            <td><a href="{{ summary.detail_url }}">{{ summary.url }}</a></td>
+            {% else %}
+            <td>{{ summary.url }} (Battery not found)</td>
+            {% endif %}
+            <td>{{ summary.pending }}/{{ summary.total }}</td>
+            <td>{{ summary.available }}/ {{ summary.total }}</td>
+            <td>{{ summary.complete }}/{{ summary.total }}</td>
+            <td>{{ summary.earliest_expiration }}</td>
+            <td>{{ summary.total_hits }} (<a href="{% url 'mturk:hits-list' summary.url %}">List</a>)</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    const dataTable = new simpleDatatables.DataTable("#summariesTable", {
+        searchable: true,
+    })
+</script>
+{% endblock %}

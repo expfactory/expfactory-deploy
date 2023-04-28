@@ -54,22 +54,28 @@ class BotoWrapper:
     def __init__(self, *args, **kwargs):
         self.client = self.get_client()
 
-    def get_client(self):
+    def get_client(self, credentials=None, sandbox=True):
         session = boto3.Session()
         return session.client("mturk", endpoint_url=endpoint_url["sandbox"])
 
-    def get_all_hits(self):
+    def get_hits(self, url=None, annotation=None):
         hits = self._consume_paginator("HITs", self.client.list_hits)
         hits_by_url = defaultdict(list)
         for hit in hits:
             re_url = re.search(url_pattern, hit.get("Question", ""))
             if re_url is None:
                 continue
+            if url is not None and url != re_url.group("url"):
+                continue
+            if (annotation is not None) and (
+                hit.get("RequesterAnnotation") != annotation
+            ):
+                continue
             hits_by_url[re_url.group("url")].append(hit)
         return hits_by_url
 
-    def get_active_hits(self):
-        hits = self.get_all_hits()
+    def get_active_hits(self, **kwargs):
+        hits = self.get_hits(**kwargs)
         for url in hits:
             hits[url] = list(
                 filter(
@@ -88,6 +94,10 @@ class BotoWrapper:
 
     def create_hit_batches(self, hit, num_assignments=9, sandbox=True):
         created_hits = []
+        total_hits = num_assignments // 9
+        if num_assignments % 9:
+            total_hits += 1
+
         for i in range(num_assignments // 9):
             hit["MaxAssignments"] = 9
             created_hits.append(self.client.create_hit(**hit))
@@ -102,17 +112,20 @@ class BotoWrapper:
             self.client.update_expiration_for_hit(HITId=id, ExpireAt=date)
         return
 
-    def expire_hits_by_url(self, url):
+    def expire_hits_by_url(self, url, annotation=None):
         date = datetime(2015, 1, 1)
-        hits = self.get_all_hits()
+        hits = self.get_hits()
         if url not in hits:
             return
         for hit in hits.get(url, []):
-            self.client.update_expiration_for_hit(HITId=hit["HITId"], ExpireAt=date)
+            if annotation is None:
+                self.client.update_expiration_for_hit(HITId=hit["HITId"], ExpireAt=date)
+            elif hit["RequesterAnnotation"] == annotation:
+                self.client.update_expiration_for_hit(HITId=hit["HITId"], ExpireAt=date)
         return
 
-    def delete_hits(self, urls):
-        hits = self.get_all_hits()
+    def delete_hits(self, urls, **kwargs):
+        hits = self.get_hits(**kwargs)
         failed = []
         if urls == "all":
             urls = hits.keys()
@@ -126,9 +139,20 @@ class BotoWrapper:
                     failed.append(hit)
         return failed
 
+    def delete_hits_by_id(self, ids):
+        failed = []
+        if type(ids) is str:
+            ids = [ids]
+        for id in ids:
+            try:
+                self.client.delete_hit(HITId=id)
+            except self.client.exceptions.RequestError:
+                failed.append(id)
+        return failed
+
     # list submitted assignments by url
-    def list_assignments(self, url=None):
-        hits = self.get_all_hits()
+    def list_assignments(self, url=None, **kwargs):
+        hits = self.get_hits(**kwargs)
         hits_for_url = hits[url]
         assignments = []
         for hit in hits_for_url:

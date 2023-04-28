@@ -4,7 +4,11 @@
     <h2>Battery Templates</h2>
       {% for battery in object_list %}
         {% regroup battery.children.all by status as child_list %}
-            <h3><a href="{% url 'experiments:battery-update'  battery.id %}">{{ battery.title }}</a> - <a href=""> Deploy</a></h3>
+            <h3>
+              <a href="{% url 'experiments:battery-update'  battery.id %}">{{ battery.title }}</a> -
+              <a href="{% url 'experiments:battery-clone' battery.id %}"> Clone </a>
+            </h3>
+              <div class="child-battery-lists">
               {% for status, children in child_list %}
               <h4>{{ status }}</h4>
               <ul>
@@ -16,8 +20,10 @@
                   </li>
                 {% endfor %}
               </ul>
+              {% empty %}
+              <h4>No Children</h4>
               {% endfor %}
-            </li>
+              </div>
       {% empty %}
         <li> No Batteries</li>
       {% endfor %}

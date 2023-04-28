@@ -161,6 +161,7 @@ class BatteryList(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         statuses = [x[0] for x in self.model.STATUS]
         context['statuses'] = statuses
+        print(context)
         return context
 
 
@@ -261,7 +262,7 @@ def publish_battery(request, pk):
     battery = get_object_or_404(models.Battery, pk=pk)
     battery.status = "published"
     battery.save()
-    return HttpResponseRedirect(reverse_lazy("experiments:battery-detail", {pk:pk}))
+    return HttpResponseRedirect(reverse_lazy("experiments:battery-detail", kwargs={'pk':pk}))
 
 @login_required
 def publish_battery_confirmation(request, pk):
@@ -296,6 +297,9 @@ class BatteryClone(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
         batt = get_object_or_404(models.Battery, pk=pk)
+        new_batt = batt.duplicate()
+        new_batt.status = 'draft'
+        new_batt.save()
         return redirect('experiments:battery-list')
 
 """
