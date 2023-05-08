@@ -144,6 +144,8 @@ urlpatterns = [
         views.Results.as_view(),
         name="push-results",
     ),
+    path("results/<int:pk>/", views.ResultDetail.as_view(), name="result-detail"),
+    path("assignments/generate/<int:battery_id>/<int:num_subjects>", views.batch_assignment_create, name="assignment-generate"),
 ]
 
 app_name = "experiments"

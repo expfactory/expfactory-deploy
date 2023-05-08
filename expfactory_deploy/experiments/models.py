@@ -37,7 +37,7 @@ class SubjectTaskStatusModel(StatusModel):
     """Abstract class that tracks the various states a subject might
     be in relation to either an experiment or a battery"""
 
-    STATUS = Choices("not-started", "started", "completed", "failed")
+    STATUS = Choices("not-started", "started", "completed", "failed", "redo")
     status = StatusField(default="not-started")
     started_at = MonitorField(monitor="status", when=["started"], default=None, null=True)
     completed_at = MonitorField(monitor="status", when=["completed"], default=None, null=True)
@@ -281,6 +281,7 @@ class Assignment(SubjectTaskStatusModel):
     def results(self):
         return Result.objects.filter(battery_experiment__battery__assignment=self)
 
+    ''' does not account for redos '''
     @property
     def result_status(self):
         results = self.results
@@ -316,6 +317,3 @@ class Assignment(SubjectTaskStatusModel):
                 name="unique_assignment", fields=["subject", "battery"]
             )
         ]
-
-
-

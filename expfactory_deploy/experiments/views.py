@@ -24,6 +24,7 @@ from taggit.models import Tag
 from experiments import forms as forms
 from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
+from experiments.utils.assignments import batch_assignments
 
 sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
 
@@ -293,6 +294,15 @@ def deactivate_repo_confirmation(request, pk):
     repo = get_object_or_404(models.RepoOrigin, pk=pk)
     return render(request, 'experiments/repo_deactivate_confirmation.html', {'repo': repo})
 
+@login_required
+def batch_assignment_create(request, battery_id, num_subjects):
+    battery = get_object_or_404(models.Battery, pk=battery_id)
+    urls = batch_assignments(battery, num_subjects)
+    response = render(request, 'experiments/assignment_urls.txt', {'urls': urls}, content_type='text/plain')
+    fname = f'batch_assignments_{datetime.now().strftime("%Y.%m.%d.%H%M%S")}.txt'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
 class BatteryClone(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
@@ -522,3 +532,10 @@ class ExperimentRepoBulkTag(LoginRequiredMixin, FormView):
             exp_repo.save()
         return super().form_valid(form)
 
+class ResultDetail(LoginRequiredMixin, DetailView):
+    model = models.Result
+    content_type = 'text/html'
+    def get(self, *args, **kwargs):
+        response = super().get(*args, **kwargs)
+        response['Content-Disposition'] = f'attachment; filename="result_{self.object.pk}.txt"'
+        return response
