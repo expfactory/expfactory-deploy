@@ -317,3 +317,7 @@ NON_REPO_FILES_DIR = str(ROOT_DIR / "deployment_assets" / "non_repo_files")
 # These values are determined by the nginx.conf location directives
 STATIC_DEPLOYMENT_URL = "/deployment/repo/"
 STATIC_NON_REPO_URL = "/deployment/non_repo/"
+
+
+BASE_URL = env("BASE_URL", default="http://0.0.0.0:8000")
+
