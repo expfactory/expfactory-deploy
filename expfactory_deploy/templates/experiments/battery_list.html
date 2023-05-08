@@ -16,7 +16,7 @@
                   <li>
                     <a href="{% url 'experiments:battery-update'  child.id %}">
                       {{ child.title|default:"No Title" }}
-                    </a> - <a href="{% url 'experiments:battery-clone' child.id%}">Clone</a>
+                    </a> - Created: {{ child.created|date:"Y-m-d" }} - <a href="{% url 'experiments:battery-clone' child.id%}">Clone</a>
                   </li>
                 {% endfor %}
               </ul>

@@ -26,8 +26,8 @@
   </thead>
   <tbody>
     {% for url, hits in hits_by_url.items %}
-    <tr>
       {% for hit in hits %}
+      <tr>
       <td>
         <details>
           <summary>{{ url }}</summary>
@@ -41,8 +41,8 @@
       <td>{{ hit.NumberOfAssignmentsCompleted }}</td>
       <td>{{ hit.Expiration }}</td>
       <td><a href="{% url 'mturk:expire-hit' hit.HITId %}">Expire/Delete</a></td>
+      </tr>
       {% endfor %}
-    </tr>
     {% endfor %}
   </tbody>
 </table>

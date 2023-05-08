@@ -19,8 +19,7 @@
         {{ batt_exp.order }}
       </td>
       <td>
-        <a href="{{ batt_exp.experiment_instance.remote_url }}">{{ batt_exp.experiment_instance.experiment_repo_id.name
-          }}</a>
+        <a href="{{ batt_exp.experiment_instance.remote_url }}">{{ batt_exp.experiment_instance.experiment_repo_id.name }}</a>
       </td>
       <td></td>
     </tr>
@@ -52,7 +51,9 @@
       </td>
       <td>
         {% for result in asig.results %}
-        {{ result.battery_experiment.experiment_instance.experiment_repo_id.name }}
+        <a href="{% url 'experiments:result-detail' result.pk %}">
+          {{ result.battery_experiment.experiment_instance.experiment_repo_id.name }}
+        </a>
         {% endfor %}
       </td>
     </tr>
@@ -66,8 +67,8 @@
 <script>
   document.addEventListener('DOMContentLoaded', function () {
 
-    const subjectTable = new simpleDatatables.DataTable(" #subject-table", { searchable: true, paging: false }) const
-      experimentTable = new simpleDatatables.DataTable("#experiment-table", { searchable: true, paging: false })
+    const subjectTable = new simpleDatatables.DataTable(" #subject-table", { searchable: true, paging: false });
+    const experimentTable = new simpleDatatables.DataTable("#experiment-table", { searchable: true, paging: false });
   }, false);
 </script>
 {% endblock inline_javascript %}
