@@ -9,17 +9,14 @@ class HitGroupForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        self.helper.form_tag = None
         self.helper.layout = Layout(
             Field("credentials"),
             Field("sandbox"),
             Field("note"),
             Field("number_of_assignments"),
-            Div(
-                Div(
-                    Submit("submit", "Submit"),
-                ),
-            ),
         )
+        self.helper.render_hidden_fields = True
 
     class Meta:
         model = HitGroup
@@ -35,6 +32,7 @@ class HitGroupDetailsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        self.helper.form_tag = None
         self.helper.layout = Layout(
             Field("title"),
             Field("description"),
@@ -44,11 +42,6 @@ class HitGroupDetailsForm(forms.ModelForm):
             Field("lifetime_in_hours"),
             Field("assignment_duration_in_hours"),
             Field("qualification_requirements"),
-            Div(
-                Div(
-                    Submit("submit", "Submit"),
-                ),
-            ),
         )
 
     class Meta:

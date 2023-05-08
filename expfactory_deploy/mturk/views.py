@@ -58,23 +58,35 @@ class HitGroupCreateUpdate(LoginRequiredMixin, TemplateView):
         self.get_object()
         if not self.hit_group or self.hit_group.get("published", None) is None:
             context = self.get_context_data(**kwargs)
+            if not self.hit_group:
+                context["action_url"] = reverse("mturk:create-hit")
+            else:
+                context["action_url"] = reverse("mturk:update-hit", self.hit_group.pk)
             return self.render_to_response(context)
         else:
-            redirect("mturk:hitgroup-detail", pk=self.hit_group.pk)
+            # redirect("mturk:hitgroup-detail", pk=self.hit_group.pk)
+            return redirect("mturk:summaries-list")
 
     def post(self, request, *args, **kwargs):
         self.get_object()
         hit_group_form = forms.HitGroupForm(request.POST, instance=self.hit_group)
+        detail_instance = None
+        if self.hit_group:
+            detail_instance = self.hit_group.get("details", None)
         hit_group_details_form = forms.HitGroupDetailsForm(
-            request.POST, instance=self.hit_group.get("details", None)
+            request.POST, instance=detail_instance
         )
 
         if hit_group_form.is_valid() and hit_group_details_form.is_valid():
-            hit_group_form.save()
-            hit_group_details_form.save()
+            hit_group = hit_group_form.save()
+            hit_group_details = hit_group_details_form.save()
+            hit_group.details = hit_group_details
+            hit_group.save()
             # Actually make mturk calls
             # I mean should really go in models
-            return redirect("mturk:hitgroup-detail", pk=self.hit_group.pk)
+            # return redirect("mturk:hitgroup-detail", pk=hit_group.pk)
+            hit_group.publish()
+            return redirect("mturk:summaries-list")
         else:
             context = self.get_context_data(**kwargs)
             context["hit_group_form"] = hit_group_form

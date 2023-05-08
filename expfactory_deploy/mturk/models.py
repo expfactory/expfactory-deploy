@@ -31,7 +31,7 @@ class MturkCredentials(models.Model):
         return None
 
     def get_client(self):
-        return boto_utils.get_client(self.get_credentials())
+        return boto_utils.BotoWrapper(self.get_credentials())
 
 
 class MturkApiOperation(models.Model):
@@ -53,9 +53,9 @@ class HitGroup(models.Model):
     battery = models.ForeignKey(
         Battery, on_delete=models.CASCADE, blank=True, null=True
     )
-    details = models.ForeignKey("HitGroupDetails", on_delete=models.CASCADE)
+    details = models.ForeignKey("HitGroupDetails", on_delete=models.CASCADE, null=True)
     note = models.TextField(blank=True)
-    published = models.DateTimeField(blank=True)
+    published = models.DateTimeField(blank=True, null=True)
     number_of_assignments = models.IntegerField()
 
     def clone(self, battery=None):
@@ -78,9 +78,9 @@ class HitGroup(models.Model):
         if self.credentials:
             client = self.credentials.get_client()
         else:
-            client = boto_utils.get_client()
+            client = boto_utils.BotoWrapper()
         hit = self.details.to_hit_dict()
-        url = reverse("experiments:serve-battery", args=(self.battery.pk))
+        url = f'https://0.0.0.0:8000{reverse("experiments:serve-battery", args=[self.battery.pk])}'
         client.create_hits_by_url(url, self.number_of_assignments, **hit)
 
 
@@ -89,7 +89,7 @@ class HitGroupDetails(models.Model):
     description = models.TextField()
     keywords = models.TextField(blank=True)
     reward = models.DecimalField(decimal_places=2, max_digits=10)
-    auto_approval_delay = models.IntegerField(blank=True)
+    auto_approval_delay = models.IntegerField(blank=True, null=True)
     lifetime_in_hours = models.IntegerField(default=168)
     assignment_duration_in_hours = models.IntegerField(default=168)
     qualification_requirements = models.JSONField(
