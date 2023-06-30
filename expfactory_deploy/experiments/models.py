@@ -214,6 +214,7 @@ class Battery(TimeStampedModel, StatusField):
         if self.template_id is None:
             new_batt.template_id = self
         new_batt.status = status
+        new_batt.created = datetime.datetime.now()
         new_batt.save()
         for batt_exp in list(self.batteryexperiments_set.all()):
             batt_exp.battery = new_batt
@@ -279,7 +280,7 @@ class Assignment(SubjectTaskStatusModel):
 
     @property
     def results(self):
-        return Result.objects.filter(battery_experiment__battery__assignment=self)
+        return self.result_set.all()
 
     ''' does not account for redos '''
     @property
@@ -307,9 +308,9 @@ class Assignment(SubjectTaskStatusModel):
         )
         unfinished = [exp for exp in experiments if exp.id not in exempt]
         if len(unfinished):
-            return unfinished[0]
+            return unfinished[0], len(unfinished)
         else:
-            return None
+            return None, 0
 
     class Meta:
         constraints = [

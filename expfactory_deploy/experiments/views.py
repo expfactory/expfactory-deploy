@@ -65,6 +65,7 @@ class ExperimentRepoList(LoginRequiredMixin, ListView):
         tags.append('')
         context['tags'] = tags
         context['tag_form'] = forms.ExperimentRepoBulkTagForm()
+        context['origins'] = models.RepoOrigin.objects.filter(active=True)
         return context
 
 class ExperimentRepoDetail(LoginRequiredMixin, DetailView):
@@ -162,7 +163,8 @@ class BatteryList(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         statuses = [x[0] for x in self.model.STATUS]
         context['statuses'] = statuses
-        print(context)
+        for battery in context['object_list']:
+            battery.active_children = battery.children.exclude(status='inactive')
         return context
 
 
@@ -273,6 +275,10 @@ def publish_battery_confirmation(request, pk):
 @login_required
 def deactivate_battery(request, pk):
     battery = get_object_or_404(models.Battery, pk=pk)
+    if battery.status is "template":
+        for child in battery.children.all:
+            child.status = "inactive"
+            child.save()
     battery.status = "inactive"
     battery.save()
     return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
@@ -338,13 +344,12 @@ class Preview(View):
     def get(self, request, *args, **kwargs):
         exp_id = self.kwargs.get("exp_id")
         experiment = get_object_or_404(models.ExperimentRepo, id=exp_id)
-        commit = experiment.get_latest_commit()
+        commit = self.kwargs.get("commit", experiment.get_latest_commit())
+
         exp_instance, created = models.ExperimentInstance.objects.get_or_create(
             experiment_repo_id=experiment, commit=commit
         )
 
-        # Could embed commit or instance id in kwargs, default to latest for now
-        # default template for poldracklab style experiments
         template = "experiments/jspsych_deploy.html"
         context = jspsych_context(exp_instance)
         return render(request, template, context)
@@ -362,18 +367,11 @@ class PreviewBattery(View):
         assignment.save()
         return redirect('experiments:serve-battery', subject_id=preview_sub.id, battery_id=battery_id)
 
-class Serve(TemplateView):
+class Serve(View):
     subject = None
     battery = None
     experiment = None
     assignment = None
-
-    def get_template_names(self):
-        """
-        Return a list of template names to be used for the request. Must return
-        a list. May not be called if render_to_response() is overridden.
-        """
-        return ["experiments/jspsych_deploy.html"]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -407,22 +405,24 @@ class Serve(TemplateView):
     def get(self, request, *args, **kwargs):
         self.set_objects()
         if self.assignment.consent_accepted is not True:
-            # display instructions and consent
-            pass
+            context = {
+                **self.get_context_data(),
+                consent: self.battery.consent,
+                instrucitons: self.battery.instructions
+            }
+            return render(request, "experiments/instructions.html", context)
 
-        self.experiment = self.assignment.get_next_experiment()
+        self.experiment, num_left = self.assignment.get_next_experiment()
 
         if self.experiment is None:
-            return redirect('experiments:battery-list')
+            return redirect('experiments:complete')
 
         exp_context = jspsych_context(self.experiment)
         exp_context["post_url"] = reverse_lazy("experiments:push-results", args=[self.assignment.id, self.experiment.id])
         exp_context["next_page"] = reverse_lazy("serve-battery", args=[self.subject.id, self.battery.id])
+        exp_context["num_left"] = num_left
         context = {**self.get_context_data(), **exp_context}
-        return self.render_to_response(context)
-
-    def post(self, request, *args, **kwargs):
-        return
+        return render(request, "experiments/jspsych_deploy.html", context)
 
 class Results(View):
     # If more frameworks are added this would dispatch to their respective
@@ -539,3 +539,6 @@ class ResultDetail(LoginRequiredMixin, DetailView):
         response = super().get(*args, **kwargs)
         response['Content-Disposition'] = f'attachment; filename="result_{self.object.pk}.txt"'
         return response
+
+class Complete(TemplateView):
+    template_name = 'experiments/complete.html'

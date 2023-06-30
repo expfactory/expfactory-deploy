@@ -41,7 +41,7 @@ class MturkApiOperation(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
 
 
-# Group is not an AWS term, using it to distiguish from HITTypes or HITLayouts
+# Group here is not an AWS term, using it to distiguish from HITTypes or HITLayouts
 class HitGroup(models.Model):
     parent = models.ForeignKey(
         "HitGroup", on_delete=models.CASCADE, blank=True, null=True
@@ -93,7 +93,7 @@ class HitGroupDetails(models.Model):
     lifetime_in_hours = models.IntegerField(default=168)
     assignment_duration_in_hours = models.IntegerField(default=168)
     qualification_requirements = models.JSONField(
-        default=boto_utils.default_qualification
+        default=lambda: lambda: boto_utils.default_qualification
     )
     request_annotation = models.UUIDField(default=uuid.uuid4, editable=False)
 

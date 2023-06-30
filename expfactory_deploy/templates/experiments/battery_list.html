@@ -2,24 +2,29 @@
 
 {% block content %}
     <h2>Battery Templates</h2>
+    <div id="battery-actions">
+      <a href="{% url 'experiments:battery-create' %}"> create </a>
+    </div>
       {% for battery in object_list %}
-        {% regroup battery.children.all by status as child_list %}
+        {% regroup battery.active_children.all|dictsort:"status" by status as child_list %}
             <h3>
               <a href="{% url 'experiments:battery-update'  battery.id %}">{{ battery.title }}</a> -
-              <a href="{% url 'experiments:battery-clone' battery.id %}"> Clone </a>
+              <a href="{% url 'experiments:battery-clone' battery.id %}"> Clone </a> -
+              <a href="{% url 'experiments:battery-deactivate-confirm' battery.id %}"> Deactivate </a>
             </h3>
               <div class="child-battery-lists">
-              {% for status, children in child_list %}
-              <h4>{{ status }}</h4>
+              {% for children in child_list %}
+              <h4>{{ children.grouper }}</h4>
               <ul>
-                {% for child in children %}
+                {% for child in children.list %}
                   <li>
                     <a href="{% url 'experiments:battery-update'  child.id %}">
                       {{ child.title|default:"No Title" }}
-                    </a> - Created: {{ child.created|date:"Y-m-d" }} - <a href="{% url 'experiments:battery-clone' child.id%}">Clone</a>
+                    </a> - Created: {{ child.created|date:"Y-m-d" }} - <a href="{% url 'experiments:battery-clone' child.id %}">Clone</a> -
+                    <a href="{% url 'experiments:battery-deactivate' child.id %}"> Deactivate </a>
                   </li>
                 {% endfor %}
-              </ul>
+               </ul>
               {% empty %}
               <h4>No Children</h4>
               {% endfor %}
@@ -28,5 +33,32 @@
         <li> No Batteries</li>
       {% endfor %}
   </ul>
-    <a href="{% url 'experiments:battery-create' %}"> create </a>
 {% endblock %}
+
+{% comment %}
+               <table>
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for child in children %}
+                    <tr>
+                      <td>
+                        <a href="{% url 'experiments:battery-update' child.id %}">
+                          {{ child.title|default:"No Title" }}
+                        </a>
+                      </td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+
+{% endcomment %}

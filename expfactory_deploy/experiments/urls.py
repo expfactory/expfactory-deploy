@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from expfactory_deploy.experiments import views
 
@@ -9,6 +9,11 @@ urlpatterns = [
     ),
     path(
         "preview/<int:exp_id>/",
+        views.Preview.as_view(),
+        name="preview",
+    ),
+    path(
+        "preview/<int:exp_id>/<str:commit>",
         views.Preview.as_view(),
         name="preview",
     ),
@@ -146,6 +151,7 @@ urlpatterns = [
     ),
     path("results/<int:pk>/", views.ResultDetail.as_view(), name="result-detail"),
     path("assignments/generate/<int:battery_id>/<int:num_subjects>", views.batch_assignment_create, name="assignment-generate"),
+    path("serve/complete", views.Complete.as_view(), name="complete"),
 ]
 
 app_name = "experiments"

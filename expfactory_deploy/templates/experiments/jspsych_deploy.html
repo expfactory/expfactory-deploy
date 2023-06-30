@@ -33,14 +33,19 @@
                   <h1>Experiment Complete</h1>
                   <p>{{ end_message }}</p>
                   <button id="next_experiment_button" type="button" class="btn btn-success">Next Experiment</button>
-                  <button type="button" id="redo_experiment_button" class="btn btn-danger">Redo Experiment</button>
               </div>`;
+
+            if (jsPsych.data.hasOwnProperty('getData')) {
+              data = jsPsych.data.getData()
+            } else {
+              data = jsPsych.data.get().json()
+            }
 
             let trialdata = {
               "uniqueid": "{{ uniqueId }}",
               "current_trial": 0,
               "dateTime": (new Date().getTime()),
-              "trialdata": jsPsych.data.getData(),
+              "trialdata": data,
               "status": "finished"
             };
             $("body").append(finished_message);
@@ -53,7 +58,9 @@
                 headers: {'X-CSRFToken': csrftoken},
                 url : "{{ post_url }}",
                 data : JSON.stringify(trialdata),
-                error: (error) => { console.log(error) },
+                error: (error) => {
+                  console.log(error)
+                },
                 dataType: 'text',
                 success: (data) => {
                   $("#next_experiment_button").click(() => {
@@ -68,10 +75,16 @@
           $("#start_experiment_button").click(() => {
              $("#instructions_modal").hide();
              $("#bootstrap_css").remove()
-             jsPsych.init({
-               timeline: {{ exp_id }}_experiment,
-               on_finish: onFinish
-             });
+              try {
+                jsPsych.init({
+                  timeline: {{ exp_id }}_experiment,
+                  on_finish: onFinish
+                });
+              } catch {
+                jsPsych = initJsPsych({on_finish: onFinish})
+                {{ exp_id }}_init()
+                jsPsych.run({{ exp_id }}_experiment)
+             }
           });
 
           {% if uniqueId %}
