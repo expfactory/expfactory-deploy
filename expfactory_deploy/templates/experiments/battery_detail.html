@@ -87,6 +87,7 @@ inter-task break: {{ object.inter_task_break }}
   </tbody>
 </table>
 <a class="btn btn-primary" href="{% url 'mturk:create-hit' battery.id %}">Create HIT</a>
+<a class="btn btn-primary" href="{% url 'experiments:export-battery' battery.id %}">Download Results</a>
 
 {% endblock %}
 {% block inline_javascript %}
