@@ -13,7 +13,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.serializers import serialize
 from django.db.models import F, Q
 from django.forms import formset_factory, TextInput
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse_lazy
 from django.views import View
@@ -25,6 +25,7 @@ from experiments import forms as forms
 from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
 from experiments.utils.assignments import batch_assignments
+from experiments.utils.export import export_battery, export_subject, export_single_result
 
 sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
 
@@ -275,7 +276,7 @@ def publish_battery_confirmation(request, pk):
 @login_required
 def deactivate_battery(request, pk):
     battery = get_object_or_404(models.Battery, pk=pk)
-    if battery.status is "template":
+    if battery.status == "template":
         for child in battery.children.all:
             child.status = "inactive"
             child.save()
@@ -317,6 +318,8 @@ class BatteryClone(LoginRequiredMixin, View):
         new_batt.status = 'draft'
         new_batt.save()
         return redirect('experiments:battery-list')
+
+
 
 """
 class BatteryDeploymentDelete(DeleteView):
@@ -539,6 +542,33 @@ class ResultDetail(LoginRequiredMixin, DetailView):
         response = super().get(*args, **kwargs)
         response['Content-Disposition'] = f'attachment; filename="result_{self.object.pk}.txt"'
         return response
+
+@login_required
+def single_result(request, result_id):
+    result = get_object_or_404(models.Result, pk=result_id)
+    results = export_single_result(result_id)
+    response = JsonResponse(results)
+    fname = f'result_{result.id}_{datetime.now().strftime("%Y.%m.%d.%H%M%S")}.json'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
+@login_required
+def battery_results(request, battery_id):
+    battery = get_object_or_404(models.Battery, pk=battery_id)
+    results = export_battery(battery_id)
+    response = JsonResponse(results)
+    fname = f'battery_{battery.id}_{datetime.now().strftime("%Y.%m.%d.%H%M%S")}.json'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
+@login_required
+def subject_results(request, subject_id):
+    subject = get_object_or_404(models.Subject, pk=subject_id)
+    results = export_subject(subject_id)
+    response = JsonResponse(results)
+    fname = f'subject_{subject.__str__()}_{datetime.now().strftime("%Y.%m.%d.%H%M%S")}.json'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
 
 class Complete(TemplateView):
     template_name = 'experiments/complete.html'

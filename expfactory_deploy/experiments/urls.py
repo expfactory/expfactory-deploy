@@ -135,6 +135,16 @@ urlpatterns = [
         views.Serve.as_view(),
         name="serve-experiment",
     ),
+    path(
+        "battery/<int:battery_id>/export",
+        views.battery_results,
+        name="export-battery",
+    ),
+    path(
+        "subject/<int:subject_id>/export",
+        views.subject_results,
+        name="export-subject",
+    ),
     path("subjects/", views.SubjectList.as_view(), name="subject-list"),
     path(
         "subjects/toggle",
@@ -143,13 +153,13 @@ urlpatterns = [
     ),
     path("subjects/assign", views.AssignSubject.as_view(), name="subject-assign"),
     path("subjects/create", views.CreateSubjects.as_view(), name="subjects-create"),
-    path("subjects/<int:pk>/", views.SubjectDetail.as_view(), name="subject-detail"),
+    path("subject/<int:pk>/", views.SubjectDetail.as_view(), name="subject-detail"),
     path(
         "sync/<int:assignment_id>/<int:experiment_id>/",
         views.Results.as_view(),
         name="push-results",
     ),
-    path("results/<int:pk>/", views.ResultDetail.as_view(), name="result-detail"),
+    path("results/<int:result_id>/", views.single_result, name="result-detail"),
     path("assignments/generate/<int:battery_id>/<int:num_subjects>", views.batch_assignment_create, name="assignment-generate"),
     path("serve/complete", views.Complete.as_view(), name="complete"),
 ]
