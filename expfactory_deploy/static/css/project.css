@@ -42,7 +42,12 @@
     display: none;
 }
 
-
+.child-battery-lists {
+  border-width: 1px;
+  border-style: solid;
+  border-color: black;
+  padding: .25em;
+}
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -72,4 +77,8 @@
 
 .use-latest-span {
   padding: .25em;
+}
+
+.battery-actions {
+  float: right;
 }

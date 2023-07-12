@@ -79,7 +79,8 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "expfactory_deploy.users.apps.UsersConfig",
     "expfactory_deploy.experiments.apps.ExperimentsConfig",
-    "expfactory_deploy.mturk.apps.MturkConfig"
+    "expfactory_deploy.mturk.apps.MturkConfig",
+    "expfactory_deploy.prolific.apps.ProlificConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -317,3 +318,7 @@ NON_REPO_FILES_DIR = str(ROOT_DIR / "deployment_assets" / "non_repo_files")
 # These values are determined by the nginx.conf location directives
 STATIC_DEPLOYMENT_URL = "/deployment/repo/"
 STATIC_NON_REPO_URL = "/deployment/non_repo/"
+
+
+BASE_URL = env("BASE_URL", default="http://0.0.0.0:8000")
+

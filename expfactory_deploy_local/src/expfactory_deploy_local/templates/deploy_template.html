@@ -108,9 +108,9 @@
              $("#instructions_modal").hide();
              $("#bootstrap_css").remove()
               try {
-              jsPsych.init({
-              timeline: {{ exp_id }}_experiment,
-              on_finish: onFinish
+                jsPsych.init({
+                timeline: {{ exp_id }}_experiment,
+                on_finish: onFinish
               });
               } catch {
                 jsPsych = initJsPsych({on_finish: onFinish})

@@ -3,15 +3,17 @@
 {% block content %}
 
 <h2>{{ object.name }}</h2>
-{{ object.origin }}
+Origin: {{ object.origin }}<br/>
+Location: {{ object.location }}
 
 <h3>Commits and batteries using those commits:</h3>
 <ul>
 {% for exp in object.experimentinstance_set.all %}
   <li>
-    {{ exp.commit }} - {{ exp.commit_date }}
+    {{ exp.commit }} - <a href="{% url 'experiments:preview' exp_id=object.id commit=exp.commit %}">Preview</a>
     <br/>
     {{ exp.note }}
+    <br/>
     <br/>
     <h3>
     <ul>

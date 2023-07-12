@@ -17,6 +17,7 @@ urlpatterns = [
     path("users/", include("expfactory_deploy.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
     path("", include("expfactory_deploy.experiments.urls", namespace="experiments")),
+    path("", include("expfactory_deploy.mturk.urls", namespace="mturk")),
     # Your stuff: custom urls includes go here
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:

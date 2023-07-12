@@ -1,8 +1,9 @@
 import datetime
+import os
+import random
 import uuid
 from collections import defaultdict
 from pathlib import Path
-import os
 
 import git
 import reversion
@@ -37,7 +38,7 @@ class SubjectTaskStatusModel(StatusModel):
     """Abstract class that tracks the various states a subject might
     be in relation to either an experiment or a battery"""
 
-    STATUS = Choices("not-started", "started", "completed", "failed")
+    STATUS = Choices("not-started", "started", "completed", "failed", "redo")
     status = StatusField(default="not-started")
     started_at = MonitorField(monitor="status", when=["started"], default=None, null=True)
     completed_at = MonitorField(monitor="status", when=["completed"], default=None, null=True)
@@ -208,12 +209,13 @@ class Battery(TimeStampedModel, StatusField):
         """ passing object we wish to clone through model constructor allows
         created field to be properly set
         """
-        old_batt = Battery.objects.get(id=self.id)
-        new_batt = Battery(old_batt)
+        new_batt = Battery.objects.get(id=self.id)
         new_batt.pk = None
         new_batt.id = None
-        new_batt.template_id = self
+        if self.template_id is None:
+            new_batt.template_id = self
         new_batt.status = status
+        new_batt.created = datetime.datetime.now()
         new_batt.save()
         for batt_exp in list(self.batteryexperiments_set.all()):
             batt_exp.battery = new_batt
@@ -234,7 +236,7 @@ class BatteryExperiments(models.Model):
         default=0,
         verbose_name="Experiment order",
     )
-    use_latest = models.BooleanField(default=False)
+    use_latest = models.BooleanField(default=True)
 
     class Meta:
         # should order by battery_id then order, to group things properly?
@@ -269,18 +271,20 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     data = models.TextField(blank=True)
 
+
 class Assignment(SubjectTaskStatusModel):
     """ Associate a subject with a battery deployment that they should complete """
-
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
     consent_accepted = models.BooleanField(null=True)
     note = models.TextField(blank=True)
+    ordering = models.ForeignKey('ExperimentOrder', on_delete=models.SET_NULL, blank=True, null=True)
 
     @property
     def results(self):
-        return Result.objects.filter(battery_experiment__battery__assignment=self)
+        return self.result_set.all()
 
+    ''' does not account for redos '''
     @property
     def result_status(self):
         results = self.results
@@ -290,13 +294,22 @@ class Assignment(SubjectTaskStatusModel):
             status[result.status] += 1
         return status
 
+    def save(self, *args, **kwargs):
+        if self.pk == None and self.battery.random_order:
+            self.ordering = ExperimentOrder.objects.create(battery=self.battery)
+            self.ordering.generate_order_items()
+        super().save(*args, **kwargs)
+
     def get_next_experiment(self):
-        order = "?" if self.battery.random_order else "order"
-        batt_exps = (
-            BatteryExperiments.objects.filter(battery=self.battery)
-            .select_related("experiment_instance")
-            .order_by(order)
-        )
+        if self.oredering == None:
+            order = "?" if self.battery.random_order else "order"
+            batt_exps = (
+                BatteryExperiments.objects.filter(battery=self.battery)
+                .select_related("experiment_instance")
+                .order_by(order)
+            )
+        else:
+            batt_exps = self.ordering.experimentorderitem_set.all().order_by("order")
         experiments = [x.experiment_instance for x in batt_exps]
         exempt = list(
             Result.objects.filter(
@@ -306,9 +319,9 @@ class Assignment(SubjectTaskStatusModel):
         )
         unfinished = [exp for exp in experiments if exp.id not in exempt]
         if len(unfinished):
-            return unfinished[0]
+            return unfinished[0], len(unfinished)
         else:
-            return None
+            return None, 0
 
     class Meta:
         constraints = [
@@ -317,5 +330,32 @@ class Assignment(SubjectTaskStatusModel):
             )
         ]
 
+class ExperimentOrderItem(models.Model):
+    battery_experiment = models.ForeignKey(
+        BatteryExperiments, on_delete=models.CASCADE
+    )
+    experiment_order = models.ForeignKey('ExperimentOrder', on_delete=models.CASCADE)
+    order = models.IntegerField(
+        default=0,
+        verbose_name="Experiment order",
+    )
 
+
+class ExperimentOrder(models.Model):
+    """
+    This model allows us to maintain multiple experiment orderings for a battery.
+    It also allows us to generate the random order of experiments for an assignment at
+    assignment creation time.
+    """
+    name = models.TextField(blank=True)
+    battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
+    auto_generated = models.BooleanField(default=True)
+
+    def generate_order_items(self):
+        experiments = list(BatteryExperiments.objects.filter(battery=self.battery).values_list('id', flat=True))
+        random.shuffle(experiments)
+        order_items = []
+        for index, exp in enumerate(experiments):
+            order_items.append(ExperimentOrderItem(battery_experiment_id=exp, experiment_order=self, order=index))
+        ExperimentOrderItems.bulk_create(order_items)
 

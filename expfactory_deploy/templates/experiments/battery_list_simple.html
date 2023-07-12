@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Batteries</h2>
+{% for battery in object_list %}
+<table>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Created</th>
+      <th>Updated</th>
+      <th>Experiments</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="{% url 'experiments:battery-update'  battery.id %}">{{ battery.title }}</a></td>
+      <td>{{ battery.created }}</td>
+      <td>{{ battery.updated }}</td>
+      <td>{{ battery.experiments.count }}</td>
+      <td>
+        <a href="{% url 'experiments:battery-clone' battery.id %}"> Clone </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+{% empty %}
+No Batteries
+{% endfor %}
+</ul>
+<a href="{% url 'experiments:battery-create' %}"> create </a>
+{% endblock %}

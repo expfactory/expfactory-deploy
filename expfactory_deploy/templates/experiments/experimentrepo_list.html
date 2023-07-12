@@ -7,6 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <h2>Experiments</h2>
+    <a href="{% url 'experiments:experiment-repo-list' %}">Update Experiments</a>
     {% crispy tag_form %}
     <!---
     <select id="tags-select">
@@ -43,16 +44,26 @@
         {% endfor %}
       </tbody>
     </table>
-    <a href="{% url 'experiments:experiment-repo-list' %}">Update Experiments</a>
     <script>
       $("#id_tags").select2({
           tags: true,
           tokenSeparators: [',', ' ']
       });
-      const dataTable = new simpleDatatables.DataTable("#experiment-repo-table", {
+      window.dt = new simpleDatatables.DataTable("#experiment-repo-table", {
         searchable: true,
-        paging: false
+        paging: false,
+        columns: [
+          {
+            select: 2,
+            filter: [
+              {% for origin in origins %}
+                "{{ origin.name }}",
+              {% endfor %}
+            ],
+          }
+        ]
       })
+
     </script>
 
 

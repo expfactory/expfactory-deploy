@@ -11,6 +11,7 @@ RUN apt-get update \
   # Translations dependencies
   && apt-get install -y gettext \
   && apt-get install -y git \
+  && apt-get install -y watchman \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
@@ -38,6 +39,8 @@ RUN chmod +x /start-celerybeat
 COPY ./compose/local/django/celery/flower/start /start-flower
 RUN sed -i 's/\r$//g' /start-flower
 RUN chmod +x /start-flower
+
+RUN git config --global --add safe.directory '*'
 
 WORKDIR /app
 

@@ -13,9 +13,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.serializers import serialize
 from django.db.models import F, Q
 from django.forms import formset_factory, TextInput
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
 from django.shortcuts import get_object_or_404, render, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
@@ -24,6 +24,8 @@ from taggit.models import Tag
 from experiments import forms as forms
 from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
+from experiments.utils.assignments import batch_assignments
+from experiments.utils.export import export_battery, export_subject, export_single_result
 
 sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
 
@@ -56,7 +58,7 @@ def experiment_instances_from_latest(experiment_repos):
 
 class ExperimentRepoList(LoginRequiredMixin, ListView):
     model = models.ExperimentRepo
-    queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True)
+    queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True).order_by('name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -64,6 +66,7 @@ class ExperimentRepoList(LoginRequiredMixin, ListView):
         tags.append('')
         context['tags'] = tags
         context['tag_form'] = forms.ExperimentRepoBulkTagForm()
+        context['origins'] = models.RepoOrigin.objects.filter(active=True)
         return context
 
 class ExperimentRepoDetail(LoginRequiredMixin, DetailView):
@@ -155,12 +158,16 @@ class BatteryList(LoginRequiredMixin, ListView):
     model = models.Battery
 
     def get_queryset(self):
-        return models.Battery.objects.filter(status='template').prefetch_related("children")
+        status = self.kwargs.get('status', 'template')
+        return models.Battery.objects.filter(status=status).prefetch_related("children")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         statuses = [x[0] for x in self.model.STATUS]
         context['statuses'] = statuses
+        for battery in context['object_list']:
+            if self.kwargs.get('status', None) != 'inactive':
+                battery.active_children = battery.children.exclude(status='inactive')
         return context
 
 
@@ -261,7 +268,7 @@ def publish_battery(request, pk):
     battery = get_object_or_404(models.Battery, pk=pk)
     battery.status = "published"
     battery.save()
-    return HttpResponseRedirect(reverse_lazy("experiments:battery-detail", {pk:pk}))
+    return HttpResponseRedirect(reverse_lazy("experiments:battery-detail", kwargs={'pk':pk}))
 
 @login_required
 def publish_battery_confirmation(request, pk):
@@ -270,10 +277,16 @@ def publish_battery_confirmation(request, pk):
 
 @login_required
 def deactivate_battery(request, pk):
+    referer = request.META.get("HTTP_REFERER")
     battery = get_object_or_404(models.Battery, pk=pk)
+    if battery.status == "template":
+        for child in battery.children.all:
+            child.status = "inactive"
+            child.save()
     battery.status = "inactive"
     battery.save()
-    return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
+    return HttpResponseRedirect(referer)
+    # return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
 
 @login_required
 def deactivate_battery_confirmation(request, pk):
@@ -292,11 +305,25 @@ def deactivate_repo_confirmation(request, pk):
     repo = get_object_or_404(models.RepoOrigin, pk=pk)
     return render(request, 'experiments/repo_deactivate_confirmation.html', {'repo': repo})
 
+@login_required
+def batch_assignment_create(request, battery_id, num_subjects):
+    battery = get_object_or_404(models.Battery, pk=battery_id)
+    urls = batch_assignments(battery, num_subjects)
+    response = render(request, 'experiments/assignment_urls.txt', {'urls': urls}, content_type='text/plain')
+    fname = f'batch_assignments_{datetime.now().strftime("%Y.%m.%d.%H%M%S")}.txt'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
 class BatteryClone(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         pk = self.kwargs.get("pk")
         batt = get_object_or_404(models.Battery, pk=pk)
+        new_batt = batt.duplicate()
+        new_batt.status = 'draft'
+        new_batt.save()
         return redirect('experiments:battery-list')
+
+
 
 """
 class BatteryDeploymentDelete(DeleteView):
@@ -324,13 +351,12 @@ class Preview(View):
     def get(self, request, *args, **kwargs):
         exp_id = self.kwargs.get("exp_id")
         experiment = get_object_or_404(models.ExperimentRepo, id=exp_id)
-        commit = experiment.get_latest_commit()
+        commit = self.kwargs.get("commit", experiment.get_latest_commit())
+
         exp_instance, created = models.ExperimentInstance.objects.get_or_create(
             experiment_repo_id=experiment, commit=commit
         )
 
-        # Could embed commit or instance id in kwargs, default to latest for now
-        # default template for poldracklab style experiments
         template = "experiments/jspsych_deploy.html"
         context = jspsych_context(exp_instance)
         return render(request, template, context)
@@ -348,18 +374,11 @@ class PreviewBattery(View):
         assignment.save()
         return redirect('experiments:serve-battery', subject_id=preview_sub.id, battery_id=battery_id)
 
-class Serve(TemplateView):
+class Serve(View):
     subject = None
     battery = None
     experiment = None
     assignment = None
-
-    def get_template_names(self):
-        """
-        Return a list of template names to be used for the request. Must return
-        a list. May not be called if render_to_response() is overridden.
-        """
-        return ["experiments/jspsych_deploy.html"]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -368,6 +387,7 @@ class Serve(TemplateView):
     def set_objects(self):
         subject_id = self.kwargs.get("subject_id")
         battery_id = self.kwargs.get("battery_id")
+        experiment_id = self.kwargs.get("experiment_id")
         """ we might accept the uuid assocaited with the subject instead of its id """
         if subject_id is not None:
             self.subject = get_object_or_404(
@@ -375,9 +395,11 @@ class Serve(TemplateView):
             )
         else:
             self.subject = None
+
         self.battery = get_object_or_404(
             models.Battery, id=battery_id
         )
+
         try:
             self.assignment = models.Assignment.objects.get(
                 subject=self.subject, battery=self.battery
@@ -390,25 +412,62 @@ class Serve(TemplateView):
             assignment.save()
             self.assignment = assignment
 
+        if experiment_id is not None:
+            self.experiment = get_object_or_404(
+                models.BatteryExperiment,
+                id=experiment_id
+            )
+
+
     def get(self, request, *args, **kwargs):
         self.set_objects()
         if self.assignment.consent_accepted is not True:
-            # display instructions and consent
-            pass
+            context = {
+                **self.get_context_data(),
+                consent: self.battery.consent,
+                instrucitons: self.battery.instructions
+            }
+            return render(request, "experiments/instructions.html", context)
 
-        self.experiment = self.assignment.get_next_experiment()
+        self.experiment, num_left = self.assignment.get_next_experiment()
 
         if self.experiment is None:
-            return redirect('experiments:battery-list')
+            return redirect('experiments:complete')
 
         exp_context = jspsych_context(self.experiment)
         exp_context["post_url"] = reverse_lazy("experiments:push-results", args=[self.assignment.id, self.experiment.id])
         exp_context["next_page"] = reverse_lazy("serve-battery", args=[self.subject.id, self.battery.id])
+        exp_context["num_left"] = num_left
         context = {**self.get_context_data(), **exp_context}
-        return self.render_to_response(context)
+        return render(request, "experiments/jspsych_deploy.html", context)
+
+class ServeConsent(View):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assignment = get_object_or_404(
+            models.Assignment,
+            id=self.kwargs.get('assignment_id')
+        )
+        context.extend({
+            consent: assignment.battery.consent,
+            instrucitons: assignment.battery.instructions
+        })
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(),
+        return render(request, "experiments/instructions.html", context)
 
     def post(self, request, *args, **kwargs):
-        return
+        assignment = get_object_or_404(
+            models.Assignment,
+            id=self.kwargs.get('assignment_id')
+        )
+        assignment.consent_accepted = True
+        assignment.save()
+        return redirect(reverse(
+            'experiments:serve-battery',
+            kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
+        ))
 
 class Results(View):
     # If more frameworks are added this would dispatch to their respective
@@ -434,27 +493,6 @@ class Results(View):
             assignment.status = "started"
         assignment.save()
         return HttpResponse('recieved')
-
-def download_results(request, *args, **kwargs):
-    params = [
-        ('sid', 'subject__id__in'),
-        ('bid', 'battery_experiment__id__in'),
-        ('expid', 'battery_experiment__experiment_instance__experiment_repo_id__id__in')
-    ]
-    query = {}
-    for param in params:
-        ids = request.GET.get(param[0])
-        if ids is None:
-            continue
-        if type(ids) is str:
-            ids = [ids]
-        query[param[0]] = ids
-    # found_results = models.Results.filter(**query).annotate('data', 'subject__uuid', '
-
-
-def format_results(result):
-    return
-
 
 class SubjectDetail(LoginRequiredMixin, DetailView):
     model = models.Subject
@@ -518,3 +556,40 @@ class ExperimentRepoBulkTag(LoginRequiredMixin, FormView):
             exp_repo.save()
         return super().form_valid(form)
 
+class ResultDetail(LoginRequiredMixin, DetailView):
+    model = models.Result
+    content_type = 'text/html'
+    def get(self, *args, **kwargs):
+        response = super().get(*args, **kwargs)
+        response['Content-Disposition'] = f'attachment; filename="result_{self.object.pk}.txt"'
+        return response
+
+@login_required
+def single_result(request, result_id):
+    result = get_object_or_404(models.Result, pk=result_id)
+    results = export_single_result(result_id)
+    response = JsonResponse(results)
+    fname = f'result_{result.id}_{datetime.now().strftime("%Y.%m.%d.%H%M%S")}.json'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
+@login_required
+def battery_results(request, battery_id):
+    battery = get_object_or_404(models.Battery, pk=battery_id)
+    results = export_battery(battery_id)
+    response = JsonResponse(results)
+    fname = f'battery_{battery.id}_{datetime.now().strftime("%Y.%m.%d.%H%M%S")}.json'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
+@login_required
+def subject_results(request, subject_id):
+    subject = get_object_or_404(models.Subject, pk=subject_id)
+    results = export_subject(subject_id)
+    response = JsonResponse(results)
+    fname = f'subject_{subject.__str__()}_{datetime.now().strftime("%Y.%m.%d.%H%M%S")}.json'
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
+class Complete(TemplateView):
+    template_name = 'experiments/complete.html'

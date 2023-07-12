@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2>Publish {{ battery.title }}?</h2>
-  <p>Publishing a battery locks its current experiment list and prevents further modification. This is irreversible, any changes will need to be done to a clone of this battery.</p>
-  <a href="{% url experiments:battery-publish battery.id %}">Publish Battery</a><br />
-  <a href="{% url experiments:battery-detail battery.id %}"> Keep Battery as Draft </a>
-
-
+  <h2>Deactivate {{ battery.title }}?</h2>
+  <p>Deactivating a battery will hide it from view and prevent it from being served to participants. Deactivating a template will deactivate all batteries cloned from it.</p>
+  <a href="{% url 'experiments:battery-deactivate' battery.id %}">Deactivate Battery</a><br />
+  <a href="{% url 'experiments:battery-detail' battery.id %}"> Keep Battery status as {{ battery.status }}</a>
 {% endblock %}
