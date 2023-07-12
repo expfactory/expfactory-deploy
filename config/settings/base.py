@@ -79,7 +79,8 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "expfactory_deploy.users.apps.UsersConfig",
     "expfactory_deploy.experiments.apps.ExperimentsConfig",
-    "expfactory_deploy.mturk.apps.MturkConfig"
+    "expfactory_deploy.mturk.apps.MturkConfig",
+    "expfactory_deploy.prolific.apps.ProlificConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

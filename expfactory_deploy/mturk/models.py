@@ -82,7 +82,8 @@ class HitGroup(models.Model):
         hit = self.details.to_hit_dict()
         url = f'https://0.0.0.0:8000{reverse("experiments:serve-battery", args=[self.battery.pk])}'
         client.create_hits_by_url(url, self.number_of_assignments, **hit)
-
+def default_quals():
+    return boto_utils.default_qualification
 
 class HitGroupDetails(models.Model):
     title = models.TextField()
@@ -93,7 +94,7 @@ class HitGroupDetails(models.Model):
     lifetime_in_hours = models.IntegerField(default=168)
     assignment_duration_in_hours = models.IntegerField(default=168)
     qualification_requirements = models.JSONField(
-        default=lambda: lambda: boto_utils.default_qualification
+        default=default_quals
     )
     request_annotation = models.UUIDField(default=uuid.uuid4, editable=False)
 

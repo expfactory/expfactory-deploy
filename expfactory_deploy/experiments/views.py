@@ -15,7 +15,7 @@ from django.db.models import F, Q
 from django.forms import formset_factory, TextInput
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
 from django.shortcuts import get_object_or_404, render, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
@@ -58,7 +58,7 @@ def experiment_instances_from_latest(experiment_repos):
 
 class ExperimentRepoList(LoginRequiredMixin, ListView):
     model = models.ExperimentRepo
-    queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True)
+    queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True).order_by('name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -158,14 +158,16 @@ class BatteryList(LoginRequiredMixin, ListView):
     model = models.Battery
 
     def get_queryset(self):
-        return models.Battery.objects.filter(status='template').prefetch_related("children")
+        status = self.kwargs.get('status', 'template')
+        return models.Battery.objects.filter(status=status).prefetch_related("children")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         statuses = [x[0] for x in self.model.STATUS]
         context['statuses'] = statuses
         for battery in context['object_list']:
-            battery.active_children = battery.children.exclude(status='inactive')
+            if self.kwargs.get('status', None) != 'inactive':
+                battery.active_children = battery.children.exclude(status='inactive')
         return context
 
 
@@ -275,6 +277,7 @@ def publish_battery_confirmation(request, pk):
 
 @login_required
 def deactivate_battery(request, pk):
+    referer = request.META.get("HTTP_REFERER")
     battery = get_object_or_404(models.Battery, pk=pk)
     if battery.status == "template":
         for child in battery.children.all:
@@ -282,7 +285,8 @@ def deactivate_battery(request, pk):
             child.save()
     battery.status = "inactive"
     battery.save()
-    return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
+    return HttpResponseRedirect(referer)
+    # return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
 
 @login_required
 def deactivate_battery_confirmation(request, pk):
@@ -383,6 +387,7 @@ class Serve(View):
     def set_objects(self):
         subject_id = self.kwargs.get("subject_id")
         battery_id = self.kwargs.get("battery_id")
+        experiment_id = self.kwargs.get("experiment_id")
         """ we might accept the uuid assocaited with the subject instead of its id """
         if subject_id is not None:
             self.subject = get_object_or_404(
@@ -390,9 +395,11 @@ class Serve(View):
             )
         else:
             self.subject = None
+
         self.battery = get_object_or_404(
             models.Battery, id=battery_id
         )
+
         try:
             self.assignment = models.Assignment.objects.get(
                 subject=self.subject, battery=self.battery
@@ -404,6 +411,13 @@ class Serve(View):
             )
             assignment.save()
             self.assignment = assignment
+
+        if experiment_id is not None:
+            self.experiment = get_object_or_404(
+                models.BatteryExperiment,
+                id=experiment_id
+            )
+
 
     def get(self, request, *args, **kwargs):
         self.set_objects()
@@ -426,6 +440,34 @@ class Serve(View):
         exp_context["num_left"] = num_left
         context = {**self.get_context_data(), **exp_context}
         return render(request, "experiments/jspsych_deploy.html", context)
+
+class ServeConsent(View):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assignment = get_object_or_404(
+            models.Assignment,
+            id=self.kwargs.get('assignment_id')
+        )
+        context.extend({
+            consent: assignment.battery.consent,
+            instrucitons: assignment.battery.instructions
+        })
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(),
+        return render(request, "experiments/instructions.html", context)
+
+    def post(self, request, *args, **kwargs):
+        assignment = get_object_or_404(
+            models.Assignment,
+            id=self.kwargs.get('assignment_id')
+        )
+        assignment.consent_accepted = True
+        assignment.save()
+        return redirect(reverse(
+            'experiments:serve-battery',
+            kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
+        ))
 
 class Results(View):
     # If more frameworks are added this would dispatch to their respective
@@ -451,27 +493,6 @@ class Results(View):
             assignment.status = "started"
         assignment.save()
         return HttpResponse('recieved')
-
-def download_results(request, *args, **kwargs):
-    params = [
-        ('sid', 'subject__id__in'),
-        ('bid', 'battery_experiment__id__in'),
-        ('expid', 'battery_experiment__experiment_instance__experiment_repo_id__id__in')
-    ]
-    query = {}
-    for param in params:
-        ids = request.GET.get(param[0])
-        if ids is None:
-            continue
-        if type(ids) is str:
-            ids = [ids]
-        query[param[0]] = ids
-    # found_results = models.Results.filter(**query).annotate('data', 'subject__uuid', '
-
-
-def format_results(result):
-    return
-
 
 class SubjectDetail(LoginRequiredMixin, DetailView):
     model = models.Subject

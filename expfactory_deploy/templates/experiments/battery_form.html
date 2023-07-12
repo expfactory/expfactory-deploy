@@ -1,18 +1,23 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% block content %}
+    <div class="h2">
     {% if battery.id %}
-        <h2> Update Battery </h2>
-        <input class="btn btn-primary" type="submit" name="action" form="experiment_instance_table" value="Save Changes"/>
-        {% if battery.status != 'template' %}
+      Update Battery
+      <div class="battery-actions">
+      <input class="btn btn-primary" type="submit" name="action" form="experiment_instance_table" value="Save Changes"/>
+      {% if battery.status != 'template' %}
         <a class="btn btn-primary" href="{% url 'experiments:battery-publish' battery.id %}">Publish</a>
-        {% endif %}
-        <a class="btn btn-primary" href="{% url 'experiments:preview-battery' battery.id %}">Preview</a>
-        <a class="btn btn-primary" href="{% url 'experiments:battery-detail' battery.id %}">Details</a>
+      {% endif %}
+      <a class="btn btn-primary" href="{% url 'experiments:preview-battery' battery.id %}">Preview</a>
+      <a class="btn btn-primary" href="{% url 'experiments:battery-detail' battery.id %}">Details</a>
     {% else %}
-        <h2>Create Battery</h2>
-        <input class="btn btn-primary" type="submit" name="action" form="experiment_instance_table" value="Save Changes"/>
+      Create Battery
+      <div class="battery-actions">
+      <input class="btn btn-primary" type="submit" name="action" form="experiment_instance_table" value="Save Changes"/>
     {% endif %}
+        </div>
+      </div>
     <form id="experiment_instance_table" method="post" onsubmit="return battexpSubmit()" action="">
     {% crispy form %}
       <div id="form-manager">
@@ -53,7 +58,7 @@
   {{ block.super }}
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <script>
-    htmx.logAll();
+    // htmx.logAll();
     document.addEventListener("DOMContentLoaded", function(){
       document.getElementById("experimentlist-search").addEventListener("input", searchOnChange)
       updateOrderSpan()
@@ -117,14 +122,6 @@
         sort: false,
         onClone: (evt) => {
           console.log(evt)
-          if (evt.clone) {
-            evt.clone.classList.add("added")
-            let repo_id = evt.clone.querySelector('.instance_experiment_repo_id').value
-            evt.item.setAttribute("hx-get", `/repo/form/${repo_id}/`)
-            evt.item.setAttribute("hx-trigger", "revealed")
-            evt.item.classList.remove("list-group-item")
-            htmx.process(evt.item)
-          }
           if (Array.isArray(evt.clones)) {
             evt.clones.map(x => x.classList.add("added"))
           }
@@ -137,6 +134,14 @@
         group: 'shared',
         animation: 150,
         onAdd: (evt) => {
+          if (evt.item) {
+            evt.item.classList.add("added")
+            let repo_id = evt.clone.querySelector('.instance_experiment_repo_id').value
+            evt.item.setAttribute("hx-get", `/repo/form/${repo_id}/`)
+            evt.item.setAttribute("hx-trigger", "revealed")
+            evt.item.classList.remove("list-group-item")
+            htmx.process(evt.item)
+          }
           updateOrderSpan()
         },
         onEnd: (evt) => {

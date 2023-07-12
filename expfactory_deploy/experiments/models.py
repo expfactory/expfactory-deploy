@@ -1,8 +1,9 @@
 import datetime
+import os
+import random
 import uuid
 from collections import defaultdict
 from pathlib import Path
-import os
 
 import git
 import reversion
@@ -235,7 +236,7 @@ class BatteryExperiments(models.Model):
         default=0,
         verbose_name="Experiment order",
     )
-    use_latest = models.BooleanField(default=False)
+    use_latest = models.BooleanField(default=True)
 
     class Meta:
         # should order by battery_id then order, to group things properly?
@@ -270,13 +271,14 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
     data = models.TextField(blank=True)
 
+
 class Assignment(SubjectTaskStatusModel):
     """ Associate a subject with a battery deployment that they should complete """
-
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
     consent_accepted = models.BooleanField(null=True)
     note = models.TextField(blank=True)
+    ordering = models.ForeignKey('ExperimentOrder', on_delete=models.SET_NULL, blank=True, null=True)
 
     @property
     def results(self):
@@ -292,13 +294,22 @@ class Assignment(SubjectTaskStatusModel):
             status[result.status] += 1
         return status
 
+    def save(self, *args, **kwargs):
+        if self.pk == None and self.battery.random_order:
+            self.ordering = ExperimentOrder.objects.create(battery=self.battery)
+            self.ordering.generate_order_items()
+        super().save(*args, **kwargs)
+
     def get_next_experiment(self):
-        order = "?" if self.battery.random_order else "order"
-        batt_exps = (
-            BatteryExperiments.objects.filter(battery=self.battery)
-            .select_related("experiment_instance")
-            .order_by(order)
-        )
+        if self.oredering == None:
+            order = "?" if self.battery.random_order else "order"
+            batt_exps = (
+                BatteryExperiments.objects.filter(battery=self.battery)
+                .select_related("experiment_instance")
+                .order_by(order)
+            )
+        else:
+            batt_exps = self.ordering.experimentorderitem_set.all().order_by("order")
         experiments = [x.experiment_instance for x in batt_exps]
         exempt = list(
             Result.objects.filter(
@@ -318,3 +329,33 @@ class Assignment(SubjectTaskStatusModel):
                 name="unique_assignment", fields=["subject", "battery"]
             )
         ]
+
+class ExperimentOrderItem(models.Model):
+    battery_experiment = models.ForeignKey(
+        BatteryExperiments, on_delete=models.CASCADE
+    )
+    experiment_order = models.ForeignKey('ExperimentOrder', on_delete=models.CASCADE)
+    order = models.IntegerField(
+        default=0,
+        verbose_name="Experiment order",
+    )
+
+
+class ExperimentOrder(models.Model):
+    """
+    This model allows us to maintain multiple experiment orderings for a battery.
+    It also allows us to generate the random order of experiments for an assignment at
+    assignment creation time.
+    """
+    name = models.TextField(blank=True)
+    battery = models.ForeignKey(Battery, on_delete=models.CASCADE)
+    auto_generated = models.BooleanField(default=True)
+
+    def generate_order_items(self):
+        experiments = list(BatteryExperiments.objects.filter(battery=self.battery).values_list('id', flat=True))
+        random.shuffle(experiments)
+        order_items = []
+        for index, exp in enumerate(experiments):
+            order_items.append(ExperimentOrderItem(battery_experiment_id=exp, experiment_order=self, order=index))
+        ExperimentOrderItems.bulk_create(order_items)
+

@@ -91,6 +91,7 @@ urlpatterns = [
         name="instance-order-form",
     ),
     path("battery/", views.BatteryList.as_view(), name="battery-list"),
+    re_path("battery/(?P<status>inactive)", views.BatteryList.as_view(), name="battery-list"),
     path("battery/<int:pk>/", views.BatteryDetail.as_view(), name="battery-detail"),
     path("battery/create/", views.BatteryComplex.as_view(), name="battery-create"),
     path("battery/<int:pk>/clone", views.BatteryClone.as_view(), name="battery-clone"),
@@ -162,6 +163,8 @@ urlpatterns = [
     path("results/<int:result_id>/", views.single_result, name="result-detail"),
     path("assignments/generate/<int:battery_id>/<int:num_subjects>", views.batch_assignment_create, name="assignment-generate"),
     path("serve/complete", views.Complete.as_view(), name="complete"),
+    path("serve/<int:assignment_id>/consent", views.ServeConsent.as_view(), name="complete"),
+    path("serve/<int:assignment_id>/<str:study_id>/consent", views.ServeConsent.as_view(), name="complete"),
 ]
 
 app_name = "experiments"

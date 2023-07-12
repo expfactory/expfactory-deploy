@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>{{ object.title }} - {{ object.status }}</h2>
+<div class="h2">
+  {{ object.title }} - {{ object.status }}
+  <div class="battery-actions">
+    <a class="btn bt-primary" href="{% url 'experiments:preview-battery' object.id %}">Preview</a>
+  </div>
+</div>
 {% if object.public %}
 <div class="publicBadge">Public</div>
 {% else %}

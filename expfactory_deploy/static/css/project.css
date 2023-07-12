@@ -78,3 +78,7 @@
 .use-latest-span {
   padding: .25em;
 }
+
+.battery-actions {
+  float: right;
+}
