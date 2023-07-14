@@ -60,8 +60,8 @@
   <script>
     // htmx.logAll();
     document.addEventListener("DOMContentLoaded", function(){
-      document.getElementById("experimentlist-search").addEventListener("input", searchOnChange)
-      updateOrderSpan()
+      document.getElementById("experimentlist-search").addEventListener("input", searchOnChange);;
+      updateOrderSpan();
       // setInitialSelection()
     });
 
@@ -121,7 +121,6 @@
         animation: 150,
         sort: false,
         onClone: (evt) => {
-          console.log(evt)
           if (Array.isArray(evt.clones)) {
             evt.clones.map(x => x.classList.add("added"))
           }
@@ -140,17 +139,14 @@
             evt.item.setAttribute("hx-get", `/repo/form/${repo_id}/`)
             evt.item.setAttribute("hx-trigger", "revealed")
             evt.item.classList.remove("list-group-item")
+            htmx.onLoad(() => updateOrderSpan())
             htmx.process(evt.item)
           }
+        },
+        onSort: (evt) => {
           updateOrderSpan()
         },
-        onEnd: (evt) => {
-          updateOrderSpan()
-        },
-        onChange: (evt) => {
-          updateOrderSpan()
-        },
-        filter: ".js-remove, .js-edit",
+        filter: ".js-remove, .js-edit, input, textarea, select",
         onFilter: function (evt) {
           var item = evt.item,
             ctrl = evt.target;
@@ -160,37 +156,31 @@
               document.querySelector(`#experimentslist [data-id="${dataId}"]`).classList.remove("added")
             }
             item.parentNode.removeChild(item);
+            updateOrderSpan()
           }
         }
     });
 
     function updateOrderSpan() {
+      let offset = 0
+      let previous_old = -1;
       [...document.querySelectorAll('#battexplist .order-container')].map((x, i) => {
+        const old_order = x.getElementsByClassName('instance_exp_order')[0].value
+
+        if (old_order === previous_old) {
+          offset = offset - 1
+        }
+        const new_order = i + offset
         x.getElementsByClassName('order')[0].innerText = i
         x.getElementsByClassName('instance_exp_order')[0].value = i
+
+        if (old_order === "") {
+          offset = offset + 1
+        }
+
+        previous_old_order = old_order
       })
     }
-
-    /*
-    function setInitialSelection() {
-      const form_count = document.getElementById(form_count_id).value
-      const expbattlist = document.getElementById('battexplist')
-      let forms_to_display = []
-      for (i = 0; i < form_count; i++) {
-        let exp_values = []
-        fields.map(field => {
-          const targetId = `id_form-${i}-${field}`
-          exp_values.push(document.getElementById(targetId).value)
-        })
-        let exp_list_elem = document.getElementById(`exp_repo_${exp_values[0]}`)
-        exp_list_elem.classList.add("added")
-        let name = exp_list_elem.getAttribute('data-id')
-        exp_values.push(name)
-        forms_to_display.push(expInstanceTmpl(...exp_values))
-      }
-      expbattlist.innerHTML = forms_to_display.join(' ')
-    }
-    */
 
     function setFormsForSubmit() {
       const battexpforms = document.getElementById('battexpforms');
