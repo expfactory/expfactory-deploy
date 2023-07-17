@@ -2,9 +2,14 @@
 
 {% block content %}
 
-<h2>{{ object.name }}</h2>
-Origin: {{ object.origin }}<br/>
-Location: {{ object.location }}
+<div class="h2">
+  {{ object.name }}
+  <div class="experiment-actions">
+    <a class="btn btn-primary" href="preview/{{ exp_repo.id }}">Preview Latest</a>
+  </div>
+</div>
+Origin: <a href="object.url">{{ object.origin }}</a><br/>
+Location on server: <pre>{{ object.location }}</pre>
 
 <h3>Commits and batteries using those commits:</h3>
 <ul>
@@ -21,12 +26,16 @@ Location: {{ object.location }}
         <li>
           <a href="{% url 'experiments:battery-detail' battery.id %}" > {{ battery.title }} - {{ battery.status }} </a> <br/>
         </li>
+      {% empty %}
+        <li>None</li>
       {% endfor %}
     </ul>
   </li>
+{% empty %}
+  <li>None</li>
 {% endfor %}
 </ul>
-<h3>Results for experiment:</h3>
+<h3>Results for experiment</h3>
 <table id="result-table">
   <thead>
     <tr>
@@ -45,6 +54,8 @@ Location: {{ object.location }}
       <td>
         {% for result in results %}
           {{ result }}
+        {% empty %}
+          None
         {% endfor %}
       </td>
     </tr>

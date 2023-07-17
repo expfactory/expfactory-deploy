@@ -42,6 +42,11 @@ urlpatterns = [
         views.RepoOriginList.as_view(),
         name="repo-origin-list",
     ),
+    path(
+        "repo/<int:pk>/",
+        views.RepoOriginDetail.as_view(),
+        name="repo-origin-detail",
+    ),
     path("repo/<int:pk>/deactivate", views.deactivate_repo, name="repo-deactivate"),
     path(
         "repo/<int:pk>/deactivate/confirm",

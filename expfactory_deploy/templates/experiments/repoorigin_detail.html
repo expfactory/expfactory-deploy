@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="h2">
+  {{ object.title }} - {{ object.status }}
+  <div class="battery-actions">
+    <a class="btn bt-primary" href="{% url 'experiments:preview-battery' object.id %}">Preview</a>
+  </div>
+</div>
+<h3> Experiments </h3>
+<table id="experiment-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Remote</th>
+      <th>Tags</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for exp in object.experimentrepo_set.all %}
+    <tr>
+      <td>
+        <a href="{{ exp.get_absolute_url }}">{{ exp.name }}</a>
+      </td>
+      <td>
+        <a href="{{ exp.url }}">{{ exp.url }}</a>
+      </td>
+      <td>
+        {% for tag in exp_repo.tags.all %}
+          {{ tag }}
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dataTable = new simpleDatatables.DataTable("#experiment-table", {
+    searchable: true,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}
+

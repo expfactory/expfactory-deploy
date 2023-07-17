@@ -16,8 +16,8 @@
       <div class="battery-actions">
       <input class="btn btn-primary" type="submit" name="action" form="experiment_instance_table" value="Save Changes"/>
     {% endif %}
-        </div>
       </div>
+    </div>
     <form id="experiment_instance_table" method="post" onsubmit="return battexpSubmit()" action="">
     {% crispy form %}
       <div id="form-manager">
@@ -27,7 +27,12 @@
       </div>
     </form>
 
-    <h3>Experiments</h3>
+    <div class="h3">
+      Experiments
+      <div class="experiment-actions">
+        <button class="btn btn-primary" id="merge-order" onClick="() => mergeOrder()"> set same order for selected </button>
+      </div>
+    </div>
 
 		<div class="row">
       <div class="input-group">
@@ -64,33 +69,6 @@
       updateOrderSpan();
       // setInitialSelection()
     });
-
-    const expInstanceTmpl = (experiment_repo_id, note, commit, exp_order, name) => {
-        return `
-          <div class="list-group-item" data-id=${ name }>
-            <i class="fa fa-arrows-v"></i>
-            ${ name }
-            <i class="fa fa-trash js-remove" aria-hidden="true"></i>
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <span class="input-group-text">Commit</span>
-              </div>
-              <input class="form-control instance_commit" type="text" value="${commit}" />
-            </div>
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <span class="input-group-text">Note</span>
-              </div>
-              <input class="form-control instance_note" type="text" value="${note}"/>
-            </div>
-            <input class="instance_experiment_repo_id" type="hidden" value="${experiment_repo_id}">
-            <div class="order-container">
-              <span class="order badge badge-primary badge-pill">${exp_order}</span>
-              <input class="instance_exp_order" type="hidden" value="${exp_order}">
-            </div>
-          </div>
-      `
-    }
 
     function searchOnChange(e) {
       let experimentslist = document.getElementById('experimentslist')
@@ -147,9 +125,11 @@
           updateOrderSpan()
         },
         filter: ".js-remove, .js-edit, input, textarea, select",
+        preventOnFilter: false,
         onFilter: function (evt) {
-          var item = evt.item,
-            ctrl = evt.target;
+          console.log(evt)
+          let item = evt.item;
+          let ctrl = evt.target;
           var dataId = item.getAttribute('data-id')
           if (Sortable.utils.is(ctrl, ".js-remove")) {
             if (document.querySelectorAll(`#battexplist .list-group-item[data-id="${dataId}"]`).length < 2) {
@@ -158,8 +138,26 @@
             item.parentNode.removeChild(item);
             updateOrderSpan()
           }
+        },
+        onSelect: function (evt) {
+          /* merge selected button onclick is fired after deselect on mousedown outside of sortable. Hiding for now.
+          const multipleSelected = ([...document.querySelectorAll('#battexplist .selected')]).length > 1
+          const mergeBtn = document.getElementById('merge-order')
+          multipleSelected ? mergeBtn.style.display = 'unset' :  mergeBtn.style.display = 'none'
+          */
         }
     });
+
+    function mergeOrder() {
+      const multipleSelected = [...document.querySelectorAll('#battexplist .selected')]
+      if (multipleSelected.length < 1) {
+        return
+      }
+      const new_order = multipleSelected.getElementsByClassName('instance_exp_order')[0].value
+      multipleSelected.map(x => {
+        x.getElementsByClassName('instance_exp_order')[0].value = new_order
+      })
+    }
 
     function updateOrderSpan() {
       let offset = 0

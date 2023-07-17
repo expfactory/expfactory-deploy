@@ -64,9 +64,6 @@ DJANGO_APPS = [
 ]
 THIRD_PARTY_APPS = [
     "crispy_forms",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
     "django_celery_beat",
     "rest_framework",
     "rest_framework.authtoken",
@@ -74,6 +71,7 @@ THIRD_PARTY_APPS = [
     "reversion",
     "reversion_compare",
     "taggit",
+    "tinymce",
 ]
 
 LOCAL_APPS = [
@@ -95,14 +93,13 @@ MIGRATION_MODULES = {"sites": "expfactory_deploy.contrib.sites.migrations"}
 # https://docs.djangoproject.com/en/dev/ref/settings/#authentication-backends
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-user-model
 AUTH_USER_MODEL = "users.User"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-redirect-url
 LOGIN_REDIRECT_URL = "users:redirect"
 # https://docs.djangoproject.com/en/dev/ref/settings/#login-url
-LOGIN_URL = "account_login"
+LOGIN_URL = "login"
 
 # PASSWORDS
 # ------------------------------------------------------------------------------
@@ -318,6 +315,9 @@ NON_REPO_FILES_DIR = str(ROOT_DIR / "deployment_assets" / "non_repo_files")
 # These values are determined by the nginx.conf location directives
 STATIC_DEPLOYMENT_URL = "/deployment/repo/"
 STATIC_NON_REPO_URL = "/deployment/non_repo/"
+
+LOGOUT_REDIRECT_URL="/"
+LOGIN_REDIRECT_URL="/"
 
 
 BASE_URL = env("BASE_URL", default="http://0.0.0.0:8000")

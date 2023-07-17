@@ -82,3 +82,28 @@
 .battery-actions {
   float: right;
 }
+
+.experiment-actions {
+  float: right;
+}
+#merge-order {
+  display: none;
+}
+
+.tag-container {
+  order: 1;
+  flex-grow: 1;
+  border-width: 1px;
+  border-style: solid;
+  border-color: black;
+  padding: .25em;
+
+}
+
+.auth-item {
+  margin-left: auto;
+}
+
+.nav-list {
+  width: 100%;
+}

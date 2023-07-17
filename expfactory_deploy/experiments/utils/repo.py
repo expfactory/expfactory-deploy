@@ -1,6 +1,7 @@
 import json
 import os
 import pathlib
+import time
 
 import git
 import jsonschema
@@ -72,7 +73,7 @@ def find_new_experiments(search_dir=settings.REPO_DIR):
 
 def get_latest_commit(repo_location, sub_dir=None):
     repo = git.Repo(repo_location)
-    return repo.head.commit.hexsha
+    return repo.head.commit
     '''
     if sub_dir is None:
         return repo.head.commit.hexsha
@@ -80,6 +81,14 @@ def get_latest_commit(repo_location, sub_dir=None):
         commits = repo.git.log(path, pretty="format:%H").split('\n')
         return commits.split('\n')[0]
     '''
+
+def commit_date(repo_location, commit=None):
+    repo = git.Repo(repo_location)
+    if commit is None:
+        commit = repo.head.commit
+    else:
+        commit = repo.commit(commit)
+    return time.asctime(time.gmtime(commit.committed_date))
 
 def is_valid_commit(repo_location, commit):
     try:

@@ -16,6 +16,8 @@ from taggit.models import Tag
 import git
 import pathlib
 from giturlparse import parse
+from tinymce.widgets import TinyMCE
+
 from experiments import models as models
 
 class RepoOriginForm(ModelForm):
@@ -91,7 +93,7 @@ class IdList(forms.TypedMultipleChoiceField):
 class BatteryMultipleChoiceField(forms.ModelMultipleChoiceField):
     def label_from_instance(self, obj):
         url = reverse_lazy('experiments:battery-detail', args=[obj.pk])
-        return format_html('<a href="{}"> {} </a> - {}', url, obj.title, obj.status)
+        return format_html('<a href="{}"> {} (id:{}) </a> - {}', url, obj.title, obj.pk, obj.status)
 
 class SubjectActionForm(forms.Form):
     def __init__(self, *args, **kwargs):
@@ -102,7 +104,7 @@ class SubjectActionForm(forms.Form):
         self.helper.form_tag = False
 
     batteries = BatteryMultipleChoiceField(
-        queryset=models.Battery.objects.all(),
+        queryset=models.Battery.objects.exclude(status='inactive').exclude(status='template'),
         widget=forms.CheckboxSelectMultiple,
         required=False
     )
@@ -164,6 +166,13 @@ class ExperimentRepoBulkTagForm(forms.Form):
                 formaction=reverse_lazy("experiments:experiment-repo-bulk-tag-remove")
             )
         )
+        self.helper.add_input(
+            Button(
+                'search-by-tag',
+                'Search By Tags',
+                css_class="btn btn-primary",
+            )
+        )
         self.helper.form_id = 'experiment-repo-bulk-tag'
         self.helper.form_method = 'POST'
 
@@ -179,9 +188,9 @@ class BatteryForm(ModelForm):
         fields = ["title", "consent", "instructions", "advertisement", "status", "public"]
         widgets = {
             "title": forms.TextInput(),
-            "consent": forms.Textarea(attrs={"cols": 80, "rows": 2}),
-            "instructions": forms.Textarea(attrs={"cols": 80, "rows": 2}),
-            "advertisement": forms.Textarea(attrs={"cols": 80, "rows": 2}),
+            "consent": TinyMCE(attrs={'cols': 80, 'rows': 12}),
+            "instructions": TinyMCE(attrs={'cols': 80, 'rows': 12}),
+            "advertisement": TinyMCE(attrs={'cols': 80, 'rows': 12}),
             "status": forms.HiddenInput(),
         }
 

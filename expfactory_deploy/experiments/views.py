@@ -33,7 +33,11 @@ from expfactory_deploy_local.utils import generate_experiment_context
 
 # Repo Views
 
-class RepoOriginList(ListView):
+class RepoOriginList(LoginRequiredMixin, ListView):
+    model = models.RepoOrigin
+    queryset = models.RepoOrigin.objects.prefetch_related("experimentrepo_set")
+
+class RepoOriginDetail(LoginRequiredMixin, DetailView):
     model = models.RepoOrigin
     queryset = models.RepoOrigin.objects.prefetch_related("experimentrepo_set")
 
@@ -55,6 +59,10 @@ def experiment_instances_from_latest(experiment_repos):
             experiment_repo_id=experiment_repo.id, commit=latest
         )
 
+
+class ExperimentRepoDetail(LoginRequiredMixin, ListView):
+    model = models.ExperimentRepo
+    queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True).order_by('name')
 
 class ExperimentRepoList(LoginRequiredMixin, ListView):
     model = models.ExperimentRepo
@@ -381,8 +389,7 @@ class Serve(View):
     assignment = None
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
+        return {}
 
     def set_objects(self):
         subject_id = self.kwargs.get("subject_id")
@@ -421,11 +428,11 @@ class Serve(View):
 
     def get(self, request, *args, **kwargs):
         self.set_objects()
-        if self.assignment.consent_accepted is not True:
+        if self.assignment.consent_accepted is not True and self.battery.consent:
             context = {
                 **self.get_context_data(),
-                consent: self.battery.consent,
-                instrucitons: self.battery.instructions
+                'consent': self.battery.consent,
+                'instructions': self.battery.instructions
             }
             return render(request, "experiments/instructions.html", context)
 

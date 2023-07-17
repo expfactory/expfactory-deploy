@@ -64,7 +64,10 @@ class RepoOrigin(models.Model):
         return self.url
 
     def get_latest_commit(self):
-        return repo.get_latest_commit(self.path)
+        return repo.get_latest_commit(self.path).hexsha
+
+    def commit_date(self, commit=None):
+        return repo.commit_date(self.path, commit)
 
     def is_valid_commit(self, commit):
         return repo.is_valid_commit(self.path, commit)
@@ -102,7 +105,7 @@ class RepoOrigin(models.Model):
     @property
     def display_url(self):
         if "git@github.com:" in self.url:
-            return self.origin.url.replace("git@github.com:", "https://github.com/")
+            return self.url.replace("git@github.com:", "https://github.com/")
         return self.url
 
 
@@ -128,7 +131,7 @@ class ExperimentRepo(models.Model):
     tags = TaggableManager()
 
     def get_absolute_url(self):
-        return reverse("experiment-repo-detail", kwargs={"pk": self.pk})
+        return reverse("experiments:experiment-repo-detail", kwargs={"pk": self.pk})
 
     """ We may want to just look at latest commit for files in its directory(location)
         instead of getting entire repos latest commit, case where exp removed from repo
@@ -301,7 +304,7 @@ class Assignment(SubjectTaskStatusModel):
         super().save(*args, **kwargs)
 
     def get_next_experiment(self):
-        if self.oredering == None:
+        if self.ordering == None:
             order = "?" if self.battery.random_order else "order"
             batt_exps = (
                 BatteryExperiments.objects.filter(battery=self.battery)
@@ -319,8 +322,13 @@ class Assignment(SubjectTaskStatusModel):
         )
         unfinished = [exp for exp in experiments if exp.id not in exempt]
         if len(unfinished):
+            if self.status == "not-started":
+                self.status = "started"
+                self.save()
             return unfinished[0], len(unfinished)
         else:
+            self.status = "completed"
+            self.save()
             return None, 0
 
     class Meta:

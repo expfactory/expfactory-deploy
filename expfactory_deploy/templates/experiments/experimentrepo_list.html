@@ -6,16 +6,15 @@
   <script src="https://cdn.jsdelivr.net/npm/simple-datatables@5" type="text/javascript"></script>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <h2>Experiments</h2>
-    <a href="{% url 'experiments:experiment-repo-list' %}">Update Experiments</a>
-    {% crispy tag_form %}
-    <!---
-    <select id="tags-select">
-      {% for tag in tags %}
-        <option value="{{ tag }}">{{ tag }} </option>
-      {% endfor %}
-    </select>
-    --->
+  <div class="h2">
+    Experiments
+    <div class="experiment-actions">
+      <a href="{% url 'experiments:experiment-repo-list' %}">Update Experiments</a>
+    </div>
+  </div>
+    <div class="tag-container">
+      {% crispy tag_form %}
+    </div>
     <table id="experiment-repo-table">
       <thead>
         <tr>
@@ -45,6 +44,10 @@
       </tbody>
     </table>
     <script>
+      document.getElementById("button-id-search-by-tag").addEventListener("click", () => {
+        window.dt.input.value = $("#id_tags").val().join(' ')
+        window.dt.search($("#id_tags").val().join(' '))
+      })
       $("#id_tags").select2({
           tags: true,
           tokenSeparators: [',', ' ']
@@ -63,8 +66,5 @@
           }
         ]
       })
-
     </script>
-
-
 {% endblock %}
