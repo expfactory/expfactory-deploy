@@ -9,95 +9,75 @@
 {% csrf_token %}
   </head>
   <body>
-    <button
-      id="start_experiment_button"
-      type="button"
-      class="btn hidden"
-      hidden
-    ></button>
     <script>
-          const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-          console.log("cookie")
-          console.log(csrftoken)
+        window.efVars = {{ js_vars|safe }}
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-          <!-- {# include "experiments/preview_battery_runjs.html" #} -->
-          /* These variables will be filled in given it's an mturk experiment
-            expfactory.amazon_url="{{ amazon_host }}"
-            expfactory.assignmentId="{{ assignment_id }}"
-            expfactory.hitId="{{ hit_id }}"
-          */
+        /* onFinish start */
+        function onFinish(data) {
+          var finished_message = `
+            <div id="finished_message" style="margin:100px">
+                <h1>Experiment Complete</h1>
+                <p>{{ end_message }}</p>
+                <button id="next_experiment_button" type="button" class="btn btn-success">Next Experiment</button>
+            </div>`;
 
-          function onFinish(data) {
-            var finished_message = `
-              <div id="finished_message" style="margin:100px">
-                  <h1>Experiment Complete</h1>
-                  <p>{{ end_message }}</p>
-                  <button id="next_experiment_button" type="button" class="btn btn-success">Next Experiment</button>
-              </div>`;
-
-            if (jsPsych.data.hasOwnProperty('getData')) {
-              data = jsPsych.data.getData()
-            } else {
-              data = jsPsych.data.get().json()
-            }
-
-            let trialdata = {
-              "uniqueid": "{{ uniqueId }}",
-              "current_trial": 0,
-              "dateTime": (new Date().getTime()),
-              "trialdata": data,
-              "status": "finished"
-            };
-            $("body").append(finished_message);
-            $(".display_stage").hide();
-            $(".display_stage_background").hide();
-            $("#redo_experiment_button").click(() => window.location.reload())
-            $.ajax({
-                type: "POST",
-                contentType: "application/json",
-                headers: {'X-CSRFToken': csrftoken},
-                url : "{{ post_url }}",
-                data : JSON.stringify(trialdata),
-                error: (error) => {
-                  console.log(error)
-                },
-                dataType: 'text',
-                success: (data) => {
-                  $("#next_experiment_button").click(() => {
-                    console.log("Finished!");
-                    location.reload()
-                  })
-                }
-              });
+          if (jsPsych.data.hasOwnProperty('getData')) {
+            data = jsPsych.data.getData()
+          } else {
+            data = jsPsych.data.get().json()
           }
 
-          // Start experiment when participant pushes button
-          $("#start_experiment_button").click(() => {
-             $("#instructions_modal").hide();
-             $("#bootstrap_css").remove()
-              try {
-                jsPsych.init({
-                  timeline: {{ exp_id }}_experiment,
-                  on_finish: onFinish
-                });
-              } catch {
-                jsPsych = initJsPsych({on_finish: onFinish})
-                {{ exp_id }}_init()
-                jsPsych.run({{ exp_id }}_experiment)
-             }
-          });
+          let trialdata = {
+            "uniqueid": "{{ uniqueId }}",
+            "current_trial": 0,
+            "dateTime": (new Date().getTime()),
+            "trialdata": data,
+            "status": "finished"
+          };
 
-          {% if uniqueId %}
-          $("#disagree_button").click(function(){
-              document.location = "{{ exp_end }}"
+          document.body.insertAdjacentHTML('beforeend', finished_message)
+          $.ajax({
+            type: "POST",
+            contentType: "application/json",
+            headers: {'X-CSRFToken': csrftoken},
+            url : "{{ post_url }}",
+            data : JSON.stringify(trialdata),
+            error: (error) => {
+              console.log(error)
+            },
+            dataType: 'text',
+            success: (data) => {
+              $("#next_experiment_button").click(() => {
+                console.log("Finished!");
+                location.reload()
+              })
+            }
           });
-          {% endif %}
-    </script>
+        }
+        /* onFinish end */
 
-    <script>
-      $(document).ready(function () {
-        $("#start_experiment_button").click();
-      });
+        /* First we try to call the old style jspsych init in case we are
+           loading classic experiment-factory style experiments. If this fails
+           for any reason lets try to run it as a jsPsych7 experiment.
+        */
+        try {
+          jsPsych.init({
+            display_element: getDisplayElement(),
+            timeline: {{ exp_id }}_experiment,
+            on_finish: onFinish
+          });
+        } catch {
+          jsPsych = initJsPsych({on_finish: onFinish})
+          if (window.efVars && window.efVars._survey) {
+            var {{ exp_id }}_experiment = survey_convert(window.efVars._survey)
+            console.log({{ exp_id }}_experiment)
+          }
+          if (window.hasOwnProperty("{{ exp_id }}_init")) {
+            {{ exp_id }}_init()
+          }
+          jsPsych.run({{ exp_id }}_experiment)
+        }
     </script>
   </body>
 </html>

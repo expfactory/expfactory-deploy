@@ -4,34 +4,37 @@
 <div class="h2">
   {{ object.title }} - {{ object.status }}
   <div class="battery-actions">
+    {% if battery.status != 'published' and battery.status != 'inactive' %}
+    <a class="btn btn-primary" href="{% url 'experiments:battery-update' object.id %}">Edit</a>
+    <a class="btn btn-primary" href="{% url 'experiments:battery-publish' object.id %}">Publish</a>
+    {% endif %}
     <a class="btn btn-primary" href="{% url 'experiments:preview-battery' object.id %}">Preview</a>
+    <a class="btn btn-primary" href="{% url 'experiments:preview-consent' object.id %}">Preview Insturcitons/Consent</a>
   </div>
 </div>
+{% comment %}
 {% if object.public %}
 <div class="publicBadge">Public</div>
 {% else %}
 <div class="privateBadge">Private</div>
 {% endif %}
-{% if object.consent %}
+{% endcomment %}
 <p>
-  Consent: {{ object.consent }}
+Created: {{ object.created }}<br/>
+Modified: {{ object.modified }}
 </p>
-{% endif %}
-{% if object.instructions %}
 <p>
-  instructions: {{ object.instructions }}
+  Consent: {{ object.consent|default:"None" }}
 </p>
-{% endif %}
-{% if object.advertisement %}
 <p>
-  advertisement: {{ object.advertisement }}
+  Instructions: {{ object.instructions|default:"None" }}
 </p>
-{% endif %}
-{% if object.inter_task_break %}
 <p>
-inter-task break: {{ object.inter_task_break }}
+  Advertisement: {{ object.advertisement|default:"None" }}
 </p>
-{% endif %}
+<p>
+  Inter-task break: {{ object.inter_task_break }}
+</p>
 <h3> Experiments </h3>
 <table id="experiment-table">
   <thead>

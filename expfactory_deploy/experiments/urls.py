@@ -168,8 +168,8 @@ urlpatterns = [
     path("results/<int:result_id>/", views.single_result, name="result-detail"),
     path("assignments/generate/<int:battery_id>/<int:num_subjects>", views.batch_assignment_create, name="assignment-generate"),
     path("serve/complete", views.Complete.as_view(), name="complete"),
-    path("serve/<int:assignment_id>/consent", views.ServeConsent.as_view(), name="complete"),
-    path("serve/<int:assignment_id>/<str:study_id>/consent", views.ServeConsent.as_view(), name="complete"),
+    path("serve/<int:assignment_id>/consent", views.ServeConsent.as_view(), name="consent"),
+    path("serve/preview/<int:battery_id>/consent", views.ServeConsent.as_view(preview=True), name="preview-consent"),
 ]
 
 app_name = "experiments"

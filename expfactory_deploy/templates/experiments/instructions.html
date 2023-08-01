@@ -1,19 +1,18 @@
+{% load crispy_forms_tags %}
 <html>
   <head>
-    <title>The Experiment Factory</title>
+    <title>{{ title }}</title>
     <meta charset="utf-8" />
   </head>
   <body>
-    <div id="consent">
-    <p>
-      {{ consent }}
-    </p>
-      {{ consent_form }}
-    </div>
     <div id="instructions">
     <p>
       {{ instructions }}
     </p>
+    </div>
+    <div id="consent">
+      {{ consent }}
+      {% crispy consent_form %}
     </div>
   </body>
 </html>

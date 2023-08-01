@@ -5,7 +5,7 @@
 <div class="h2">
   {{ object.name }}
   <div class="experiment-actions">
-    <a class="btn btn-primary" href="preview/{{ exp_repo.id }}">Preview Latest</a>
+    <a class="btn btn-primary" href="{% url 'experiments:preview' object.id %}">Preview Latest</a>
   </div>
 </div>
 Origin: <a href="object.url">{{ object.origin }}</a><br/>

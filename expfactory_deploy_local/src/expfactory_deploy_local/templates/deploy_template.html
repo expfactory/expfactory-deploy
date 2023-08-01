@@ -56,14 +56,6 @@
         })
         {% endif %}
 
-
-          <!-- {# include "experiments/preview_battery_runjs.html" #} -->
-          /* These variables will be filled in given it's an mturk experiment
-            expfactory.amazon_url="{{ amazon_host }}"
-            expfactory.assignmentId="{{ assignment_id }}"
-            expfactory.hitId="{{ hit_id }}"
-          */
-
           function onFinish(data) {
             var finished_message = `
               <div id="finished_message" style="margin:100px">

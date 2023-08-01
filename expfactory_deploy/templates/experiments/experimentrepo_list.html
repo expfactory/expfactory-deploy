@@ -31,7 +31,7 @@
           <td>
             <input type="checkbox" name="experiments" id="{{ exp_repo.id }}" value="{{ exp_repo.id }}" class="exp_repo_checkbox" form="experiment-repo-bulk-tag">
           </td>
-          <td><a href="/experiment_repo/{{ exp_repo.id }}/">{{ exp_repo.name }}</a></td>
+          <td><a href="{% url 'experiments:preview' exp_repo.id %}/">{{ exp_repo.name }}</a></td>
           <td><a href="{{ exp_repo.url }}">{{ exp_repo.origin.name }}</a></td>
           <td>
             {% for tag in exp_repo.tags.all %}

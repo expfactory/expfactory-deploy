@@ -10,6 +10,7 @@
         <a class="btn btn-primary" href="{% url 'experiments:battery-publish' battery.id %}">Publish</a>
       {% endif %}
       <a class="btn btn-primary" href="{% url 'experiments:preview-battery' battery.id %}">Preview</a>
+      <a class="btn btn-primary" href="{% url 'experiments:preview-consent' battery.id %}">Preview Insturcitons/Consent</a>
       <a class="btn btn-primary" href="{% url 'experiments:battery-detail' battery.id %}">Details</a>
     {% else %}
       Create Battery

@@ -20,12 +20,31 @@ from tinymce.widgets import TinyMCE
 
 from experiments import models as models
 
+class ConsentForm(forms.Form):
+    agree = forms.BooleanField(required=False)
+    disagree = forms.BooleanField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.add_input(Submit('submit', 'Submit'))
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if (bool(cleaned_data['accept']) and bool(cleaned_data['disagree'])):
+            raise forms.ValidationError('Only One of two fields may be checked')
+        if (not bool(cleaned_data['accept']) and not bool(cleaned_data['disagree'])):
+            raise forms.ValidationError('One of the two fields must be checked')
+
+        return cleaned_data
+
 class RepoOriginForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         cancel_url = reverse('experiments:repo-origin-list')
-        self.helper = FormHelper(self)
+        self.helper = FormHelper()
         self.helper.add_input(Submit('submit', 'Submit'))
         self.helper.add_input(
             Button(
@@ -185,7 +204,7 @@ class BatteryForm(ModelForm):
 
     class Meta:
         model = models.Battery
-        fields = ["title", "consent", "instructions", "advertisement", "status", "public"]
+        fields = ["title", "consent", "instructions", "advertisement", "status"]
         widgets = {
             "title": forms.TextInput(),
             "consent": TinyMCE(attrs={'cols': 80, 'rows': 12}),

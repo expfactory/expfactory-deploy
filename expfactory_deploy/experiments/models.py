@@ -250,10 +250,10 @@ class BatteryExperiments(models.Model):
 class Subject(models.Model):
     handle = models.TextField(blank=True)
     email = models.TextField(blank=True)
-    mturk_id = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True)
     active = models.BooleanField(default=True)
+    prolific_id = models.TextField(unique=True, blank=True, null=True, default=None)
     tags = TaggableManager()
 
     def __str__(self):
@@ -282,6 +282,8 @@ class Assignment(SubjectTaskStatusModel):
     consent_accepted = models.BooleanField(null=True)
     note = models.TextField(blank=True)
     ordering = models.ForeignKey('ExperimentOrder', on_delete=models.SET_NULL, blank=True, null=True)
+    # index that can be used to divy cohort up by as experiment sees fit.
+    group_index = models.IntegerField(default=0)
 
     @property
     def results(self):

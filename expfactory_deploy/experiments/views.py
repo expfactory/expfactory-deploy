@@ -391,10 +391,8 @@ class Serve(View):
     def get_context_data(self, **kwargs):
         return {}
 
-    def set_objects(self):
+    def set_subject(self):
         subject_id = self.kwargs.get("subject_id")
-        battery_id = self.kwargs.get("battery_id")
-        experiment_id = self.kwargs.get("experiment_id")
         """ we might accept the uuid assocaited with the subject instead of its id """
         if subject_id is not None:
             self.subject = get_object_or_404(
@@ -403,34 +401,35 @@ class Serve(View):
         else:
             self.subject = None
 
+    def set_battery(self):
+        battery_id = self.kwargs.get("battery_id")
         self.battery = get_object_or_404(
             models.Battery, id=battery_id
         )
 
-        try:
-            self.assignment = models.Assignment.objects.get(
-                subject=self.subject, battery=self.battery
-            )
-        except ObjectDoesNotExist:
-            # make new assignment for testing, in future 404.
-            assignment = models.Assignment(
-                subject_id=subject_id, battery_id=battery_id,
-            )
-            assignment.save()
-            self.assignment = assignment
+    def set_assignment(self):
+        # When might we want to error out instead of just create assignment?
+        self.assignment = models.Assignment.objects.get_or_create(subject=self.subject, battery=self.battery)
 
+    def complete(self):
+        return redirect('experiments:complete')
+
+    def set_experiment(self):
+        experiment_id = self.kwargs.get("experiment_id")
         if experiment_id is not None:
             self.experiment = get_object_or_404(
                 models.BatteryExperiment,
                 id=experiment_id
             )
 
-
     def get(self, request, *args, **kwargs):
-        self.set_objects()
+        self.set_subject()
+        self.set_battery()
+        self.set_assignment()
+        self.set_experiment()
+
         if self.assignment.consent_accepted is not True and self.battery.consent:
             context = {
-                **self.get_context_data(),
                 'consent': self.battery.consent,
                 'instructions': self.battery.instructions
             }
@@ -439,29 +438,49 @@ class Serve(View):
         self.experiment, num_left = self.assignment.get_next_experiment()
 
         if self.experiment is None:
-            return redirect('experiments:complete')
+            return self.complete()
 
         exp_context = jspsych_context(self.experiment)
         exp_context["post_url"] = reverse_lazy("experiments:push-results", args=[self.assignment.id, self.experiment.id])
-        exp_context["next_page"] = reverse_lazy("serve-battery", args=[self.subject.id, self.battery.id])
-        exp_context["num_left"] = num_left
+        # No longer in use. We just location.reload for experiments.
+        # exp_context["next_page"] = reverse_lazy("experiments:serve-battery", args=[self.subject.id, self.battery.id])
+
+        # We could insert this into finish message
+        # exp_context["num_left"] = num_left
+        exp_context["exp_config"] = {}
         context = {**self.get_context_data(), **exp_context}
         return render(request, "experiments/jspsych_deploy.html", context)
 
 class ServeConsent(View):
+    preview = False
+    battery = None
+
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        assignment = get_object_or_404(
-            models.Assignment,
-            id=self.kwargs.get('assignment_id')
-        )
-        context.extend({
-            consent: assignment.battery.consent,
-            instrucitons: assignment.battery.instructions
-        })
+        if (self.preview):
+            self.battery = get_object_or_404(
+                models.Battery,
+                id=self.kwargs.get('battery_id')
+            )
+        else:
+            assignment = get_object_or_404(
+                models.Assignment,
+                id=self.kwargs.get('assignment_id')
+            )
+            self.battery = assignment.battery
+
+        return {
+            'consent': self.battery.consent,
+            'instrucitons': self.battery.instructions
+        }
 
     def get(self, request, *args, **kwargs):
-        context = self.get_context_data(),
+        context = self.get_context_data()
+        form = forms.ConsentForm()
+        if (self.preview):
+            form.helper.form_action = reverse('experiments:battery-detail', kwargs={'pk': self.battery.id})
+            form.helper.form_method = 'get'
+        context['consent_form'] = form
+
         return render(request, "experiments/instructions.html", context)
 
     def post(self, request, *args, **kwargs):
@@ -469,13 +488,22 @@ class ServeConsent(View):
             models.Assignment,
             id=self.kwargs.get('assignment_id')
         )
-        assignment.consent_accepted = True
-        assignment.save()
-        return redirect(reverse(
-            'experiments:serve-battery',
-            kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
-        ))
+        consent_form = forms.ConsentForm(request)
+        if consent_form.is_valid():
+            assignment.consent_accepted = consent_form.agree or not consent_form.disagree
+            if assignment.consent_accepted and assignment.status == 'not-started':
+                assignment.status = 'started'
+            assignment.save()
+            return redirect(reverse(
+                'experiments:serve-battery',
+                kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
+            ))
+        else:
+            return self.get(request, *args, **kwargs)
 
+'''
+View for participants to push data to.
+'''
 class Results(View):
     # If more frameworks are added this would dispatch to their respective
     # versions of this function.
@@ -563,6 +591,9 @@ class ExperimentRepoBulkTag(LoginRequiredMixin, FormView):
             exp_repo.save()
         return super().form_valid(form)
 
+'''
+Following four are for downloaing results, not posting them to them to server
+'''
 class ResultDetail(LoginRequiredMixin, DetailView):
     model = models.Result
     content_type = 'text/html'

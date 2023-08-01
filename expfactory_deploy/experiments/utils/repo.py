@@ -54,7 +54,7 @@ def find_new_experiments(search_dir=settings.REPO_DIR):
         repo = git.Repo(dir, search_parent_directories=True)
         repo_path = repo.git.rev_parse("--show-toplevel")
         repo_origin, repo_created = RepoOrigin.objects.get_or_create(
-            origin=repo.remotes.origin.url, path=repo_path
+            url=repo.remotes[0].url, path=repo_path
         )
         experiment, experiment_created = ExperimentRepo.objects.get_or_create(
             name=os.path.split(dir)[-1], origin=repo_origin, location=dir
