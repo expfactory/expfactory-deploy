@@ -12,6 +12,7 @@
       <a class="btn btn-primary" href="{% url 'experiments:preview-battery' battery.id %}">Preview</a>
       <a class="btn btn-primary" href="{% url 'experiments:preview-consent' battery.id %}">Preview Insturcitons/Consent</a>
       <a class="btn btn-primary" href="{% url 'experiments:battery-detail' battery.id %}">Details</a>
+      <a class="btn btn-primary" href="{% url 'prolific:update-simple-cc' battery.id %}">Set Prolific URL</a>
     {% else %}
       Create Battery
       <div class="battery-actions">

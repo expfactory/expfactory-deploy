@@ -86,21 +86,25 @@ class RepoOrigin(models.Model):
 
     def pull_origin(self):
         repo.pull_origin(self.path)
+        repo.find_new_experiments(self.path)
         self.update_dependents()
 
     def update_dependents(self):
         latest = self.get_latest_commit()
+        print(f'latest commit found for {self.display_url}: {latest}')
         instances = ExperimentInstance.objects.filter(experiment_repo_id__origin=self.id).exclude(commit=latest)
         # we will want to filter battexps on use_latest in production
         battexps = BatteryExperiments.objects.filter(experiment_instance__id__in=instances.values_list('id', flat=True))
         for battexp in battexps:
             new_instance, _ = ExperimentInstance.objects.get_or_create(experiment_repo_id=battexp.experiment_instance.experiment_repo_id, commit=latest)
+            print(f'batt exp: {battexp.id} updated {battexp.experiment_instance} to {new_instance}')
             battexp.experiment_instance = new_instance
             battexp.save()
 
     def clone(self):
         os.makedirs(self.path, exist_ok=True)
-        repo = git.Repo.clone_from(self.url, self.path)
+        cloneed_repo = git.Repo.clone_from(self.url, self.path)
+        repo.find_new_experiments(self.path)
 
     @property
     def display_url(self):
@@ -202,7 +206,7 @@ class Battery(TimeStampedModel, StatusField):
     consent = models.TextField(blank=True)
     instructions = models.TextField(blank=True)
     advertisement = models.TextField(blank=True)
-    random_order = models.BooleanField(default=True)
+    random_order = models.BooleanField(default=False)
     public = models.BooleanField(default=False)
     inter_task_break = models.DurationField(default=datetime.timedelta())
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -315,7 +319,7 @@ class Assignment(SubjectTaskStatusModel):
             )
         else:
             batt_exps = self.ordering.experimentorderitem_set.all().order_by("order")
-        experiments = [x.experiment_instance for x in batt_exps]
+        experiments = [x.battery_experiment.experiment_instance for x in batt_exps]
         exempt = list(
             Result.objects.filter(
                 Q(status=Result.STATUS.completed) | Q(status=Result.STATUS.failed),
@@ -367,5 +371,5 @@ class ExperimentOrder(models.Model):
         order_items = []
         for index, exp in enumerate(experiments):
             order_items.append(ExperimentOrderItem(battery_experiment_id=exp, experiment_order=self, order=index))
-        ExperimentOrderItems.bulk_create(order_items)
+        ExperimentOrderItem.objects.bulk_create(order_items)
 

@@ -38,6 +38,11 @@ urlpatterns = [
         name="repo-origin-create",
     ),
     path(
+        "repo/pull/",
+        views.RepoOriginPull.as_view(),
+        name="repo-origin-pull",
+    ),
+    path(
         "repo/list/",
         views.RepoOriginList.as_view(),
         name="repo-origin-list",

@@ -16,7 +16,6 @@ from django.forms import formset_factory, TextInput
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
-from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
 from taggit.models import Tag
@@ -51,6 +50,12 @@ class RepoOriginCreate(LoginRequiredMixin, CreateView):
         self.object.clone()
         return response
 
+class RepoOriginPull(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        for repo in models.RepoOrigin.objects.filter(active=True):
+            repo.pull_origin()
+        return redirect("experiments:experiment-repo-list")
+
 # Experiment Views
 def experiment_instances_from_latest(experiment_repos):
     for experiment_repo in experiment_repos:
@@ -58,6 +63,7 @@ def experiment_instances_from_latest(experiment_repos):
         models.ExperimentInstance.get_or_create(
             experiment_repo_id=experiment_repo.id, commit=latest
         )
+        return reverse_lazy("experiments:experiment-repo-list")
 
 
 class ExperimentRepoDetail(LoginRequiredMixin, ListView):
@@ -89,6 +95,7 @@ class ExperimentRepoDetail(LoginRequiredMixin, DetailView):
         return context
 
 
+@login_required
 def add_new_experiments(request):
     created_repos, created_experiments, errors = find_new_experiments()
     for repo in created_repos:
@@ -288,13 +295,13 @@ def deactivate_battery(request, pk):
     referer = request.META.get("HTTP_REFERER")
     battery = get_object_or_404(models.Battery, pk=pk)
     if battery.status == "template":
-        for child in battery.children.all:
+        for child in battery.children.all():
             child.status = "inactive"
             child.save()
     battery.status = "inactive"
     battery.save()
-    return HttpResponseRedirect(referer)
-    # return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
+    # return HttpResponseRedirect(referer)
+    return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
 
 @login_required
 def deactivate_battery_confirmation(request, pk):
@@ -345,8 +352,9 @@ def jspsych_context(exp_instance):
         settings.DEPLOYMENT_DIR, settings.STATIC_DEPLOYMENT_URL
     )
     location = exp_instance.experiment_repo_id.location
-    exp_fs_path = Path(deploy_static_fs, Path(location).stem)
-    exp_url_path = Path(deploy_static_url, Path(location).stem)
+    origin_path = exp_instance.experiment_repo_id.origin.path
+    exp_fs_path = Path(location.replace(origin_path, deploy_static_fs))
+    exp_url_path = Path(location.replace(origin_path, deploy_static_url))
 
     # default js/css location for poldracklab style experiments
     static_url_path = Path(settings.STATIC_NON_REPO_URL, "default")
@@ -368,6 +376,10 @@ class Preview(View):
         template = "experiments/jspsych_deploy.html"
         context = jspsych_context(exp_instance)
         return render(request, template, context)
+
+    def post(self, request, *args, **kwargs):
+        return HttpResponse(request.body)
+
 
 class PreviewBattery(View):
     def get(self, request, *args, **kwargs):
@@ -409,7 +421,7 @@ class Serve(View):
 
     def set_assignment(self):
         # When might we want to error out instead of just create assignment?
-        self.assignment = models.Assignment.objects.get_or_create(subject=self.subject, battery=self.battery)
+        self.assignment = models.Assignment.objects.get_or_create(subject=self.subject, battery=self.battery)[0]
 
     def complete(self):
         return redirect('experiments:complete')
@@ -516,6 +528,7 @@ class Results(View):
         return data, finished
 
     def post(self, request, *args, **kwargs):
+        print(request.body)
         assignment_id = self.kwargs.get("assignment_id")
         experiment_id = self.kwargs.get("experiment_id")
         exp_instance = get_object_or_404(models.ExperimentInstance, id=experiment_id)

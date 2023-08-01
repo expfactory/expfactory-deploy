@@ -32,5 +32,5 @@ class Session(TimeStampedModel):
 '''
 
 class SimpleCC(TimeStampedModel):
-    battery = models.ForeignKey(Battery, unique=True, on_delete=models.SET_NULL)
-    completion_url = models.TextField()
+    battery = models.OneToOneField(Battery, on_delete=models.CASCADE)
+    completion_url = models.URLField(max_length=65536, blank=True)

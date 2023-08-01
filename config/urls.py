@@ -17,6 +17,7 @@ urlpatterns = [
     path("accounts/", include("django.contrib.auth.urls")),
     path('tinymce/', include('tinymce.urls')),
     path("", include("expfactory_deploy.experiments.urls", namespace="experiments")),
+    path("prolific/", include("expfactory_deploy.prolific.urls", namespace="prolific")),
     path("", include("expfactory_deploy.mturk.urls", namespace="mturk")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:

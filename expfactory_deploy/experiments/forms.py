@@ -204,7 +204,7 @@ class BatteryForm(ModelForm):
 
     class Meta:
         model = models.Battery
-        fields = ["title", "consent", "instructions", "advertisement", "status"]
+        fields = ["title", "consent", "instructions", "advertisement", "status", "random_order"]
         widgets = {
             "title": forms.TextInput(),
             "consent": TinyMCE(attrs={'cols': 80, 'rows': 12}),
@@ -234,7 +234,7 @@ class ExperimentInstanceForm(ModelForm):
 class ExperimentInstanceOrderForm(ExperimentInstanceForm):
     template_name = "experiments/experiment_instance_order_form.html"
     exp_order = forms.IntegerField()
-    use_latest = forms.BooleanField()
+    use_latest = forms.BooleanField(initial=True)
     exp_instance_select = forms.ModelChoiceField(queryset=models.ExperimentRepo.objects.none(), required=False)
     battery_id = None
 

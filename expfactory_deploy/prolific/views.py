@@ -1,10 +1,13 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from django.views import CreateView, UpdateView, View
+from django.urls import reverse, reverse_lazy
+from django.views.generic import View
+from django.views.generic.edit import CreateView, UpdateView
 
 from experiments import views as exp_views
 from experiments import models as exp_models
 
-from prolific import models as models
+from prolific import models
+from prolific import forms
 
 class ProlificServe(exp_views.Serve):
     def set_subject(self):
@@ -12,7 +15,7 @@ class ProlificServe(exp_views.Serve):
         self.subject = exp_models.Subject.objects.get_or_create(prolific_id=prolific_id)
 
     def complete(self):
-        return redirect('prolific:complete', assignment_id=self.assignment)
+        return redirect(reverse('prolific:complete', kwargs={'assignment_id': self.assignment.id}))
 
 class ProlificComplete(View):
     def get(self, request, *args, **kwargs):
@@ -29,15 +32,13 @@ class ProlificComplete(View):
 
         return render(request, "prolific/complete.html", context)
 
-class SimpleCCCreate(CreateView):
-    model = models.SimpleCC
-    fields = ["completion_url"]
-
-    def form_valid(self, form):
-        battery = get_object_or_404(exp_models.Battery, self.kwargs.get('battery_id'))
-        form.instance.battery = battery
-        return super().form_valid(form)
-
 class SimpleCCUpdate(UpdateView):
-    model = models.SimpleCC
-    fields = ["completion_url"]
+    form_class = forms.SimpleCCForm
+    template_name = 'prolific/simplecc_form.html'
+
+    def get_success_url(self):
+        return redirect(reverse('experiments:battery-detail', kwargs={'battery_id': self.kwargs.get('battery_id')}))
+
+    def get_object(self, queryset=None):
+        return models.SimpleCC.objects.get_or_create(battery_id=self.kwargs.get('battery_id'), defaults={'completion_url': ''})[0]
+
