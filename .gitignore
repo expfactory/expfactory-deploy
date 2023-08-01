@@ -293,3 +293,4 @@ test_config
 !/**/expfactory_deploy_local/static/jspsych7
 /**/expfactory_deploy_local/static/experiments
 
+.certs
