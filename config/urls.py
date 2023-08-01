@@ -11,6 +11,7 @@ urlpatterns = [
     path(
         "about/", TemplateView.as_view(template_name="pages/about.html"), name="about"
     ),
+    path("accounts/", include("django.contrib.auth.urls")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     path("users/", include("expfactory_deploy.users.urls", namespace="users")),
@@ -55,5 +56,4 @@ if settings.DEBUG:
     ]
     if "debug_toolbar" in settings.INSTALLED_APPS:
         import debug_toolbar
-
         urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns

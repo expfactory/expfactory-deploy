@@ -3,6 +3,7 @@
   <i class="fa fa-arrows-v"></i>
   {{ form.name }}
   <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+  <details> 
   <div class="input-group">
     <div class="input-group-prepend">
       <span class="input-group-text">Commit</span>
@@ -23,8 +24,10 @@
   {{ form.use_latest }}
   </div>
   {{ form.experiment_repo_id }}
+  <summary>
   <div class="order-container">
     <span class="order badge badge-primary badge-pill">{{ form.exp_order.data }}</span>
     {{ form.exp_order }}
   </div>
+  </summary>
 </div>

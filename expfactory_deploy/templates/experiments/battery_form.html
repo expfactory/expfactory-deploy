@@ -101,6 +101,7 @@
         animation: 150,
         sort: false,
         onClone: (evt) => {
+          console.log(evt)
           if (Array.isArray(evt.clones)) {
             evt.clones.map(x => x.classList.add("added"))
           }
@@ -114,6 +115,7 @@
         animation: 150,
         onAdd: (evt) => {
           if (evt.item) {
+            console.log(evt)
             evt.item.classList.add("added")
             let repo_id = evt.clone.querySelector('.instance_experiment_repo_id').value
             evt.item.setAttribute("hx-get", `/repo/form/${repo_id}/`)

@@ -167,7 +167,7 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
         "DIRS": [str(APPS_DIR / "templates")],
-        "APP_DIRS": True,
+        # "APP_DIRS": True,
         "OPTIONS": {
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
             "context_processors": [
@@ -316,7 +316,7 @@ NON_REPO_FILES_DIR = str(ROOT_DIR / "deployment_assets" / "non_repo_files")
 STATIC_DEPLOYMENT_URL = "/deployment/repo/"
 STATIC_NON_REPO_URL = "/deployment/non_repo/"
 
-LOGOUT_REDIRECT_URL="/"
+# LOGOUT_REDIRECT_URL="/"
 LOGIN_REDIRECT_URL="/"
 
 

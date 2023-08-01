@@ -26,9 +26,9 @@ class ProlificComplete(View):
         context = {}
         try:
             cc = models.SimpleCC.objects.get(battery=assignment.battery)
-            context['CC_url'] = cc.completion_url
+            context['completion_url'] = cc.completion_url
         except MyModel.DoesNotExist:
-            context['CC_url'] = None
+            context['completion_url'] = None
 
         return render(request, "prolific/complete.html", context)
 
@@ -41,4 +41,3 @@ class SimpleCCUpdate(UpdateView):
 
     def get_object(self, queryset=None):
         return models.SimpleCC.objects.get_or_create(battery_id=self.kwargs.get('battery_id'), defaults={'completion_url': ''})[0]
-

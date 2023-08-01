@@ -40,11 +40,14 @@ services:
     image: nginx
     ports:
       - "80:80"
+      - "443:443"
     volumes:
-      - ./compose/local/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./compose/production/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - .:/app:z
       - ./expfactory_deploy_local/src/expfactory_deploy_local/static/:/app/deployment_assets/non_repo_files/default/static/:rw
       - ${EXPFACTORY_EXPERIMENTS_PATH:-./deployment_assets/repos/expfactory-experiments}:/app/deployment_assets/non_repo_files/default/static/experiments/:ro
+      - ./.certs/well-known/acme-challenge:/var/www/challenges/:rw
+      - ./.certs/:/etc/ssl/.certs:ro
     depends_on:
       - django
 

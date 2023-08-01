@@ -159,8 +159,7 @@ class ExperimentRepoForm(ModelForm):
 
 class ExperimentRepoBulkTagForm(forms.Form):
     # tags = TagField()
-    choices = [ (x.name, x.name) for x in Tag.objects.all() ]
-    choices = [('', ''), *choices]
+    choices = [('', '')]
 
     tags = forms.MultipleChoiceField(choices=choices)
     experiments = IdList(
@@ -170,6 +169,8 @@ class ExperimentRepoBulkTagForm(forms.Form):
     )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        choices = [('', ''), [ (x.name, x.name) for x in Tag.objects.all() ]]
         self.helper = FormHelper(self)
         self.helper.add_input(
             Submit(
