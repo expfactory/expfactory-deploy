@@ -11,8 +11,8 @@ from prolific import forms
 
 class ProlificServe(exp_views.Serve):
     def set_subject(self):
-        prolific_id = self.request.GET.get('PROLIFIC_ID')
-        self.subject = exp_models.Subject.objects.get_or_create(prolific_id=prolific_id)
+        prolific_id = self.request.GET.get('PROLIFIC_PID')
+        self.subject = exp_models.Subject.objects.get_or_create(prolific_id=prolific_id)[0]
 
     def complete(self):
         return redirect(reverse('prolific:complete', kwargs={'assignment_id': self.assignment.id}))
@@ -27,7 +27,7 @@ class ProlificComplete(View):
         try:
             cc = models.SimpleCC.objects.get(battery=assignment.battery)
             context['completion_url'] = cc.completion_url
-        except MyModel.DoesNotExist:
+        except models.SimpleCC.DoesNotExist:
             context['completion_url'] = None
 
         return render(request, "prolific/complete.html", context)
@@ -37,7 +37,8 @@ class SimpleCCUpdate(UpdateView):
     template_name = 'prolific/simplecc_form.html'
 
     def get_success_url(self):
-        return redirect(reverse('experiments:battery-detail', kwargs={'battery_id': self.kwargs.get('battery_id')}))
+        pk = self.kwargs.get('battery_id')
+        return reverse('experiments:battery-detail', kwargs={'pk': pk})
 
     def get_object(self, queryset=None):
         return models.SimpleCC.objects.get_or_create(battery_id=self.kwargs.get('battery_id'), defaults={'completion_url': ''})[0]

@@ -1,18 +1,27 @@
+{% load static %}
 {% load crispy_forms_tags %}
 <html>
   <head>
     <title>{{ title }}</title>
     <meta charset="utf-8" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="{% static 'css/project.css' %}" rel="stylesheet">
   </head>
   <body>
-    <div id="instructions">
-    <p>
-      {{ instructions }}
-    </p>
-    </div>
-    <div id="consent">
-      {{ consent }}
-      {% crispy consent_form %}
+    <div class="consent-container">
+      <div id="instructions">
+        {{ instructions |safe }}
+      {% if not consent %}
+        <a class="btn btn-primary" href="{{ serve }}">Start Experiment</a>
+      {% endif %}
+      </div>
+      {% if consent %}
+      <div id="consent">
+        {{ consent |safe }}
+        {% crispy consent_form %}
+      </div>
+      {% endif %}
     </div>
   </body>
 </html>

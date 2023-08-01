@@ -319,7 +319,7 @@ class Assignment(SubjectTaskStatusModel):
             )
         else:
             batt_exps = self.ordering.experimentorderitem_set.all().order_by("order")
-        experiments = [x.battery_experiment.experiment_instance for x in batt_exps]
+        experiments = [x.experiment_instance for x in batt_exps]
         exempt = list(
             Result.objects.filter(
                 Q(status=Result.STATUS.completed) | Q(status=Result.STATUS.failed),

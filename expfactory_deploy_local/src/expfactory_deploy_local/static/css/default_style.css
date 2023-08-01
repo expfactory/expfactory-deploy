@@ -129,9 +129,12 @@ Sample html: <div class = centerbox><div class = img-container><img...></img></d
 /* Used for positioning during instructions */
 
 .jspsych-instructions-nav {
-  text-align: center;
-  margin-top: 50px;
-  position: relative;
+  position: fixed; 
+  bottom: 10%;     
+  left: 50%;        
+  transform: translateX(-50%);  
+  text-align: center; 
+  padding: 10px 0px;
   z-index: 1;
 }
 

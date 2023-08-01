@@ -170,7 +170,7 @@ EMAIL_FILE_PATH = "./errors"  # change this to a proper location
 
 LOGGING = {
     "version": 1,
-    "disable_existing_loggers": True,
+    "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
             "format": "%(levelname)s %(asctime)s %(module)s "

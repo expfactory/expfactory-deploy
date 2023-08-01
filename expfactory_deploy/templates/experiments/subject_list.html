@@ -25,6 +25,9 @@
         <a href="{% url 'experiments:subject-detail' subject.id %}">
           {{ subject }}
         </a>
+        {% if subject.prolific_id %}
+          - prolific id: {{ subject.prolific_id }}
+        {% endif %}
       </td>
       <td>
         {% for assignment in subject.assignment_set.all %}

@@ -25,6 +25,8 @@ from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
 from experiments.utils.assignments import batch_assignments
 from experiments.utils.export import export_battery, export_subject, export_single_result
+        
+from prolific.models import SimpleCC
 
 sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
 
@@ -424,7 +426,12 @@ class Serve(View):
         self.assignment = models.Assignment.objects.get_or_create(subject=self.subject, battery=self.battery)[0]
 
     def complete(self):
-        return redirect('experiments:complete')
+        try:
+            cc =SimpleCC.objects.get(battery=self.battery)
+            context['completion_url'] = cc.completion_url
+            return render(request, "prolific/complete.html", context)
+        except SimpleCC.objects.DoesNotExist:
+            return redirect('experiments:complete')
 
     def set_experiment(self):
         experiment_id = self.kwargs.get("experiment_id")
@@ -441,11 +448,14 @@ class Serve(View):
         self.set_experiment()
 
         if self.assignment.consent_accepted is not True and self.battery.consent:
+            return redirect(reverse("experiments:consent", kwargs={'assignment_id': self.assignment.id}))
+            '''
             context = {
                 'consent': self.battery.consent,
                 'instructions': self.battery.instructions
             }
             return render(request, "experiments/instructions.html", context)
+            '''
 
         self.experiment, num_left = self.assignment.get_next_experiment()
 
@@ -473,16 +483,19 @@ class ServeConsent(View):
                 models.Battery,
                 id=self.kwargs.get('battery_id')
             )
+            next_url = reverse('experiments:battery-detail', kwargs={'pk': self.battery.id})
         else:
             assignment = get_object_or_404(
                 models.Assignment,
                 id=self.kwargs.get('assignment_id')
             )
             self.battery = assignment.battery
+            next_url = reverse('experiments:consent', kwargs={'assignment_id': assignment.id})
 
         return {
             'consent': self.battery.consent,
-            'instrucitons': self.battery.instructions
+            'instructions': self.battery.instructions,
+            'next_url': next_url
         }
 
     def get(self, request, *args, **kwargs):
@@ -490,7 +503,7 @@ class ServeConsent(View):
         form = forms.ConsentForm()
         if (self.preview):
             form.helper.form_action = reverse('experiments:battery-detail', kwargs={'pk': self.battery.id})
-            form.helper.form_method = 'get'
+            form.helper.form_method = 'post'
         context['consent_form'] = form
 
         return render(request, "experiments/instructions.html", context)
@@ -500,18 +513,26 @@ class ServeConsent(View):
             models.Assignment,
             id=self.kwargs.get('assignment_id')
         )
-        consent_form = forms.ConsentForm(request)
+        consent_form = forms.ConsentForm(request.POST)
         if consent_form.is_valid():
-            assignment.consent_accepted = consent_form.agree or not consent_form.disagree
+            assignment.consent_accepted = consent_form.cleaned_data['accept']
             if assignment.consent_accepted and assignment.status == 'not-started':
                 assignment.status = 'started'
             assignment.save()
-            return redirect(reverse(
-                'experiments:serve-battery',
-                kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
-            ))
+            if assignment.consent_accepted:
+                return redirect(reverse(
+                    'experiments:serve-battery',
+                    kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
+                ))
+            elif assignment.consent_accepted is False:
+                assignment.status = 'failed'
+                assignment.save()
+                return redirect(reverse('experiments:decline'))
         else:
             return self.get(request, *args, **kwargs)
+
+class PreviewConsent(ServeConsent):
+    preview = True
 
 '''
 View for participants to push data to.
@@ -644,3 +665,6 @@ def subject_results(request, subject_id):
 
 class Complete(TemplateView):
     template_name = 'experiments/complete.html'
+
+class Decline(TemplateView):
+    template_name = 'experiments/decline.html'

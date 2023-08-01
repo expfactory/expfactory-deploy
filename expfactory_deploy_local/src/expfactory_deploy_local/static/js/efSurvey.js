@@ -24,7 +24,7 @@ function question_convert(q_in) {
   let q_out = {}
 
   q_out.prompt = q_in.question_text
-  q_out.required = q_in.required
+  q_out.required = q_in.required == "0" ? false : true
 
   switch(q_in.question_type) {
     case "radio":
