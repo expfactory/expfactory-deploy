@@ -1,5 +1,4 @@
-
-FROM python:3.8-slim-buster
+FROM python:3.11-slim-bullseye
 
 ENV PYTHONUNBUFFERED 1
 
@@ -48,7 +47,7 @@ COPY --chown=django:django . /app
 
 USER django
 
-git config --global --add safe.directory '*'
+RUN git config --global --add safe.directory '*'
 
 WORKDIR /app
 
