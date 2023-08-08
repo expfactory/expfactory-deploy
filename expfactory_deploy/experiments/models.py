@@ -314,24 +314,21 @@ class Assignment(SubjectTaskStatusModel):
             order = "?" if self.battery.random_order else "order"
             batt_exps = (
                 BatteryExperiments.objects.filter(battery=self.battery)
-                .select_related("experiment_instance")
                 .order_by(order)
             )
         else:
             batt_exps = self.ordering.experimentorderitem_set.all().order_by("order")
-        experiments = [x.experiment_instance for x in batt_exps]
-        exempt = list(
-            Result.objects.filter(
+        exempt_results = Result.objects.filter(
                 Q(status=Result.STATUS.completed) | Q(status=Result.STATUS.failed),
-                subject=self.subject,
-            ).values_list('battery_experiment__experiment_instance', flat=True)
-        )
-        unfinished = [exp for exp in experiments if exp.id not in exempt]
+                battery_experiment__battery=self.battery, subject=self.subject,
+            )
+        exempt = [exp.battery_experiment for exp in exempt_results]
+        unfinished = [batt_exp for batt_exp in batt_exps if batt_exp not in exempt]
         if len(unfinished):
             if self.status == "not-started":
                 self.status = "started"
                 self.save()
-            return unfinished[0], len(unfinished)
+            return unfinished[0].experiment_instance, len(unfinished)
         else:
             self.status = "completed"
             self.save()
