@@ -309,6 +309,32 @@ class Assignment(SubjectTaskStatusModel):
             self.ordering.generate_order_items()
         super().save(*args, **kwargs)
 
+    '''
+    def get_next_experiment(self):
+        if self.ordering == None:
+            order = "?" if self.battery.random_order else "order"
+            batt_exps = (
+                BatteryExperiments.objects.filter(battery=self.battery)
+                .order_by(order)
+            )
+        else:
+            batt_exps = self.ordering.experimentorderitem_set.all().order_by("order")
+        exempt_results = Result.objects.filter(
+                Q(status=Result.STATUS.completed) | Q(status=Result.STATUS.failed),
+                battery_experiment__battery=self.battery, subject=self.subject,
+            )
+        exempt = [exp.battery_experiment for exp in exempt_results]
+        unfinished = [batt_exp for batt_exp in batt_exps if batt_exp not in exempt]
+        if len(unfinished):
+            if self.status == "not-started":
+                self.status = "started"
+                self.save()
+            return unfinished[0].experiment_instance, len(unfinished)
+        else:
+            self.status = "completed"
+            self.save()
+            return None, 0
+    '''
     def get_next_experiment(self):
         if self.ordering == None:
             order = "?" if self.battery.random_order else "order"
