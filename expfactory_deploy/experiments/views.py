@@ -402,9 +402,6 @@ class Serve(View):
     experiment = None
     assignment = None
 
-    def get_context_data(self, **kwargs):
-        return {}
-
     def set_subject(self):
         subject_id = self.kwargs.get("subject_id")
         """ we might accept the uuid assocaited with the subject instead of its id """
@@ -425,13 +422,12 @@ class Serve(View):
         # When might we want to error out instead of just create assignment?
         self.assignment = models.Assignment.objects.get_or_create(subject=self.subject, battery=self.battery)[0]
 
-    def complete(self):
+    def complete(self, request):
         try:
-            cc =SimpleCC.objects.get(battery=self.battery)
-            context['completion_url'] = cc.completion_url
-            return render(request, "prolific/complete.html", context)
-        except SimpleCC.objects.DoesNotExist:
-            return redirect('experiments:complete')
+            cc = SimpleCC.objects.get(battery=self.battery)
+            return render(request, "prolific/complete.html", {'completion_url': cc.completion_url})
+        except ObjectDoesNotExist:
+            return redirect(reverse('experiments:complete'))
 
     def set_experiment(self):
         experiment_id = self.kwargs.get("experiment_id")
@@ -460,7 +456,7 @@ class Serve(View):
         self.experiment, num_left = self.assignment.get_next_experiment()
 
         if self.experiment is None:
-            return self.complete()
+            return self.complete(request)
 
         exp_context = jspsych_context(self.experiment)
         exp_context["post_url"] = reverse_lazy("experiments:push-results", args=[self.assignment.id, self.experiment.id])
@@ -470,7 +466,7 @@ class Serve(View):
         # We could insert this into finish message
         # exp_context["num_left"] = num_left
         exp_context["exp_config"] = {}
-        context = {**self.get_context_data(), **exp_context}
+        context = {**exp_context}
         return render(request, "experiments/jspsych_deploy.html", context)
 
 class ServeConsent(View):

@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import View
@@ -14,7 +15,7 @@ class ProlificServe(exp_views.Serve):
         prolific_id = self.request.GET.get('PROLIFIC_PID')
         self.subject = exp_models.Subject.objects.get_or_create(prolific_id=prolific_id)[0]
 
-    def complete(self):
+    def complete(self, request):
         return redirect(reverse('prolific:complete', kwargs={'assignment_id': self.assignment.id}))
 
 class ProlificComplete(View):
@@ -23,14 +24,14 @@ class ProlificComplete(View):
             models.Assignment,
             id=self.kwargs.get('assignment_id')
         )
-        context = {}
+        cc_url = None
         try:
             cc = models.SimpleCC.objects.get(battery=assignment.battery)
-            context['completion_url'] = cc.completion_url
-        except models.SimpleCC.DoesNotExist:
-            context['completion_url'] = None
+            cc_url = cc.completion_url
+        except ObjectDoesNotExist:
+            pass
 
-        return render(request, "prolific/complete.html", context)
+        return render(request, "prolific/complete.html", {'completion_url': cc_url})
 
 class SimpleCCUpdate(UpdateView):
     form_class = forms.SimpleCCForm
