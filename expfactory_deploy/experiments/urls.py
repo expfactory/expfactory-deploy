@@ -1,6 +1,7 @@
 from django.urls import include, path, re_path
 
 from expfactory_deploy.experiments import views
+from expfactory_deploy.experiments import api_views
 
 urlpatterns = [
     path("", views.ExperimentRepoList.as_view(), name="home"),
@@ -175,6 +176,8 @@ urlpatterns = [
     path("serve/complete", views.Complete.as_view(), name="complete"),
     path("serve/<int:assignment_id>/consent", views.ServeConsent.as_view(), name="consent"),
     path("serve/preview/<int:battery_id>/consent", views.PreviewConsent.as_view(), name="preview-consent"),
+    path("api/results/battery/<int:battery_id>/", api_views.get_results_view, name="api-results-by-battery"),
+    path("api/results/subject/<int:subject_id>/", api_views.get_results_view, name="api-results-by-subject"),
 ]
 
 app_name = "experiments"

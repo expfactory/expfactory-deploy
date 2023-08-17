@@ -7,6 +7,10 @@ from django.conf import settings
 
 from experiments import models as models
 
+'''
+These functions were written for direct text file downloads of results.
+Much of it is reproduced in api_views.
+'''
 
 def export_battery(battery_id):
     results = models.Result.objects.filter(battery_experiment__battery=battery_id)
