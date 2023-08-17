@@ -25,7 +25,7 @@ from experiments import models as models
 from experiments.utils.repo import find_new_experiments, get_latest_commit
 from experiments.utils.assignments import batch_assignments
 from experiments.utils.export import export_battery, export_subject, export_single_result
-        
+
 from prolific.models import SimpleCC
 
 sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
@@ -542,6 +542,8 @@ class Results(View):
         finished = data.get("status") == "finished"
         if assignment.status == "not-started":
             assignment.status = "started"
+        if assignment.prolific_id != None and data.get('prolific_id') is None:
+            data['prolific_id'] = assignment.prolific_id
         return data, finished
 
     def post(self, request, *args, **kwargs):

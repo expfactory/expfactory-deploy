@@ -100,15 +100,15 @@ AWS_S3_CUSTOM_DOMAIN = env("DJANGO_AWS_S3_CUSTOM_DOMAIN", default=None)
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
-TEMPLATES[-1]["OPTIONS"]["loaders"] = [  # type: ignore[index] # noqa F405
-    (
-        "django.template.loaders.cached.Loader",
-        [
-            "django.template.loaders.filesystem.Loader",
-            "django.template.loaders.app_directories.Loader",
-        ],
-    )
-]
+#TEMPLATES[-1]["OPTIONS"]["loaders"] = [  # type: ignore[index] # noqa F405
+#    (
+#        "django.template.loaders.cached.Loader",
+#        [
+#            "django.template.loaders.filesystem.Loader",
+#            "django.template.loaders.app_directories.Loader",
+#        ],
+#    )
+#]
 
 # EMAIL
 # ------------------------------------------------------------------------------
