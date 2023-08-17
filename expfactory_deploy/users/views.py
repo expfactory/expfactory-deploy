@@ -1,9 +1,12 @@
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
+
+from rest_framework.authtoken.models import Token
 
 User = get_user_model()
 
@@ -43,3 +46,16 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
 
 user_redirect_view = UserRedirectView.as_view()
+
+@login_required
+def view_token(request, regenerate=False):
+    if regenerate:
+        try:
+            old_token = Token.objects.get(user=request.user)
+            old_token.delete()
+        except Token.DoesNotExist:
+            pass
+        token = Token.objects.create(user=request.user)
+    else:
+        token, _ = Token.objects.get_or_create(user=request.user)
+    return render(request, 'show_token.html', {'token': token.key})

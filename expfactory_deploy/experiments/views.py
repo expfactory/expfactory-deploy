@@ -547,13 +547,14 @@ class Results(View):
         return data, finished
 
     def post(self, request, *args, **kwargs):
-        print(request.body)
         assignment_id = self.kwargs.get("assignment_id")
         experiment_id = self.kwargs.get("experiment_id")
         exp_instance = get_object_or_404(models.ExperimentInstance, id=experiment_id)
         assignment = get_object_or_404(models.Assignment, id=assignment_id)
         batt_exp = get_object_or_404(models.BatteryExperiments, battery=assignment.battery, experiment_instance=exp_instance)
         data, finished = self.process_exp_data(request.body, assignment)
+        data['user_agent'] = request.META['HTTP_USER_AGENT']
+        data['ip'] = request.META['REMOTE_ADDR']
         if finished:
             models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status="completed").save()
         elif assignment.status == "not-started":
