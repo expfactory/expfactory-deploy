@@ -542,8 +542,8 @@ class Results(View):
         finished = data.get("status") == "finished"
         if assignment.status == "not-started":
             assignment.status = "started"
-        if assignment.prolific_id != None and data.get('prolific_id') is None:
-            data['prolific_id'] = assignment.prolific_id
+        if assignment.subject.prolific_id != None and data.get('prolific_id') is None:
+            data['prolific_id'] = assignment.subject.prolific_id
         return data, finished
 
     def post(self, request, *args, **kwargs):

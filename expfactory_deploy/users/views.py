@@ -5,6 +5,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
+from django.shortcuts import get_object_or_404, render, redirect
 
 from rest_framework.authtoken.models import Token
 
@@ -58,4 +59,4 @@ def view_token(request, regenerate=False):
         token = Token.objects.create(user=request.user)
     else:
         token, _ = Token.objects.get_or_create(user=request.user)
-    return render(request, 'show_token.html', {'token': token.key})
+    return render(request, 'users/user_detail.html', {'token': token.key})
