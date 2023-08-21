@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
+from django.shortcuts import get_object_or_404, render, redirect
 
 from rest_framework.authtoken.models import Token
 
