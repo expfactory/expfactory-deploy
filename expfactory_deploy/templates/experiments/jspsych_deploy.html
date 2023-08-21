@@ -44,6 +44,7 @@
             url : "{{ post_url }}",
             data : JSON.stringify(trialdata),
             error: (error) => {
+              jsPsych.data.get().localSave('csv', `${new Date().getTime()}.csv`);
               console.log(error)
             },
             dataType: 'text',
