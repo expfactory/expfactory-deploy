@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
@@ -58,4 +59,4 @@ def view_token(request, regenerate=False):
         token = Token.objects.create(user=request.user)
     else:
         token, _ = Token.objects.get_or_create(user=request.user)
-    return render(request, 'show_token.html', {'token': token.key})
+    return render(request, 'users/user_detail.html', {'token': token.key})
