@@ -1,6 +1,10 @@
+from uuid import uuid4
+
 from django.db import models
+
 from experiments.models import Battery, Subject, Assignment
 from model_utils.models import TimeStampedModel
+from prolific import outgoing_api as api
 
 '''
 Due to how prolific tracks time for payment we much chunk large batteries into
@@ -8,29 +12,154 @@ multiple batteries that can be done in single sittings.
 '''
 class StudyCollection(models.Model):
     name = models.TextField(blank=True)
-    default_project = models.TextField(blank=True)
-    # default_*
+    project = models.TextField(blank=True)
+    workspace_id = models.TextField(blank=True)
+    title = models.TextField(blank=True)
+    description = models.TextField(blank=True)
+    total_available_places = models.IntegerField(default=0)
+    estimated_completion_time = models.IntegerField(default=0)
+    reward = models.IntegerField(default=0)
+
+    @property
+    def study_count(self):
+        return self.study_set.all().count()
+
+    def create_drafts(self):
+        studies = self.study_set.order_by('rank')
+        study_responses = []
+        if len(studies) < 1:
+            return study_responses
+
+        api_studies = api.list_studies()
+
+        if not studies[0].participant_group:
+            next_group = api.create_part_group(self.project, studies[0].part_group_name)
+            id_to_set = next_group['id']
+
+        for i, study in enumerate(studies):
+            if (id_to_set):
+                study.participant_group = id_to_set
+                study.save()
+
+            if (i + 1 < len(studies)):
+                next_group = api.create_part_group(self.project, studies[i + 1].part_group_name)
+                next_id = next_group['id']
+                id_to_set = next_group['id']
+                print(id_to_set)
+            else:
+                next_id = None
+            response = study.create_draft(next_id)
+
+            study_responses.append(response)
+        return study_responses
+
+    def get_api_studies(self):
+        studies = self.study_set.order_by('rank')
+        study_responses = []
+        if len(studies) < 1:
+            return study_responses
+        for study in studies:
+            response = api.study_detail(id=study.remote_id)
+            study_responses.append((study, response))
+        return study_responses
+
+
+    def set_allowlists(self):
+        studies = self.study_set.order_by('rank')
+        study_responses = []
+        return
+
+    def default_study_args(self):
+        return {
+            "name": self.title,
+            "description": f"{self.description} (test)",
+            "prolific_id_option": "url_parameters",
+            "completion_option": "url",
+            "completion_codes": [
+                {
+                    "code": "",
+                    "code_type": "COMPLETED",
+                    "actions": [ {"action": "AUTOMATICALLY_APPROVE"}, ],
+                }
+            ],
+            "total_available_places": self.total_available_places + 1,
+            "estimated_completion_time": self.estimated_completion_time + 1,
+            "reward": self.reward + 1,
+            "device_compatability": ["desktop"],
+        }
+
+query_params = "?participant={{%PROLIFIC_PID%}},study={{%STUDY_ID%}},session={{%SESSION_ID%}}"
+
+def part_group_action(pid=""):
+    return {
+        "action": "ADD_TO_PARTICIPANT_GROUP",
+        "participant_group": pid
+    }
+
+def default_allowlist(group_id=""):
+    return {
+        "filter_id": "participant_group_allowlist",
+        "selected_values": [ group_id ]
+    }
+
+def default_previous_studies():
+    return {"filter_id": "previous_studies_allowlist", "selected_values": []}
 
 class Study(models.Model):
     battery = models.ForeignKey(Battery, null=True, on_delete=models.SET_NULL)
     study_collection = models.ForeignKey(StudyCollection, null=True, on_delete=models.SET_NULL)
+    rank = models.IntegerField(
+        default=0,
+        verbose_name="Experiment order",
+    )
+    remote_id = models.TextField(blank=True)
+    participant_group = models.TextField(blank=True)
+    completion_code = models.TextField(blank=True)
 
-    completion_url = models.URLField(max_length=65536, blank=True)
-    study_name = models.TextField(blank=True)
-    # rest of prolific study api fields go here
+    @property
+    def part_group_name(self):
+        return f'study {self.id} part group'
+
+    def create_draft(self, next_group=None):
+        if self.remote_id:
+            response = api.study_detail(id=self.remote_id)
+            # check next_group here
+            if not hasattr(response, 'status_code'):
+                return response
+
+        study_args = self.study_collection.default_study_args()
+        study_args['name'] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
+        study_args['external_study_url'] = f"https://example.org/{self.id}/{query_params}"
+        if self.completion_code == "":
+            self.completion_code = str(uuid4())[:8]
+        study_args['completion_codes'][0]['code'] = self.completion_code
+
+        if (next_group):
+            study_args['completion_codes'][0]['code_type'] = "FOLLOW_UP_STUDY"
+            study_args['completion_codes'][0]['actions'].append(part_group_action(next_group))
+
+        if self.participant_group:
+            study_args['filters'] = [default_allowlist(self.participant_group)]
+
+        print(study_args)
+        response = api.create_draft(study_args)
+        print(response)
+        if not hasattr(response, 'status_code'):
+            self.remote_id = response.get('id', None)
+            self.save()
+        return response
 
     def check_for_study(self):
-        return
-
-    def create_study(self, participant_id):
-        # I believe we will need one participant id to create a study with custom_allowlist in place.
         return
 
     def list_study_submissions(self):
         return
 
-    def add_to_allowlist(self, participant_id):
-        return
+    def add_to_allowlist(self, pids):
+        if (not self.participant_group):
+            # make new group
+            return
+        api.add_to_part_group(self.participant_group, pids)
 
 class StudyRank(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
@@ -47,6 +176,22 @@ class StudySubject(models.Model):
     def result_qa(self):
         return
 
+'''
+class CollectionSubjectManager(models.Manager):
+    def create_from_subjects(self, subjects, collection):
+'''
+
+class StudyCollectionSubject(models.Model):
+    study_collection = models.ForeignKey(StudyCollection, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+
+
 class SimpleCC(TimeStampedModel):
     battery = models.OneToOneField(Battery, on_delete=models.CASCADE)
     completion_url = models.URLField(max_length=65536, blank=True)
+
+class ProlificAPIResult(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    request = models.TextField(blank=True)
+    response = models.JSONField()
+    collection = models.ForeignKey(StudyCollection, on_delete=models.CASCADE, blank=True)

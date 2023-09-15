@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+    <div class="h2">
+      Collection
+      <div class="battery-actions">
+        <input class="btn btn-primary" type="submit" name="action" form="collection_form" value="Save Changes"/>
+      </div>
+    </div>
+<form id="collection_form" method="post" onsubmit="return battexpSubmit()" action="">
+      {% crispy form %}
+      <div id="form-manager">
+      {{ study_rank_formset.management_form }}
+      </div>
+      <div id="battexpforms">
+        {{ study_rank_formset }}
+      </div>
+</form>
+
+<div class="row">
+  <div class="input-group">
+    <div class="input-group-prepend">
+      <span class="input-group-text">Search</span>
+    </div>
+    <input class="form-control" id="experimentlist-search" type="text" />
+  </div>
+</div>
+
+<div id="cloning" class="row">
+  <div id="experimentslist" class="list-group col">
+      {% for batt in batteries %}
+        <div class="list-group-item" data-id={{ batt.0 }} id="battery_{{batt.0}}">
+                  <i class="fa fa-arrows-h"></i>
+                  {{ batt.1 }}
+                  <input class="instance_battery" type="hidden" value="{{batt.0}}">
+                </div>
+      {% endfor %}
+  </div>
+
+  <div id="battexplist" class="list-group col">
+    {% for form in study_rank_formset %}
+      <div class="list-group-item" data-id={{ form.battery.value }} id="battery_{{form.battery.value}}">
+        <i class="fa fa-arrows-v"></i>
+        {% for batt in batteries %}
+          {% if batt.0 == form.battery.value %}
+            {{ batt.1 }}
+          {% endif %}
+        {% endfor %}
+        <input class="instance_battery" type="hidden" value="{{ form.battery.value }}">
+        <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+        <div class="order-container">
+          <span class="order badge badge-primary badge-pill"></span>
+          <input class="instance_rank" type="hidden" value={{ form.rank.value }}></input>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<template id="study-rank-tpl">
+  <i class="fa fa-trash js-remove" aria-hidden="true"></i>
+  <div class="order-container">
+    <span class="order badge badge-primary badge-pill"></span>
+    <input class="instance_rank" type="hidden" value=0></input>
+  </div>
+</template>
+
+{% endblock %}
+{% block inline_javascript %}
+  {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <script>
+    // htmx.logAll();
+    document.addEventListener("DOMContentLoaded", function(){
+      document.getElementById("experimentlist-search").addEventListener("input", searchOnChange);;
+      updateOrderSpan();
+    });
+
+    function searchOnChange(e) {
+      let experimentslist = document.getElementById('experimentslist')
+      if (e.target.value === '') {
+         [...experimentslist.children].map(exp => exp.style.display = 'unset')
+      } else {
+        [...experimentslist.children].map(exp => {
+          !exp.innerText.includes(e.target.value) ?
+            exp.style.display = 'none' :
+            exp.style.display = 'unset'
+        })
+      }
+    }
+
+    const form_count_id = "id_form-TOTAL_FORMS"
+    const empty_prefix = '__prefix__'
+    const empty_form = `{{ study_rank_formset.empty_form }}`
+    const fields = ['battery', 'rank']
+
+    const exps = new Sortable(experimentslist, {
+        multiDrag: true,
+        selectedClass: 'selected',
+        group: {
+            name: 'shared',
+            pull: 'clone',
+            put: false // Do not allow items to be put into this list
+        },
+        animation: 150,
+        sort: false,
+        onClone: (evt) => {
+          console.log(evt)
+          if (Array.isArray(evt.clones)) {
+            evt.clones.map(x => x.classList.add("added"))
+          }
+        },
+    });
+
+    const batt_exps = new Sortable(battexplist, {
+        multiDrag: true,
+        selectedClass: 'selected',
+        group: 'shared',
+        animation: 150,
+        onAdd: (evt) => {
+          if (evt.item) {
+            evt.item.classList.add("added")
+            // evt.item.classList.remove("list-group-item")
+            const tpl =  document.querySelector("#study-rank-tpl")
+            evt.item.appendChild(tpl.content.cloneNode(true))
+            let arrow = evt.item.querySelector(".fa-arrows-h")
+            arrow.classList.remove("fa-arrows-h")
+            arrow.classList.add("fa-arrows-v")
+          }
+        },
+        onSort: (evt) => {
+          updateOrderSpan()
+        },
+        filter: ".js-remove, .js-edit, input, textarea, select",
+        preventOnFilter: false,
+        onFilter: function (evt) {
+          console.log(evt)
+          let item = evt.item;
+          let ctrl = evt.target;
+          var dataId = item.getAttribute('data-id')
+          if (Sortable.utils.is(ctrl, ".js-remove")) {
+            if (document.querySelectorAll(`#battexplist .list-group-item[data-id="${dataId}"]`).length < 2) {
+              document.querySelector(`#experimentslist [data-id="${dataId}"]`).classList.remove("added")
+            }
+            item.parentNode.removeChild(item);
+            updateOrderSpan()
+          }
+        },
+    });
+
+    function updateOrderSpan() {
+      let offset = 0
+      let previous_old = -1;
+      [...document.querySelectorAll('#battexplist .order-container')].map((x, i) => {
+        const old_order = x.getElementsByClassName('instance_rank')[0].value
+
+        if (old_order === previous_old) {
+          offset = offset - 1
+        }
+        const new_order = i + offset
+        x.getElementsByClassName('order')[0].innerText = i
+        x.getElementsByClassName('instance_rank')[0].value = i
+
+        if (old_order === "") {
+          offset = offset + 1
+        }
+
+        previous_old_order = old_order
+      })
+    }
+
+    function setInitial() {
+      const battexpforms = document.getElementById('battexpforms');
+
+    }
+    function setFormsForSubmit() {
+      const battexpforms = document.getElementById('battexpforms');
+      const formList = [...document.querySelectorAll('#battexplist .list-group-item')]
+      const formElements = formList.map((x, i) => {
+        const prefix = i
+        let newForm = empty_form.replaceAll(empty_prefix, prefix)
+        return newForm
+      })
+      battexpforms.innerHTML = formElements.join(' ')
+
+      formList.map((x, i) => {
+        const prefix = i
+        fields.map(field => {
+          const srcClass = `instance_${field}`
+          const targetId = `id_form-${prefix}-${field}`
+          let src = x.getElementsByClassName(srcClass)
+          if (src[0]) {
+            document.getElementById(targetId).value = src[0].value
+          }
+        })
+      })
+
+      const form_count = document.getElementById(form_count_id)
+      form_count.value = formList.length
+    }
+
+    function battexpSubmit() {
+      updateOrderSpan()
+      setFormsForSubmit()
+      document.getElementById("id_form-INITIAL_FORMS").value = 0
+      return true;
+    }
+
+  </script>
+
+{% endblock %}

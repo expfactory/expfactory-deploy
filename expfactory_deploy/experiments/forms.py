@@ -27,7 +27,7 @@ class ConsentForm(forms.Form):
     ]
     accept = forms.ChoiceField(
         widget=forms.RadioSelect,
-        choices=CHOICES, 
+        choices=CHOICES,
     )
 
     def __init__(self, *args, **kwargs):

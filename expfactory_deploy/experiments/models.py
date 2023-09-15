@@ -257,6 +257,7 @@ class Subject(models.Model):
     notes = models.TextField(blank=True)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True)
     active = models.BooleanField(default=True)
+    # The default violates the unique constraint.
     prolific_id = models.TextField(unique=True, blank=True, null=True, default=None)
     tags = TaggableManager()
 

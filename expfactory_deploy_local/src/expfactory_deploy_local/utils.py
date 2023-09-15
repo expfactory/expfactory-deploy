@@ -13,10 +13,13 @@ def load_survey_tsv(path):
     questions = []
     for line in lines[1:]:
         row = {}
+        if (len(line) < 2):
+            continue
         for idx, header in enumerate(lines[0]):
-            row[header] = line[idx]
-        questions.append(row)
-    return questions
+            if (idx < len(line)):
+                row[header] = line[idx]
+            else:
+                row[header] = ""
 
 js_tag = '<script src="{}"></script>'
 css_tag = '<link rel="stylesheet" type="text/css" href="{}">'

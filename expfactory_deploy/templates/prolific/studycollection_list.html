@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+  <ul>
+  {% for collection in object_list %}
+    <li>
+      <a href="{% url 'prolific:study-collection-update' collection.id %}">{{ collection.name }}</a>
+    </li>
+  {% empty %}
+    <li>None</li>
+  {% endfor %}
+  </ul>
+{% endblock %}
+

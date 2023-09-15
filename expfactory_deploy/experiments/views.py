@@ -68,7 +68,7 @@ def experiment_instances_from_latest(experiment_repos):
         return reverse_lazy("experiments:experiment-repo-list")
 
 
-class ExperimentRepoDetail(LoginRequiredMixin, ListView):
+class ExperimentRepoDetail(LoginRequiredMixin, DetailView):
     model = models.ExperimentRepo
     queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True).order_by('name')
 
