@@ -52,6 +52,14 @@
                 console.log("Finished!");
                 location.reload()
               })
+              let old_ds = document.getElementsByClassName("display_stage_background")
+              if (old_ds.length > 0) {
+                old_ds[0].hidden = true
+              }
+              old_ds = document.getElementsByClassName("display_stage")
+              if (old_ds.length > 0) {
+                old_ds[0].hidden = true
+              }
             }
           });
         }
@@ -65,7 +73,8 @@
           jsPsych.init({
             display_element: getDisplayElement(),
             timeline: {{ exp_id }}_experiment,
-            on_finish: onFinish
+            on_finish: onFinish,
+            fullscreen: true
           });
         } catch {
           jsPsych = initJsPsych({on_finish: onFinish})

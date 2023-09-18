@@ -13,8 +13,14 @@ def load_survey_tsv(path):
     questions = []
     for line in lines[1:]:
         row = {}
+        if (len(line) < 2):
+            continue
         for idx, header in enumerate(lines[0]):
-            row[header] = line[idx]
+            if (idx < len(line)):
+                row[header] = line[idx]
+            else:
+                row[header] = ""
+
         questions.append(row)
     return questions
 
