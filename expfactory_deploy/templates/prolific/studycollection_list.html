@@ -1,9 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
+  <div class="h2">
+    Study Collections
+    <div class="battery-actions">
+      <a class="btn btn-primary" href="{% url 'prolific:collection-create' %}">Create </a>
+    </div>
+  </div>
+
   <ul>
   {% for collection in object_list %}
     <li>
-      <a href="{% url 'prolific:study-collection-update' collection.id %}">{{ collection.name }}</a>
+      {{ collection.name }} -
+      <a href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a> -
+      <a href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details on Prolific</a> -
+      <a href="{% url 'prolific:collection-progress' collection.id %}">Collection Progress</a>
     </li>
   {% empty %}
     <li>None</li>

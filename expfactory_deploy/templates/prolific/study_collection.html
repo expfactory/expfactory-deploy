@@ -2,8 +2,11 @@
 {% load crispy_forms_tags %}
 {% block content %}
     <div class="h2">
-      Collection
+      Study Collection
       <div class="battery-actions">
+        {% if collection_id %}
+          <a class="btn btn-primary" href="{% url 'prolific:create-drafts' collection_id %}">Create Drafts</a>
+        {% endif %}
         <input class="btn btn-primary" type="submit" name="action" form="collection_form" value="Save Changes"/>
       </div>
     </div>

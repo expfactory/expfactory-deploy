@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-{{ study|pprint }}
-<pre>{{ json }}</pre>
+<h2>Details</h2>
+<pre>{{ study|pprint }}</pre>
+<h2>Participants</h2>
+<pre>{{ participants|pprint }}</pre>
+
 {% endblock %}

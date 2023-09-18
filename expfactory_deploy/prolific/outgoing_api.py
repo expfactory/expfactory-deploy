@@ -8,6 +8,7 @@ from pyrolific import Client, AuthenticatedClient
 from pyrolific import models as api_models
 from pyrolific.api.studies import (
     get_studies,
+    get_project_studies,
     get_study,
     publish_study,
     update_study,
@@ -48,23 +49,30 @@ def api_client(f):
         return f(*args, **kwds)
     return wrapper
 
+''' Api Documentation doesn't suggest pagination on this endpoint but api response
+    has fields for it. Haven't seen it used so far. '''
 def make_call(api_func, ac=False, **kwargs):
     if ac:
         response = api_func.sync_detailed(client=auth_client, **kwargs)
     else:
         response = api_func.sync_detailed(**kwargs, **client_kwargs)
     if response.status_code.value > 399:
+        print(response)
         return response
         # raise GenericProlificException(response.status)
-    return response.parsed.to_dict()
-
-''' Api Documentation doesn't suggest pagination on this endpoint but api response
-    has fields for it. Haven't seen it used so far. '''
-def list_studies():
-    response = make_call(get_studies)
-    if response['_links']['next']['href'] is not None:
+    response = response.parsed.to_dict()
+    if 'links' in response and response['_links']['next']['href'] is not None:
         raise GenericProlificException("Next link found, implement pagination")
-    return [x for x in response['results']]
+    return response
+
+def list_studies(pid=None):
+    if pid:
+        response = make_call(get_project_studies, project_id=pid)
+    else:
+        response = make_call(get_studies)
+    if hasattr(response, 'status_code'):
+        return []
+    return [x for x in response.get('results', [])]
 
 def study_detail(id):
     response = make_call(get_study, id=id)
@@ -83,4 +91,20 @@ def create_part_group(pid, name):
 def add_to_part_group(group_id, part_ids):
     to_add = api_models.ParticipantIDList.from_dict({'participant_ids': part_ids})
     response = make_call(add_to_participant_group, ac=True, id=group_id, json_body=to_add)
+    return response
 
+def get_participants(gid):
+    response = make_call(get_participant_group_participants, ac=True, id=gid)
+    return response
+
+''' Response to publish call puts studies in a state called 'PUBLISHING' that the api library doesn't know about.
+    We will assume any ValueError is this.
+'''
+def publish(sid):
+    action = api_models.study_transition.StudyTransition("publish")
+    try:
+        response = make_call(publish_study, id=sid, json_body=action)
+    except ValueError as e:
+        print(f'publishing {sid} to prolific got valueerror {e}')
+        return {}
+    return response

@@ -21,6 +21,9 @@ def load_survey_tsv(path):
             else:
                 row[header] = ""
 
+        questions.append(row)
+    return questions
+
 js_tag = '<script src="{}"></script>'
 css_tag = '<link rel="stylesheet" type="text/css" href="{}">'
 

@@ -5,6 +5,7 @@ from django.db import models
 from experiments.models import Battery, Subject, Assignment
 from model_utils.models import TimeStampedModel
 from prolific import outgoing_api as api
+from pyrolific import models as api_models
 
 '''
 Due to how prolific tracks time for payment we much chunk large batteries into
@@ -19,10 +20,17 @@ class StudyCollection(models.Model):
     total_available_places = models.IntegerField(default=0)
     estimated_completion_time = models.IntegerField(default=0)
     reward = models.IntegerField(default=0)
+    published = models.BooleanField(default=False)
 
     @property
     def study_count(self):
         return self.study_set.all().count()
+
+    def clear_remote_ids(self):
+        for study in self.study_set.all():
+            study.participant_group = ""
+            study.remote_id = ""
+            study.save()
 
     def create_drafts(self):
         studies = self.study_set.order_by('rank')
@@ -30,8 +38,9 @@ class StudyCollection(models.Model):
         if len(studies) < 1:
             return study_responses
 
-        api_studies = api.list_studies()
+        # api_studies = api.list_studies()
 
+        id_to_set = None
         if not studies[0].participant_group:
             next_group = api.create_part_group(self.project, studies[0].part_group_name)
             id_to_set = next_group['id']
@@ -51,6 +60,7 @@ class StudyCollection(models.Model):
             response = study.create_draft(next_id)
 
             study_responses.append(response)
+            print(response)
         return study_responses
 
     def get_api_studies(self):
@@ -74,7 +84,7 @@ class StudyCollection(models.Model):
             "name": self.title,
             "description": f"{self.description} (test)",
             "prolific_id_option": "url_parameters",
-            "completion_option": "url",
+            "completion_option": "code",
             "completion_codes": [
                 {
                     "code": "",
@@ -82,10 +92,10 @@ class StudyCollection(models.Model):
                     "actions": [ {"action": "AUTOMATICALLY_APPROVE"}, ],
                 }
             ],
-            "total_available_places": self.total_available_places + 1,
-            "estimated_completion_time": self.estimated_completion_time + 1,
-            "reward": self.reward + 1,
-            "device_compatability": ["desktop"],
+            "total_available_places": self.total_available_places,
+            "estimated_completion_time": self.estimated_completion_time,
+            "reward": self.reward,
+            "device_compatibility": ["desktop"],
         }
 
 query_params = "?participant={{%PROLIFIC_PID%}},study={{%STUDY_ID%}},session={{%SESSION_ID%}}"
@@ -120,8 +130,8 @@ class Study(models.Model):
     def part_group_name(self):
         return f'study {self.id} part group'
 
-    def create_draft(self, next_group=None):
-        if self.remote_id:
+    def create_draft(self, next_group=None, dry_run=False):
+        if self.remote_id and not dry_run:
             response = api.study_detail(id=self.remote_id)
             # check next_group here
             if not hasattr(response, 'status_code'):
@@ -129,21 +139,24 @@ class Study(models.Model):
 
         study_args = self.study_collection.default_study_args()
         study_args['name'] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
-        study_args['external_study_url'] = f"https://example.org/{self.id}/{query_params}"
+        study_args['external_study_url'] = f"https://deploy.expfactory.org/{self.id}/{query_params}"
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
         study_args['completion_codes'][0]['code'] = self.completion_code
 
         if (next_group):
-            study_args['completion_codes'][0]['code_type'] = "FOLLOW_UP_STUDY"
+            study_args['completion_codes'][0]['code_type'] = "COMPLETED"
             study_args['completion_codes'][0]['actions'].append(part_group_action(next_group))
 
         if self.participant_group:
             study_args['filters'] = [default_allowlist(self.participant_group)]
-
-        print(study_args)
+        study_args['project'] = self.study_collection.project
+        if dry_run:
+            print(study_args)
+            print('-------')
+            print(api_models.CreateStudy.from_dict(study_args))
+            return
         response = api.create_draft(study_args)
-        print(response)
         if not hasattr(response, 'status_code'):
             self.remote_id = response.get('id', None)
             self.save()

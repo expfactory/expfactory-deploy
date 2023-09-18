@@ -28,8 +28,10 @@ class ProlificServe(exp_views.Serve):
         else:
             self.subject = exp_models.Subject.objects.get_or_create(prolific_id=prolific_id)[0]
 
+    '''
     def complete(self, request):
         return redirect(reverse('prolific:complete', kwargs={'assignment_id': self.assignment.id}))
+    '''
 
 class ProlificComplete(View):
     def get(self, request, *args, **kwargs):
@@ -73,6 +75,7 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['collection_id'] = self.kwargs.get("collection_id")
 
         if "form" not in kwargs:
             context["form"] = forms.StudyCollectionForm(**self.collection_kwargs)
@@ -104,7 +107,6 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
         form.instance.user = request.user
         collection = form.save()
 
-        print(self.request.POST)
         study_rank_formset = forms.BatteryRankFormset(
             self.request.POST
         )
@@ -112,8 +114,6 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
         if study_rank_formset.is_valid():
             study_set = list(self.collection.study_set.all())
             for i, form in enumerate(study_rank_formset):
-                print(form.cleaned_data)
-                print(dir(form.cleaned_data))
                 batt = form.cleaned_data['battery']
                 rank = form.cleaned_data['rank']
                 if i < len(study_set):
@@ -134,24 +134,96 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
             print(form.errors)
             return HttpResponseRedirect(reverse_lazy("prolific:study-collection-update"))
 
+def fetch_studies_by_status(id=None):
+    try:
+        study_collection = models.StudyCollection.objects.get(id=id)
+        response = outgoing_api.list_studies(study_collection.project)
+    except (ObjectDoesNotExist, ValueError):
+        response = outgoing_api.list_studies(id)
+    studies_by_status = defaultdict(list)
+    for study in response:
+        studies_by_status[study['status']].append(study)
+    studies_by_status.default_factory = None
+    return studies_by_status
+
+def fetch_remote_study_details(id=None):
+    study = outgoing_api.study_detail(id)
+    participants = []
+    for filter in study.get('filters', []):
+        if filter.get('filter_id') == 'participant_group_allowlist':
+            for gid in filter.get('selected_values', []):
+                response = outgoing_api.get_participants(gid)
+                participants.extend(response.get('results', []))
+    return {"study": study, "participants": participants }
+
 @login_required
-def remote_studies_list(request):
-    studies = outgoing_api.list_studies()
-    return render(request, "prolific/remote_studies_list.html", {"studies": studies})
+def remote_studies_list(request, id=None):
+    try:
+        study_collection = models.StudyCollection.objects.get(id=id)
+    except (ObjectDoesNotExist, ValueError):
+        study_collection = None
+    studies_by_status = fetch_studies_by_status(id=id)
+    context = {"studies_by_status": studies_by_status, "study_collection": study_collection, "id": id }
+    return render(request, "prolific/remote_studies_list.html", context)
 
 @login_required
 def remote_study_detail(request, id=None):
-    study = outgoing_api.study_detail(id)
-    jsn = json.dumps(study)
-    return render(request, "prolific/remote_study_detail.html", {"study": study, "json": jsn})
+    context = fetch_remote_Study_details(id=id)
+    return render(request, "prolific/remote_study_detail.html", context)
 
+@login_required
+def create_drafts_view(request, collection_id):
+    collection = get_object_or_404(models.StudyCollection, id=collection_id)
+    responses = collection.create_drafts()
+    return render(request, "prolific/create_drafts_responses.html", {'responses': responses, 'id': collection_id})
 
-class ParticipantFormView(LoginRequiredMixin, FormView):
-    template_name = "prolific/participant_form.html"
-    form_class = forms.ParticipantIdForm
-    success_url = reverse_lazy('prolific:study-collection-list')
+@login_required
+def publish_drafts(request, collection_id):
+    studies = fetch_studies_by_status(collection_id)
+    responses = []
+    for study in studies.get('UNPUBLISHED'):
+        response = outgoing_api.publish(study['id'])
+        responses.append(response)
+    return render(request, "prolific/create_drafts_responses.html", {'responses': responses, 'id': collection_id})
 
-    '''
+@login_required
+def collection_progress(request, collection_id):
+    collection = get_object_or_404(models.StudyCollection, id=collection_id)
+    subjects = exp_models.Subject.objects.filter(studycollectionsubject__study_collection=collection)
+    studies = collection.study_set.all().order_by('rank')
+
+    subject_groups = {}
+    errors = []
+
+    for subject in subjects:
+        subject_groups[subject] = {}
+        for study in studies:
+            completed = exp_models.Assignment.objects.filter(status="completed", subject=subject, battery=study.battery).count()
+            subject_groups[subject][study.battery.id] = {'completed': completed}
+
+    for study in studies:
+        try:
+            details = fetch_remote_study_details(id=study.remote_id)
+        except e:
+            errors.append(f'Error on {study.remoteid}: {e}')
+            continue
+        for participant in details['participants']:
+            try:
+                subject = subjects.get(prolific_id=participant['participant_id'])
+                subject_groups[subject][study.battery.id]['date_added'] = participant['datetime_created']
+            except ObjectDoesNotExist:
+                subject_groups[subject][study.battery.id]['date_added'] = None
+
+    context = {
+        'subject_groups': subject_groups,
+        'studies': studies,
+        'subjects': subjects,
+        'collection': collection,
+        'errors': errors
+    }
+    return render(request, "prolific/collection_progress.html", context)
+
+'''
     Should probably exist as a method of the form itself.
     given a list of prolific Ids and study collection:
         - create Subject instances for PIDs if they don't exist.
@@ -161,8 +233,12 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
         - See what batteries subject has completed
             - find earliest incomplete in StudyCollection rank order.
             - via prolific api add them to partgroup/allowlist/etc...
+'''
+class ParticipantFormView(LoginRequiredMixin, FormView):
+    template_name = "prolific/participant_form.html"
+    form_class = forms.ParticipantIdForm
+    success_url = reverse_lazy('prolific:study-collection-list')
 
-    '''
     def form_valid(self, form):
         ids = form.cleaned_data['ids']
         collection = get_object_or_404(models.StudyCollection, id=self.kwargs['collection_id'])
