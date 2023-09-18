@@ -10,7 +10,11 @@
   </head>
   <body>
     <script>
-        window.efVars = {{ js_vars|safe }}
+        try {
+          window.efVars = {{js_vars|safe|default_if_none:""}}
+        } catch {
+          window.efVars = {'failed': ''}
+        }
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
         /* onFinish start */
@@ -44,6 +48,7 @@
             url : "{{ post_url }}",
             data : JSON.stringify(trialdata),
             error: (error) => {
+              jsPsych.data.get().localSave('csv', `${new Date().getTime()}.csv`);
               console.log(error)
             },
             dataType: 'text',

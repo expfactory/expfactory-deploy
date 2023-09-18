@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="h2">
+    Collection Progress for {{ collection.name }}
+    <div class="battery-actions">
+      <a class="btn btn-primary" href="{% url 'prolific:add-participants' collection.id %}">Add Subjects to Studies</a>
+      <a class="btn btn-primary" href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details List</a>
+    </div>
+  </div>
+
+  <h2></h2>
+
+<table id="subject-table">
+  <thead>
+    <tr>
+      <th>
+        Subject
+      </th>
+      {% for study in studies %}
+      <th>
+        <a href="{% url 'experiments:battery-detail' study.battery.id %}">{{ study.battery.title }}</a>
+      </th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for subject, groups in subject_groups.items %}
+      <tr>
+        <td><a href="{% url 'experiments:subject-detail' subject.id %}">{{ subject.prolific_id }}</a></td>
+      {% for bid, group in groups.items %}
+        <td> {{ group.date_added }} - {{ group.completed|yesno:"Results,No Results"}}</td>
+      {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if errors %}
+<h3> Errors </h3>
+{% for error in errors %}
+  {{ error }}
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+{% block inline_javascript %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const subjectTable = new simpleDatatables.DataTable("#subject-table", { paging: false });
+  }, false);
+</script>
+{% endblock inline_javascript %}

@@ -11,7 +11,14 @@
   <body>
     <div class="consent-container">
       <h1>Study Complete</h1>
-      <a href="{{ completion_url }}">{{ completion_url }}</a>
+
+      {% if completion_codes %}
+        Study ID: {{ completion_codes.0 }}<br>
+        Completion Code: {{ completion_codes.1 }}
+      {% endif %}
+      {% if completion_url %}
+        <a href="{{ completion_url }}">{{ completion_url }}</a>
+      {% endif %}
     </div>
   </body>
 </html>

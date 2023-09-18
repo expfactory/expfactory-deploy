@@ -26,7 +26,7 @@ from experiments.utils.repo import find_new_experiments, get_latest_commit
 from experiments.utils.assignments import batch_assignments
 from experiments.utils.export import export_battery, export_subject, export_single_result
 
-from prolific.models import SimpleCC
+from prolific.models import SimpleCC, Study
 
 sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
 
@@ -68,7 +68,7 @@ def experiment_instances_from_latest(experiment_repos):
         return reverse_lazy("experiments:experiment-repo-list")
 
 
-class ExperimentRepoDetail(LoginRequiredMixin, ListView):
+class ExperimentRepoDetail(LoginRequiredMixin, DetailView):
     model = models.ExperimentRepo
     queryset = models.ExperimentRepo.objects.prefetch_related("origin", "tags").filter(origin__active=True).order_by('name')
 
@@ -422,7 +422,15 @@ class Serve(View):
         # When might we want to error out instead of just create assignment?
         self.assignment = models.Assignment.objects.get_or_create(subject=self.subject, battery=self.battery)[0]
 
+    ''' Ideally this prolific logic would live in the prolific view. Currently its too easy for users to end up in
+        the experiments url space while trying to complete a prolific study. One issue is consent redirect isn't aware
+        of prolific url space.
+    '''
     def complete(self, request):
+        studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=s)
+        completion_codes = [(x.remote_id, x.completion_code) for x in studies if x.completion_code]
+        if len(completion_codes):
+            return render(request, "prolific/complete.html", {'completion_codes': completion_codes})
         try:
             cc = SimpleCC.objects.get(battery=self.battery)
             return render(request, "prolific/complete.html", {'completion_url': cc.completion_url})
@@ -467,6 +475,7 @@ class Serve(View):
         # exp_context["num_left"] = num_left
         exp_context["exp_config"] = {}
         context = {**exp_context}
+        print(context)
         return render(request, "experiments/jspsych_deploy.html", context)
 
 class ServeConsent(View):
