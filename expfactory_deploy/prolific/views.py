@@ -112,7 +112,7 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
         )
 
         if study_rank_formset.is_valid():
-            study_set = list(self.collection.study_set.all())
+            study_set = list(collection.study_set.all())
             for i, form in enumerate(study_rank_formset):
                 batt = form.cleaned_data['battery']
                 rank = form.cleaned_data['rank']
@@ -121,7 +121,7 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
                     study_set[i].rank = rank
                     study_set[i].save()
                 else:
-                    new_study = models.Study(battery=batt, rank=rank, study_collection=self.collection)
+                    new_study = models.Study(battery=batt, rank=rank, study_collection=collection)
                     new_study.save()
             [x.delete() for x in study_set[len(study_rank_formset):]]
         else:
@@ -129,7 +129,7 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
             return self.render_to_response(self.get_context_data(form=form, study_rank_formset=study_rank_formset))
 
         if form.is_valid():
-            return HttpResponseRedirect(reverse_lazy("prolific:study-collection-list"))
+            return HttpResponseRedirect(reverse_lazy("prolific:study-collection-update", kwargs={'collection_id': collection.id}))
         else:
             print(form.errors)
             return HttpResponseRedirect(reverse_lazy("prolific:study-collection-update"))
@@ -168,7 +168,7 @@ def remote_studies_list(request, id=None):
 
 @login_required
 def remote_study_detail(request, id=None):
-    context = fetch_remote_Study_details(id=id)
+    context = fetch_remote_study_details(id=id)
     return render(request, "prolific/remote_study_detail.html", context)
 
 @login_required

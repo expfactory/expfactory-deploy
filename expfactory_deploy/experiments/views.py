@@ -427,7 +427,7 @@ class Serve(View):
         of prolific url space.
     '''
     def complete(self, request):
-        studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=s)
+        studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=self.subject)
         completion_codes = [(x.remote_id, x.completion_code) for x in studies if x.completion_code]
         if len(completion_codes):
             return render(request, "prolific/complete.html", {'completion_codes': completion_codes})

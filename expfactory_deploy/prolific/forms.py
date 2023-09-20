@@ -26,10 +26,11 @@ class StudyCollectionForm(ModelForm):
 
     class Meta:
         model  = models.StudyCollection
-        fields = ["name", "project"]
+        fields = ["name", "project", "reward", "total_available_places", "estimated_completion_time", "title"]
         widgets = {
             "name": forms.TextInput(),
             "project": forms.TextInput(),
+            "title": forms.TextInput(),
         }
 
 class StudyForm(ModelForm):

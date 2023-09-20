@@ -13,8 +13,12 @@
       <h1>Study Complete</h1>
 
       {% if completion_codes %}
-        Study ID: {{ completion_codes.0 }}<br>
-        Completion Code: {{ completion_codes.1 }}
+        {% for cc in completion_codes %}
+        <p>
+        Study ID: {{ cc.0 }}<br>
+        Completion Code: {{ cc.1 }}
+        </p>
+        {% endfor %}
       {% endif %}
       {% if completion_url %}
         <a href="{{ completion_url }}">{{ completion_url }}</a>

@@ -12,10 +12,10 @@ Due to how prolific tracks time for payment we much chunk large batteries into
 multiple batteries that can be done in single sittings.
 '''
 class StudyCollection(models.Model):
-    name = models.TextField(blank=True)
+    name = models.TextField(blank=True, help_text="Name internal to expfactory")
     project = models.TextField(blank=True)
     workspace_id = models.TextField(blank=True)
-    title = models.TextField(blank=True)
+    title = models.TextField(blank=True, help_text="Base Title to be used by all stutdies in collection")
     description = models.TextField(blank=True)
     total_available_places = models.IntegerField(default=0)
     estimated_completion_time = models.IntegerField(default=0)
@@ -139,7 +139,7 @@ class Study(models.Model):
 
         study_args = self.study_collection.default_study_args()
         study_args['name'] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
-        study_args['external_study_url'] = f"https://deploy.expfactory.org/{self.id}/{query_params}"
+        study_args['external_study_url'] = f"https://deploy.expfactory.org/{self.battery.id}/{query_params}"
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
         study_args['completion_codes'][0]['code'] = self.completion_code
