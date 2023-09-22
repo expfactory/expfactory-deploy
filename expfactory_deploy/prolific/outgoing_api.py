@@ -14,6 +14,7 @@ from pyrolific.api.studies import (
     update_study,
     create_study
 )
+
 from pyrolific.api.participant_groups import (
     add_to_participant_group,
     get_participant_group_participants,
@@ -25,6 +26,10 @@ from pyrolific.api.participant_groups import (
     update_participant_group
 )
 
+from pyrolific.api.submissions import (
+    get_submissions,
+    get_submission
+)
 from pyrolific.api import studies
 token = settings.PROLIFIC_KEY
 
@@ -108,3 +113,9 @@ def publish(sid):
         print(f'publishing {sid} to prolific got valueerror {e}')
         return {}
     return response
+
+def list_submissions(sid=None):
+    response = make_call(get_submissions, study=sid)
+    if hasattr(response, 'status_code'):
+        raise GenericProlificException()
+    return response['results']

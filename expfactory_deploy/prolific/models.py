@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from django.db import models
@@ -21,6 +22,7 @@ class StudyCollection(models.Model):
     estimated_completion_time = models.IntegerField(default=0)
     reward = models.IntegerField(default=0)
     published = models.BooleanField(default=False)
+    inter_study_delay = models.DurationField(null=True, blank=True)
 
     @property
     def study_count(self):
@@ -75,8 +77,42 @@ class StudyCollection(models.Model):
 
 
     def set_allowlists(self):
-        studies = self.study_set.order_by('rank')
-        study_responses = []
+        studies = list(self.study_set.order_by('rank'))
+
+        study = studies[0]
+        if not study.remote_id:
+            raise Exception("No study id")
+        if not study.participant_group:
+            raise Exception("No participant group")
+        response = api.get_participants(study.participant_group)
+
+        to_promote = set([x['participant_id'] for x in response['results']])
+
+        for study in studies:
+            if len(to_promote) == 0:
+                return
+            if not study.remote_id:
+                raise Exception("No study id")
+            if not study.participant_group:
+                raise Exception("No participant group")
+            submissions = api.list_submissions(study.remote_id)
+            submitted = set()
+            for submission in submissions:
+                pid = submission.get("participant_id")
+                submitted.add(pid)
+                to_promote.add(pid)
+                completed_at = submission.get('completed_at')
+                if not completed_at and pid in to_promote:
+                    to_promote.remove(pid)
+                completed_at = datetime.fromisoformat(completed_at)
+                if completed_at > datetime.now(completed_at.tzinfo) - self.inter_study_delay:
+                    to_promote.remove(pid)
+            add_to_group = to_promote - submitted
+            print("add_to_group")
+            print(add_to_group)
+            if (len(add_to_group)):
+                api.add_to_part_group(study.participant_group, list(add_to_group))
+            to_promote = to_promote - add_to_group
         return
 
     def default_study_args(self):
