@@ -59,6 +59,9 @@ class StudyCollection(models.Model):
                 print(id_to_set)
             else:
                 next_id = None
+
+            if (self.inter_study_delay):
+                next_id = None
             response = study.create_draft(next_id)
 
             study_responses.append(response)
@@ -79,6 +82,8 @@ class StudyCollection(models.Model):
     def set_allowlists(self):
         studies = list(self.study_set.order_by('rank'))
 
+        if len(studies) < 2:
+            return
         study = studies[0]
         if not study.remote_id:
             raise Exception("No study id")
@@ -108,8 +113,6 @@ class StudyCollection(models.Model):
                 if completed_at > datetime.now(completed_at.tzinfo) - self.inter_study_delay:
                     to_promote.remove(pid)
             add_to_group = to_promote - submitted
-            print("add_to_group")
-            print(add_to_group)
             if (len(add_to_group)):
                 api.add_to_part_group(study.participant_group, list(add_to_group))
             to_promote = to_promote - add_to_group
@@ -197,12 +200,6 @@ class Study(models.Model):
             self.remote_id = response.get('id', None)
             self.save()
         return response
-
-    def check_for_study(self):
-        return
-
-    def list_study_submissions(self):
-        return
 
     def add_to_allowlist(self, pids):
         if (not self.participant_group):
