@@ -90,8 +90,10 @@ class StudyCollection(models.Model):
         if not study.participant_group:
             raise Exception("No participant group")
         response = api.get_participants(study.participant_group)
-
+        print(response)
         to_promote = set([x['participant_id'] for x in response['results']])
+        print('first promote')
+        print(to_promote)
 
         for study in studies:
             if len(to_promote) == 0:
@@ -103,12 +105,14 @@ class StudyCollection(models.Model):
             submissions = api.list_submissions(study.remote_id)
             submitted = set()
             for submission in submissions:
+                print(submission)
                 pid = submission.get("participant_id")
                 submitted.add(pid)
                 to_promote.add(pid)
                 completed_at = submission.get('completed_at')
                 if not completed_at and pid in to_promote:
                     to_promote.remove(pid)
+                    continue
                 completed_at = datetime.fromisoformat(completed_at)
                 if completed_at > datetime.now(completed_at.tzinfo) - self.inter_study_delay:
                     to_promote.remove(pid)
@@ -137,7 +141,8 @@ class StudyCollection(models.Model):
             "device_compatibility": ["desktop"],
         }
 
-query_params = "?participant={{%PROLIFIC_PID%}},study={{%STUDY_ID%}},session={{%SESSION_ID%}}"
+# query_params = "?participant={{%PROLIFIC_PID%}},study={{%STUDY_ID%}},session={{%SESSION_ID%}}"
+query_params = "?PROLIFIC_PID={{%PROLIFIC_PID%}}&STUDY_ID={{%STUDY_ID%}}&SESSION_ID={{%SESSION_ID%}}"
 
 def part_group_action(pid=""):
     return {
@@ -178,7 +183,7 @@ class Study(models.Model):
 
         study_args = self.study_collection.default_study_args()
         study_args['name'] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
-        study_args['external_study_url'] = f"https://deploy.expfactory.org/{self.battery.id}/{query_params}"
+        study_args['external_study_url'] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}{query_params}"
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
         study_args['completion_codes'][0]['code'] = self.completion_code
