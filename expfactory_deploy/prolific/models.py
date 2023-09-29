@@ -13,14 +13,14 @@ Due to how prolific tracks time for payment we much chunk large batteries into
 multiple batteries that can be done in single sittings.
 '''
 class StudyCollection(models.Model):
-    name = models.TextField(blank=True, help_text="Name internal to expfactory")
-    project = models.TextField(blank=True)
+    name = models.TextField(blank=True, help_text="Name internal to expfactory.")
+    project = models.TextField(blank=True, help_text="Prolific project ID for the studies to be created under.")
     workspace_id = models.TextField(blank=True)
-    title = models.TextField(blank=True, help_text="Base Title to be used by all stutdies in collection")
+    title = models.TextField(blank=True, help_text="Base Title to be used by all stutdies in collection on Prolific.")
     description = models.TextField(blank=True)
     total_available_places = models.IntegerField(default=0)
-    estimated_completion_time = models.IntegerField(default=0)
-    reward = models.IntegerField(default=0)
+    estimated_completion_time = models.IntegerField(default=0, help_text="Value in minutes.")
+    reward = models.IntegerField(default=0, help_text="Value in cents.")
     published = models.BooleanField(default=False)
     inter_study_delay = models.DurationField(null=True, blank=True)
 
