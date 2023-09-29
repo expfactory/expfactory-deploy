@@ -5,6 +5,7 @@ from collections import defaultdict
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
@@ -48,7 +49,7 @@ class ProlificComplete(View):
 
         return render(request, "prolific/complete.html", {'completion_url': cc_url})
 
-class SimpleCCUpdate(UpdateView):
+class SimpleCCUpdate(LoginRequiredMixin, UpdateView):
     form_class = forms.SimpleCCForm
     template_name = 'prolific/simplecc_form.html'
 
@@ -59,7 +60,7 @@ class SimpleCCUpdate(UpdateView):
     def get_object(self, queryset=None):
         return models.SimpleCC.objects.get_or_create(battery_id=self.kwargs.get('battery_id'), defaults={'completion_url': ''})[0]
 
-class StudyCollectionList(ListView):
+class StudyCollectionList(LoginRequiredMixin, ListView):
     model = models.StudyCollection
 
 class StudyCollectionView(LoginRequiredMixin, TemplateView):
@@ -162,19 +163,33 @@ def remote_studies_list(request, id=None):
         study_collection = models.StudyCollection.objects.get(id=id)
     except (ObjectDoesNotExist, ValueError):
         study_collection = None
-    studies_by_status = fetch_studies_by_status(id=id)
+
+    studies_by_status = defaultdict(list)
+    try:
+        studies_by_status = fetch_studies_by_status(id=id)
+    except Exception as e:
+        messages.error(request, e)
     context = {"studies_by_status": studies_by_status, "study_collection": study_collection, "id": id }
     return render(request, "prolific/remote_studies_list.html", context)
 
 @login_required
 def remote_study_detail(request, id=None):
-    context = fetch_remote_study_details(id=id)
+    context = {}
+    try:
+        context = fetch_remote_study_details(id=id)
+    except Exception as e:
+        messages.error(request, e)
+
     return render(request, "prolific/remote_study_detail.html", context)
 
 @login_required
 def create_drafts_view(request, collection_id):
     collection = get_object_or_404(models.StudyCollection, id=collection_id)
-    responses = collection.create_drafts()
+    responses = []
+    try:
+        responses = collection.create_drafts()
+    except Exception as e:
+        messages.error(request, e)
     return render(request, "prolific/create_drafts_responses.html", {'responses': responses, 'id': collection_id})
 
 @login_required
@@ -182,8 +197,12 @@ def publish_drafts(request, collection_id):
     studies = fetch_studies_by_status(collection_id)
     responses = []
     for study in studies.get('UNPUBLISHED'):
-        response = outgoing_api.publish(study['id'])
-        responses.append(response)
+        try:
+            response = outgoing_api.publish(study['id'])
+            responses.append(response)
+        except Exception as e:
+            messages.error(request, e)
+
     return render(request, "prolific/create_drafts_responses.html", {'responses': responses, 'id': collection_id})
 
 @login_required

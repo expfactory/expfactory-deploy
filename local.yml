@@ -16,7 +16,7 @@ services:
     volumes:
       - .:/app:z
       - ./expfactory_deploy_local/src/expfactory_deploy_local/static/:/app/deployment_assets/non_repo_files/default/static/:rw
-      - ${EXPFACTORY_EXPERIMENTS_PATH:-./deployment_assets/repos/expfactory-experiments}:/app/deployment_assets/repos/expfactory-experiments:ro
+      - ${EXPFACTORY_EXPERIMENTS_PATH:-./deployment_assets/repos/expfactory-experiments}:/app/deployment_assets/repos/expfactory-experiments:rw
       - ${EXPFACTORY_EXPERIMENTS_PATH:-./deployment_assets/repos/expfactory-experiments}:/app/deployment_assets/non_repo_files/default/static/experiments/:ro
     env_file:
       - ./.envs/.local/.django
