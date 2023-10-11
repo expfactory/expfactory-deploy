@@ -23,6 +23,7 @@ class StudyCollection(models.Model):
     reward = models.IntegerField(default=0, help_text="Value in cents.")
     published = models.BooleanField(default=False)
     inter_study_delay = models.DurationField(null=True, blank=True)
+    active = models.BooleanField(default=True)
 
     @property
     def study_count(self):
