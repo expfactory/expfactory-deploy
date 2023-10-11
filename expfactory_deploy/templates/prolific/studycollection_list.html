@@ -7,17 +7,93 @@
     </div>
   </div>
 
-  <ul>
+  <table class="table">
+    <thead>
+      <th>Name</th>
+      <th>Actions</th>
+      <th>Links</th>
+    </thead>
+    <tbody>
   {% for collection in object_list %}
-    <li>
-      {{ collection.name }} -
-      <a href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a> -
-      <a href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details on Prolific</a> -
-      <a href="{% url 'prolific:collection-progress' collection.id %}">Collection Progress</a>
-    </li>
+    {% if collection.active %}
+      <tr>
+        <td>{{ collection.name }}</td>
+        <td>
+          <a class="btn btn-primary btn-sm" href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Hide</a>
+          {% if collection.study_set.all %}
+            <a class="btn btn-danger btn-sm" href="{% url 'prolific:collection-clear-remote-ids' collection.id %}">Clear Stored Prolific IDs</a>
+          {% endif %}
+       </td>
+       <td>
+          <a href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details on Prolific</a> -
+          <a href="{% url 'prolific:collection-progress' collection.id %}">Collection Progress</a>
+       </td>
+      </tr>
+      {% if collection.study_set.all %}
+        <tr class="table-active">
+        <td colspan="3">
+        <ul>
+          {% for study in collection.study_set.all %}
+            <li>
+              <a href="{% url 'experiments:battery-detail' study.battery.id %}">Battery {{ study.battery.id }} </a>
+              Prolific ID: {{ study.remote_id }}
+            </li>
+          {% endfor %}
+        </ul>
+        </tr>
+        {% endif %}
+    {% endif %}
   {% empty %}
     <li>None</li>
   {% endfor %}
-  </ul>
+  </tbody>
+  </table>
+  <details>
+    <summary>Hidden Collections</summary>
+  <table class="table">
+    <thead>
+      <th>Name</th>
+      <th>Actions</th>
+      <th>Links</th>
+    </thead>
+    <tbody>
+  {% for collection in object_list %}
+    {% if collection.active %}
+      <tr>
+        <td>{{ collection.name }}</td>
+        <td>
+          <a class="btn btn-primary btn-sm" href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Hide</a>
+          {% if collection.study_set.all %}
+            <a class="btn btn-danger btn-sm" href="{% url 'prolific:collection-clear-remote-ids' collection.id %}">Clear Stored Prolific IDs</a>
+          {% endif %}
+       </td>
+       <td>
+          <a href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details on Prolific</a> -
+          <a href="{% url 'prolific:collection-progress' collection.id %}">Collection Progress</a>
+       </td>
+      </tr>
+      {% if collection.study_set.all %}
+        <tr class="table-active">
+        <td colspan="3">
+        <ul>
+          {% for study in collection.study_set.all %}
+            <li>
+              <a href="{% url 'experiments:battery-detail' study.battery.id %}">Battery {{ study.battery.id }} </a>
+              Prolific ID: {{ study.remote_id }}
+            </li>
+          {% endfor %}
+        </ul>
+        </tr>
+        {% endif %}
+    {% endif %}
+  {% empty %}
+    <li>None</li>
+  {% endfor %}
+  </tbody>
+  </table>
+
+  </details>
 {% endblock %}
 

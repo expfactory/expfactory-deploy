@@ -35,10 +35,10 @@ token = settings.PROLIFIC_KEY
 
 client_kwargs = {
     'authorization': f"Token {token}",
-    'client': Client(base_url="https://api.prolific.co")
+    'client': Client(base_url="https://api.prolific.com")
 }
 
-auth_client = AuthenticatedClient(base_url="https://api.prolific.co", token=token, prefix="Token")
+auth_client = AuthenticatedClient(base_url="https://api.prolific.com", token=token, prefix="Token")
 
 class NoProlificKeyException(Exception):
     pass

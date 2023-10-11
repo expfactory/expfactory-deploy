@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F
+from django.db.models import F, Prefetch
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
@@ -62,6 +62,7 @@ class SimpleCCUpdate(LoginRequiredMixin, UpdateView):
 
 class StudyCollectionList(LoginRequiredMixin, ListView):
     model = models.StudyCollection
+    queryset = models.StudyCollection.objects.prefetch_related(Prefetch('study_set', queryset=models.Study.objects.filter(remote_id__gt='').order_by('rank'))).all()
 
 class StudyCollectionView(LoginRequiredMixin, TemplateView):
     template_name = "prolific/study_collection.html"
@@ -284,3 +285,16 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             study.add_to_allowlist(pids_to_add[study.remote_id])
 
         return super().form_valid(form)
+
+@login_required
+def clear_remote_ids(request, collection_id):
+    collection = get_object_or_404(models.StudyCollection, pk=collection_id)
+    collection.clear_remote_ids()
+    return HttpResponseRedirect(reverse_lazy("prolific:study-collection-list"))
+
+@login_required
+def toggle_collection(request, collection_id):
+    collection = get_object_or_404(models.StudyCollection, pk=collection_id)
+    collection.active = not collection.active
+    collection.save()
+    return HttpResponseRedirect(reverse_lazy("prolific:study-collection-list"))
