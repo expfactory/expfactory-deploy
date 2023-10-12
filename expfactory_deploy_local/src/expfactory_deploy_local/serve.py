@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import json
 import os
 import sys
@@ -10,10 +11,11 @@ from .utils import generate_experiment_context
 import web
 from web.contrib.template import render_jinja
 
+web.config.debug = False
+
 package_dir = os.path.dirname(os.path.abspath(__file__))
 
-urls = ("/", "serve", "/serve", "serve", "/decline", "decline")
-web.config.debug = False
+urls = ("/", "serve", "/serve", "serve", "/decline", "decline", "/reset", "reset")
 app = web.application(urls, globals())
 session = web.session.Session(
     app, web.session.DiskStore(Path(package_dir, "sessions")), initializer={"incomplete": None }
@@ -37,7 +39,6 @@ group.add_argument(
 
 experiments = []
 
-output_file = Path(os.getcwd(), "./results.txt")
 template_dir = Path(package_dir, "templates")
 static_dir = Path(package_dir, "static/")
 experiments_dir = Path(static_dir, "experiments/")
@@ -69,6 +70,10 @@ def run(args=None):
 
     for experiment in experiments:
         try:
+            os.mkdir(experiments_dir)
+        except FileExistsError:
+            pass
+        try:
             os.symlink(experiment, Path(experiments_dir, experiment.stem))
         except FileExistsError:
             os.unlink(Path(experiments_dir, experiment.stem))
@@ -86,6 +91,10 @@ def serve_experiment(experiment):
     context = generate_experiment_context(Path(experiments_dir, exp_name), "/", f"/static/experiments/{exp_name}")
     return render.deploy_template(**context)
 
+class reset:
+    def GET(self):
+        session.kill()
+        return "Reset"
 
 class serve:
     def GET(self):
@@ -104,7 +113,9 @@ class serve:
         return serve_experiment(exp_to_serve)
 
     def POST(self):
-        session.incomplete.pop()
+        exp_name = session.incomplete.pop()
+        date = datetime.datetime.utcnow().strftime("%y-%m-%d-%H:%M")
+        output_file = f'{exp_name}_{date}.json'
         with open(output_file, "ab") as fp:
             data = web.data()
             fp.write(data)
