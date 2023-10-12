@@ -94,7 +94,7 @@ def serve_experiment(experiment):
 class reset:
     def GET(self):
         session.kill()
-        return "Reset"
+        return '<html><body>Reset session, <a href="/">back to / </a></body></html>'
 
 class serve:
     def GET(self):
