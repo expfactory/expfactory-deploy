@@ -37,7 +37,7 @@
           {% for study in collection.study_set.all %}
             <li>
               <a href="{% url 'experiments:battery-detail' study.battery.id %}">Battery {{ study.battery.id }} </a>
-              Prolific ID: {{ study.remote_id }}
+              Prolific ID: {% if study.remote_id == '' %} None {% else %} {{ study.remote_id }} {% endif %}
             </li>
           {% endfor %}
         </ul>

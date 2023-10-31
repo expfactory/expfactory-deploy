@@ -6,7 +6,7 @@
       Update Battery
       <div class="battery-actions">
       <input class="btn btn-primary" type="submit" name="action" form="experiment_instance_table" value="Save Changes"/>
-      {% if battery.status != 'template' %}
+      {% if battery.status != 'published' %}
         <a class="btn btn-primary" href="{% url 'experiments:battery-publish' battery.id %}">Publish</a>
       {% endif %}
       <a class="btn btn-primary" href="{% url 'experiments:preview-battery' battery.id %}">Preview</a>

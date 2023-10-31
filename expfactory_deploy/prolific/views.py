@@ -62,7 +62,7 @@ class SimpleCCUpdate(LoginRequiredMixin, UpdateView):
 
 class StudyCollectionList(LoginRequiredMixin, ListView):
     model = models.StudyCollection
-    queryset = models.StudyCollection.objects.prefetch_related(Prefetch('study_set', queryset=models.Study.objects.filter(remote_id__gt='').order_by('rank'))).all()
+    queryset = models.StudyCollection.objects.prefetch_related(Prefetch('study_set', queryset=models.Study.objects.order_by('rank'))).all()
 
 class StudyCollectionView(LoginRequiredMixin, TemplateView):
     template_name = "prolific/study_collection.html"
