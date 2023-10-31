@@ -59,12 +59,12 @@
     </thead>
     <tbody>
   {% for collection in object_list %}
-    {% if collection.active %}
+    {% if not collection.active %}
       <tr>
         <td>{{ collection.name }}</td>
         <td>
           <a class="btn btn-primary btn-sm" href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a>
-          <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Hide</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Show</a>
           {% if collection.study_set.all %}
             <a class="btn btn-danger btn-sm" href="{% url 'prolific:collection-clear-remote-ids' collection.id %}">Clear Stored Prolific IDs</a>
           {% endif %}
