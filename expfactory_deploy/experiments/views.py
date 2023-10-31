@@ -176,7 +176,10 @@ class BatteryList(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         status = self.kwargs.get('status', 'template')
-        return models.Battery.objects.filter(status=status).prefetch_related("children")
+        if status == 'template':
+            return models.Battery.objects.filter(template_id=None).exclude(status='inactive').prefetch_related("children")
+        else:
+            return models.Battery.objects.filter(status=status).prefetch_related("children")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
