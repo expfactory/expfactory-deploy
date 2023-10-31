@@ -251,7 +251,7 @@ class BatteryComplex(LoginRequiredMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         self.get_object()
-        if self.battery and self.battery.status in ['published', 'inactive']:
+        if self.battery and self.battery.status in ['inactive']:
             return redirect("experiments:battery-detail", pk=self.battery.id)
         return self.render_to_response(self.get_context_data())
 

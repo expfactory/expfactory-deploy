@@ -8,6 +8,9 @@
     <a class="btn btn-primary" href="{% url 'experiments:battery-update' object.id %}">Edit</a>
     <a class="btn btn-primary" href="{% url 'experiments:battery-publish' object.id %}">Publish</a>
     {% endif %}
+    {% if battery.status == 'published' %}
+    <a class="btn btn-primary" href="{% url 'experiments:battery-update' object.id %}">Edit</a>
+    {% endif %}
     <a class="btn btn-primary" href="{% url 'experiments:preview-battery' object.id %}">Preview</a>
     <a class="btn btn-primary" href="{% url 'experiments:preview-consent' object.id %}">Preview Insturcitons/Consent</a>
   </div>
