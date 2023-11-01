@@ -122,7 +122,7 @@ class StudyCollection(models.Model):
     def default_study_args(self):
         return {
             "name": self.title,
-            "description": f"{self.description} (test)",
+            "description": f"{self.description}",
             "prolific_id_option": "url_parameters",
             "completion_option": "code",
             "completion_codes": [
