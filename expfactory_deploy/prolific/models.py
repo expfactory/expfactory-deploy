@@ -168,7 +168,11 @@ class Study(models.Model):
 
     @property
     def part_group_name(self):
-        return f'study {self.id} part group'
+        return f'collection: {self.study_collection.id}, study: {self.id}, rank: {self.rank}, battery: {self.battery.title} (pg)'
+
+    def set_group_name(self):
+        if self.remote_id and self.participant_group:
+            api.update_part_group(self.participant_group, self.part_group_name)
 
     def create_draft(self, next_group=None, dry_run=False):
         if self.remote_id and not dry_run:
