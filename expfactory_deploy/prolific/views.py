@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F, Prefetch
+from django.db.models import Count, F, Prefetch, Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
@@ -206,11 +206,21 @@ def publish_drafts(request, collection_id):
 
     return render(request, "prolific/create_drafts_responses.html", {'responses': responses, 'id': collection_id})
 
+
+''' Start thinking about alternative way to report on progress
+@login_required
+def collection_progress_alt(request, collection_id):
+    Result.objects.filter(subject__studycollectionsubject__study_collection=collection_id)
+    Battery.objects.filter(study__study_collection=collection_id).values('title').annotate(completed=Count(Q(assignments__result='complete')))
+'''
+
+
 @login_required
 def collection_progress(request, collection_id):
     collection = get_object_or_404(models.StudyCollection, id=collection_id)
     subjects = exp_models.Subject.objects.filter(studycollectionsubject__study_collection=collection)
     studies = collection.study_set.all().order_by('rank')
+
 
     subject_groups = {}
     errors = []
@@ -222,6 +232,8 @@ def collection_progress(request, collection_id):
             subject_groups[subject][study.battery.id] = {'completed': completed}
 
     for study in studies:
+        if subjects.count() == 0:
+            break
         try:
             details = fetch_remote_study_details(id=study.remote_id)
         except e:

@@ -100,6 +100,8 @@ def update_part_group(pid, name):
 
 def add_to_part_group(group_id, part_ids):
     to_add = api_models.ParticipantIDList.from_dict({'participant_ids': part_ids})
+    print("------")
+    print(part_ids)
     response = make_call(add_to_participant_group, ac=True, id=group_id, json_body=to_add)
     return response
 
