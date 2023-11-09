@@ -294,25 +294,25 @@ def calculate_average_accuracy(
     return accuracy_by_condition.to_dict()
 
 kwargs_lookup = {
-    'ax_cpt': { test_trial: 'test_probe' },
+    'ax_cpt': { 'test_trial': 'test_probe' },
     'cued_ts': {
-        factorial_condition: True,
-        factorial_conditions: ['cue_condition', 'task_condition']
+        'factorial_condition': True,
+        'factorial_conditions': ['cue_condition', 'task_condition']
     },
     'flanker': {},
     'go_nogo': {},
-    'n_back': { condition_col: 'delay' },
+    'n_back': { 'condition_col': 'delay' },
     'span': {
-        test_trial: 'test_inter-stimulus',
-        correct_trial_col: 'correct_response'
+        'test_trial': 'test_inter-stimulus',
+        'correct_trial_col': 'correct_response'
     },
     'spatial_ts': {},
     'spatial_cueing': {},
     'stroop': {},
-    'stop_signal':
+    'stop_signal': {},
     'visual_search': {
-        factorial_condition: True,
-        factorial_conditions: ['condition', 'num_stimuli']
+        'factorial_condition': True,
+        'factorial_conditions': ['condition', 'num_stimuli']
     }
 }
 
