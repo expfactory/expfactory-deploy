@@ -28,7 +28,7 @@ class StudyCollectionForm(ModelForm):
 
     class Meta:
         model  = models.StudyCollection
-        fields = ["name", "project", "reward", "total_available_places", "estimated_completion_time", "title", "inter_study_delay"]
+        fields = ["name", "project", "reward", "total_available_places", "estimated_completion_time", "title", "inter_study_delay", "description"]
         widgets = {
             "name": forms.TextInput(),
             "project": forms.TextInput(),

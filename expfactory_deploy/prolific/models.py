@@ -17,7 +17,7 @@ class StudyCollection(models.Model):
     project = models.TextField(blank=True, help_text="Prolific project ID for the studies to be created under.")
     workspace_id = models.TextField(blank=True)
     title = models.TextField(blank=True, help_text="Base Title to be used by all stutdies in collection on Prolific.")
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, help_text="Description of the study for the participants to read before starting the study.")
     total_available_places = models.IntegerField(default=0)
     estimated_completion_time = models.IntegerField(default=0, help_text="Value in minutes.")
     reward = models.IntegerField(default=0, help_text="Value in cents.")
