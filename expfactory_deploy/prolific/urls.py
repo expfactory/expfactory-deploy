@@ -15,6 +15,7 @@ urlpatterns = [
     path("collection/<int:collection_id>/publish/", views.publish_drafts, name="publish-drafts"),
     path("collection/<int:collection_id>/add_participants/", views.ParticipantFormView.as_view(), name="add-participants"),
     path("collection/<int:collection_id>/progress", views.collection_progress, name="collection-progress"),
+    path("collection/<int:collection_id>/progress_alt", views.collection_progress_alt, name="collection-progress-alt"),
     path("collection/<int:collection_id>/toggle", views.toggle_collection, name="collection-toggle"),
     path("collection/<int:collection_id>/clear_remote_ids", views.clear_remote_ids, name="collection-clear-remote-ids"),
     path("remote/studies/", views.remote_studies_list, name="remote-studies-list"),

@@ -148,7 +148,7 @@ def calculate_average_rt(
         lambda group: group["rt"].mean()
     )
 
-    return rt_by_condition.to_dict()
+    return rt_by_condition.to_json()
 
 
 def calculate_omission_rate(
@@ -197,7 +197,7 @@ def calculate_omission_rate(
     if is_go_no_go:
         omission_rate = omission_rate["go"]
 
-    return omission_rate.to_dict()
+    return omission_rate.to_json()
 
 
 def calculate_omission_rate__span(df):
@@ -291,7 +291,7 @@ def calculate_average_accuracy(
         correct_trial_col
     ].mean()
 
-    return accuracy_by_condition.to_dict()
+    return accuracy_by_condition.to_json()
 
 kwargs_lookup = {
     'ax_cpt': { 'test_trial': 'test_probe' },

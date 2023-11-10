@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="h2">
+    Collection Progress for {{ collection.name }}
+    <div class="battery-actions">
+      <a class="btn btn-primary" href="{% url 'prolific:add-participants' collection.id %}">Add Subjects to Studies</a>
+      <a class="btn btn-primary" href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details List</a>
+    </div>
+  </div>
+
+  <ul>
+  {% for batt in battery_results %}
+    <li> {{ batt.title }} - {{ batt.completed }} completed experiments </li>
+  {% endfor %}
+  </ul>
+{% if errors %}
+<h3> Errors </h3>
+{% for error in errors %}
+  {{ error }}
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+{% block inline_javascript %}
+{% endblock inline_javascript %}
