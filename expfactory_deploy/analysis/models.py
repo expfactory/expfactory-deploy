@@ -7,7 +7,7 @@ from model_utils.models import TimeStampedModel
 class ResultQA(TimeStampedModel):
     exp_result = models.OneToOneField(em.Result, on_delete=models.CASCADE)
     qa_result = models.JSONField(blank=True)
-    pass = models.Boolean(null=True, default=None)
+    passed = models.BooleanField(null=True, default=None)
     error = models.TextField(null=True)
 
 '''
