@@ -1,10 +1,14 @@
+import ast
+import json
+import pandas
+
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Exists, F
+from django.db.models import Exists, F, OuterRef
 
 from prolific import models as pm
 from experiments import models as em
 from analysis.models import ResultQA
-from analysis.default_qa import appy_qa_funcs
+from analysis.default_qa import apply_qa_funcs
 
 
 class Command(BaseCommand):
@@ -20,16 +24,30 @@ class Command(BaseCommand):
             # ResultQA.objects.filter
 
 
-def run_qa(id):
-    results = (
-        Result.objects.filter(subject__studycollectionsubject__study_collection=id)
-        .filter(~Exists(ResultQA.objects.filter(exp_result=OuterRef("pk"))))
-        .annotate(
-            task_name=F(
-                "battery_experiment__experiment_instance__experiment_repo_id__name"
-            )
-        )
+def study_collection_qa(id):
+    results_qs = em.Result.objects.filter(
+        subject__studycollectionsubject__study_collection=id
     )
+
+    run_qa(results_qs)
+
+
+def run_qa(results_qs):
+    results = results_qs.filter(
+        ~Exists(ResultQA.objects.filter(exp_result=OuterRef("pk")))
+    ).annotate(
+        task_name=F("battery_experiment__experiment_instance__experiment_repo_id__name")
+    )
+
     for result in results:
-        metrics, error = apply_qa_funcs(result.task_name, result.data)
-        ResultQA(exp_result=result, qa_result=metrics, error=error).save()
+        data = ast.literal_eval(result.data)
+        if "trialdata" not in data:
+            continue
+        trialdata = data["trialdata"]
+        if type(trialdata) == str:
+            task_data = pandas.DataFrame(json.loads(trialdata))
+        else:
+            task_data = pandas.DataFrame(trialdata)
+        metrics, error = apply_qa_funcs(result.task_name, task_data)
+        if metrics != None:
+            ResultQA(exp_result=result, qa_result=metrics, error=error).save()
