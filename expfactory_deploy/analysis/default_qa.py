@@ -1,7 +1,9 @@
-'''
+"""
 Pulled from:
 https://github.com/Dev-Logan-Bennett/expfactory-experiments-rdoc/blob/main/analysis/qc_data.ipynb
-'''
+"""
+
+
 def get_stopping_data(df, split_by_block_num=False):
     """
     Extracts and calculates metrics related to 'stop' and 'go' conditions for test trials.
@@ -16,7 +18,7 @@ def get_stopping_data(df, split_by_block_num=False):
       by block number (default is False).
 
     Output:
-      Prints the computed metrics either grouped by block numbers or in an aggregated form.
+      Returns the computed metrics either grouped by block numbers or in an aggregated form.
 
     Metrics Calculated:
       - stop_acc: Mean accuracy for 'stop' trials.
@@ -98,7 +100,7 @@ def calculate_attention_check_accuracy(df):
       df: DataFrame containing task data for a specific task for a single subject.
 
     Output:
-      Prints the overall attention check accuracy for a given task df for a single subject.
+        Returns overall attention check accuracy for a given task df for a single subject.
     """
 
     test_trials__df = df[(df["trial_id"] == "test_attention_check")]
@@ -132,7 +134,7 @@ def calculate_average_rt(
       split_by_block_num: Boolean to specify if results should be split by block number. Default is False.
 
     Output:
-      Prints the average RT for the specified conditions.
+      Returns the average RT for the specified conditions.
     """
     test_trials__df = df[(df["trial_id"] == test_trial) & (df[correct_trial_col] == 1)]
 
@@ -158,7 +160,6 @@ def calculate_omission_rate(
     factorial_condition=False,
     factorial_conditions=[],
     split_by_block_num=False,
-    is_go_no_go=False,
     **kwargs,
 ):
     """
@@ -177,7 +178,7 @@ def calculate_omission_rate(
       split_by_block_num: Boolean to specify if results should be split by block number. Default is False.
 
     Output:
-      Prints the omission rate for the specified conditions.
+      Returns the omission rate for the specified conditions.
     """
 
     test_trials__df = df[df["trial_id"] == test_trial]
@@ -193,9 +194,6 @@ def calculate_omission_rate(
     omission_rate = test_trials__df.groupby(grouping_columns).apply(
         lambda group: group["rt"].isna().mean()
     )
-
-    if is_go_no_go:
-        omission_rate = omission_rate["go"]
 
     return omission_rate.to_dict()
 
@@ -215,7 +213,7 @@ def calculate_omission_rate__span(df):
        df: DataFrame containing task data for a specific task for a single subject.
 
     Output:
-      Prints the mean number of empty responses, the mean number of incomplete responses,
+      Returns the mean number of empty responses, the mean number of incomplete responses,
       and the omission rate for 'test_inter-stimulus' trials.
     """
 
@@ -274,7 +272,7 @@ def calculate_average_accuracy(
       split_by_block_num (optional): Boolean flag to determine if results should be split by block number (default is False).
 
     Output:
-      Prints the average accuracy grouped by the specified conditions.
+      Returns the average accuracy grouped by the specified conditions.
     """
 
     test_trials__df = df[df["trial_id"] == test_trial]
@@ -293,28 +291,30 @@ def calculate_average_accuracy(
 
     return accuracy_by_condition.to_dict()
 
+
 kwargs_lookup = {
-    'ax_cpt': { 'test_trial': 'test_probe' },
-    'cued_ts': {
-        'factorial_condition': True,
-        'factorial_conditions': ['cue_condition', 'task_condition']
+    "ax_cpt": {"test_trial": "test_probe"},
+    "cued_ts": {
+        "factorial_condition": True,
+        "factorial_conditions": ["cue_condition", "task_condition"],
     },
-    'flanker': {},
-    'go_nogo': {},
-    'n_back': { 'condition_col': 'delay' },
-    'span': {
-        'test_trial': 'test_inter-stimulus',
-        'correct_trial_col': 'correct_response'
+    "flanker": {},
+    "go_nogo": {},
+    "n_back": {"condition_col": "delay"},
+    "span": {
+        "test_trial": "test_inter-stimulus",
+        "correct_trial_col": "correct_response",
     },
-    'spatial_ts': {},
-    'spatial_cueing': {},
-    'stroop': {},
-    'stop_signal': {},
-    'visual_search': {
-        'factorial_condition': True,
-        'factorial_conditions': ['condition', 'num_stimuli']
-    }
+    "spatial_ts": {},
+    "spatial_cueing": {},
+    "stroop": {},
+    "stop_signal": {},
+    "visual_search": {
+        "factorial_condition": True,
+        "factorial_conditions": ["condition", "num_stimuli"],
+    },
 }
+
 
 def apply_qa_funcs(task__name, task__df):
     kwargs = kwargs_lookup.get(task__name, None)
@@ -323,10 +323,99 @@ def apply_qa_funcs(task__name, task__df):
     ret_metrics = {}
     ret_error = None
     try:
-        ret_metrics['attention_check_accuracy'] = calculate_attention_check_accuracy(task__df)
-        ret_metrics['omissions'] = calculate_omission_rate(task__df, **kwargs)
-        ret_metrics['accuracies'] = calculate_average_accuracy(task__df, **kwargs)
-        ret_metrics['rts'] = calculate_average_rt(task__df, **kwargs)
+        ret_metrics["attention_check_accuracy"] = calculate_attention_check_accuracy(
+            task__df
+        )
+        ret_metrics["omissions"] = calculate_omission_rate(task__df, **kwargs)
+        ret_metrics["accuracies"] = calculate_average_accuracy(task__df, **kwargs)
+        ret_metrics["rts"] = calculate_average_rt(task__df, **kwargs)
     except Exception as e:
         ret_error = e
     return ret_metrics, ret_error
+
+
+def check_same_response(
+    df, test_trial="test_trial", task=None, correct_trial="correct_trial"
+):
+    """
+    Checks to see if the subject is only responding with a single key. This could be an issue for certain tasks
+    in which accuracies is not enough to catch such behavior (e.g. subject could only respond mismatch in nback and still
+    achieve an 80% accuracy.)
+
+    Tasks that could have this issue are: n-back, go-nogo, stop-signal
+
+    Input:
+       df: DataFrame containing task data for a specific task for a single subject.
+
+    Output:
+      Returns proportion of same, single responses for single condition (helps us determine if subject is doing task, e.g., if only go-ing in
+      go_nogo this may not be captured by accuracy, but if only responding go (,) then this will be captured using this function)
+    """
+    test_response_trials__df = df[df["trial_id"] == test_trial].copy()
+
+    if task == "go_nogo":
+        correct_response = df[(df["correct_trial"] == 1) & (df["condition"] == "go")][
+            "response"
+        ].unique()[0]
+
+        length_go = len(df[df["response"] == correct_response])
+        proportion_go = length_go / len(test_response_trials__df)
+        proportions = {}
+        proportions["go"] = proportion_go
+        return proportions
+
+    if task == "n_back":
+        value_counts = test_response_trials__df["response"].value_counts()
+
+        proportions = value_counts / test_response_trials__df["response"].count()
+        proportions = proportions.to_dict()
+        mismatch_correct_response = df[
+            (df["correct_trial"] == 1) & (df["condition"] == "mismatch")
+        ]["response"].unique()[0]
+
+        match_correct_response = df[
+            (df["correct_trial"] == 1) & (df["condition"] == "match")
+        ]["response"].unique()[0]
+
+        if mismatch_correct_response in proportions:
+            proportions["mismatch"] = proportions[mismatch_correct_response]
+            del proportions[mismatch_correct_response]
+
+        if match_correct_response in proportions:
+            proportions["match"] = proportions[match_correct_response]
+            del proportions[match_correct_response]
+
+        return proportions
+
+
+def calculate_partial_accuracy__span(df):
+    """
+    Calculates partial accuracy for span. For example, if response is [1,2,3,5] and correct response is [1,2,3,4], the
+    accuracy would be calculated as .75 for this row, since they selected 3 spatial stimuli correctly. The order does not
+    matter, and it can handle responses with fewer than 4 selected.
+
+    Input:
+       df: DataFrame containing span task data for a specific task for a single subject.
+
+    Output:
+      Returns proportion of partial correct responses, average partial accuracy for all rows in df.
+    """
+
+    test_response_trials__df = df[df["trial_id"] == "test_response"].copy()
+    responses = test_response_trials__df["response"]
+    correct_spatial_sequences = test_response_trials__df["spatial_sequence"]
+
+    # Function to calculate the accuracy for each row
+    def calculate_accuracy(response, correct_sequence):
+        correct_responses = len(set(response).intersection(correct_sequence))
+        return correct_responses / len(correct_sequence)
+
+    # Calculating accuracies for each row
+    accuracies = [
+        calculate_accuracy(resp, corr_seq)
+        for resp, corr_seq in zip(responses, correct_spatial_sequences)
+    ]
+
+    # Calculating the mean accuracy for the whole dataframe
+    mean_accuracy = sum(accuracies) / len(accuracies)
+    return mean_accuracy
