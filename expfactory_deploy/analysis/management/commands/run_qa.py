@@ -50,6 +50,7 @@ def run_qa(results, rerun=False):
             task_data = pandas.DataFrame(json.loads(trialdata))
         else:
             task_data = pandas.DataFrame(trialdata)
-        metrics, error = apply_qa_funcs(result.task_name, task_data)
+        task_name = result.task_name.replace('_rdoc', '')
+        metrics, error = apply_qa_funcs(task_name, task_data)
         if metrics != None:
             ResultQA(exp_result=result, qa_result=metrics, error=error).save()
