@@ -111,7 +111,7 @@ mean_same_response__thresholds = {
     "cued_ts": None,
     "flanker": None,
     "go_nogo": {"go": 0.9, "nogo": None},
-    "n_back": {"mismatch": 0.8, "match": None},
+    "n_back": {"mismatch": 0.9, "match": None},
     "span": None,
     "spatial_cueing": None,
     "spatial_ts": None,
