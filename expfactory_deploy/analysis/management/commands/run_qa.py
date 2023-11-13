@@ -9,6 +9,7 @@ from prolific import models as pm
 from experiments import models as em
 from analysis.models import ResultQA
 from analysis.default_qa import apply_qa_funcs
+from analysis.default_thresholds import feedback_generator
 
 
 class Command(BaseCommand):
@@ -53,4 +54,6 @@ def run_qa(results, rerun=False):
         task_name = result.task_name.replace("_rdoc", "")
         metrics, error = apply_qa_funcs(task_name, task_data)
         if metrics != None:
-            ResultQA(exp_result=result, qa_result=metrics, error=error).save()
+            feedback = feedback_generator(task_name, **metrics)
+            ', '.join(feedback)
+            ResultQA(exp_result=result, qa_result=metrics, error=error, feedback=feedback).save()
