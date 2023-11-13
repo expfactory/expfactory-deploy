@@ -150,7 +150,7 @@ def calculate_average_rt(
         lambda group: group["rt"].mean()
     )
 
-    return rt_by_condition.to_json()
+    return rt_by_condition.to_dict()
 
 
 def calculate_omission_rate(
@@ -195,7 +195,7 @@ def calculate_omission_rate(
         lambda group: group["rt"].isna().mean()
     )
 
-    return omission_rate.to_json()
+    return omission_rate.to_dict()
 
 
 
@@ -290,7 +290,7 @@ def calculate_average_accuracy(
         correct_trial_col
     ].mean()
 
-    return accuracy_by_condition.to_json()
+    return accuracy_by_condition.to_dict()
 
 
 kwargs_lookup = {
