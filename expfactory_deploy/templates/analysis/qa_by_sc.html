@@ -4,7 +4,10 @@
     QA of results for {{ collection.name }}
   </div>
   {% for result in results %}
-    <h3>{{ result.exp_name }} - {{ result.prolific_id }}</h3>
+  <details>
+    <summary>
+    {{ result.exp_name }} - {{ result.prolific_id }} - {{ result.feedback|default:"No Feedback" }}
+    </summary>
     <pre>{{ result.qa_result|pprint }}</pre>
   {% endfor %}
 {% endblock %}
