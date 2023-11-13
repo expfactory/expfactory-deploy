@@ -21,4 +21,7 @@ urlpatterns = [
     path("remote/studies/", views.remote_studies_list, name="remote-studies-list"),
     path("remote/studies/<str:id>", views.remote_studies_list, name="remote-studies-list"),
     path("remote/study/<str:id>", views.remote_study_detail, name="remote-study-detail"),
+    path("blocked_participant/list", views.BlockedParticipantList.as_view(), name="blocked-participant-list"),
+    path("blocked_participant/create", views.BlockedParticipantCreate.as_view(), name="blocked-participant-create"),
+    path("blocked_participant/update/<int:pk>", views.BlockedParticipantUpdate.as_view(), name="blocked-participant-update"),
 ]

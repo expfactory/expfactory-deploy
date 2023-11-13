@@ -10,6 +10,7 @@ class ResultQA(TimeStampedModel):
     qa_result = models.JSONField(blank=True)
     passed = models.BooleanField(null=True, default=None)
     error = models.TextField(null=True)
+    feedback = models.TextField(blank=True)
 
 
 """

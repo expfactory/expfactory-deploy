@@ -167,6 +167,7 @@ class ExperimentInstance(models.Model):
     note = models.TextField(blank=True)
     commit = models.TextField(blank=True)
     commit_date = models.DateField(blank=True, null=True)
+    # should drop the _id
     experiment_repo_id = models.ForeignKey(ExperimentRepo, on_delete=models.CASCADE)
 
     @property

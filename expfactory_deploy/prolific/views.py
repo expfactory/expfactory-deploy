@@ -311,3 +311,16 @@ def toggle_collection(request, collection_id):
     collection.active = not collection.active
     collection.save()
     return HttpResponseRedirect(reverse_lazy("prolific:study-collection-list"))
+
+class BlockedParticipantList(LoginRequiredMixin, ListView):
+    model = models.BlockedParticipant
+
+class BlockedParticipantUpdate(LoginRequiredMixin, UpdateView):
+    model = models.BlockedParticipant
+    fields = ["prolific_id", "active", "note"]
+    success_url = reverse_lazy('prolific:blocked-participant-list')
+
+class BlockedParticipantCreate(LoginRequiredMixin, CreateView):
+    model = models.BlockedParticipant
+    fields = ["prolific_id", "active", "note"]
+    success_url = reverse_lazy('prolific:blocked-participant-list')

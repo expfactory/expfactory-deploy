@@ -82,6 +82,8 @@ class StudyCollection(models.Model):
 
     def set_allowlists(self):
         studies = list(self.study_set.order_by('rank'))
+        blocked = BlockedParticipant.objects.filter(active=True).values('prolific_id')
+        blocked = set([x['prolific_id'] for x in blocked])
 
         if len(studies) < 2:
             return
@@ -96,6 +98,7 @@ class StudyCollection(models.Model):
         print('first promote')
         print(to_promote)
 
+        to_promote = to_promote - blocked
         for study in studies:
             if len(to_promote) == 0:
                 return
@@ -117,10 +120,10 @@ class StudyCollection(models.Model):
                 completed_at = datetime.fromisoformat(completed_at)
                 if completed_at > datetime.now(completed_at.tzinfo) - self.inter_study_delay:
                     to_promote.remove(pid)
-            add_to_group = to_promote - submitted
+            add_to_group = to_promote - submitted - blocked
             if (len(add_to_group)):
                 api.add_to_part_group(study.participant_group, list(add_to_group))
-            to_promote = to_promote - add_to_group
+            to_promote = to_promote - add_to_group - blocked
         return
 
     def default_study_args(self):
@@ -251,3 +254,8 @@ class ProlificAPIResult(models.Model):
     request = models.TextField(blank=True)
     response = models.JSONField()
     collection = models.ForeignKey(StudyCollection, on_delete=models.CASCADE, blank=True)
+
+class BlockedParticipant(TimeStampedModel):
+    prolific_id = models.TextField(unique=True)
+    active = models.BooleanField(default=True)
+    note = models.TextField(blank=True)
