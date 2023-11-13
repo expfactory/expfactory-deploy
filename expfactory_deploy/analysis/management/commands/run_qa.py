@@ -54,6 +54,12 @@ def run_qa(results, rerun=False):
         task_name = result.task_name.replace("_rdoc", "")
         metrics, error = apply_qa_funcs(task_name, task_data)
         if metrics != None:
-            feedback = feedback_generator(task_name, **metrics)
-            ', '.join(feedback)
+            feedback = []
+            try:
+                feedback = feedback_generator(task_name, **metrics)
+                ', '.join(feedback)
+            except Exception as e:
+                print("feedback failure")
+                print(f'result id: {result.id}')
+                print(e)
             ResultQA.objects.update_or_create(exp_result=result, defaults={'qa_result': metrics, 'error': error, 'feedback': feedback})
