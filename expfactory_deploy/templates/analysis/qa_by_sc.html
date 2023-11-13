@@ -4,6 +4,7 @@
     QA of results for {{ collection.name }}
   </div>
   {% for result in results %}
+    <h3>{{ result.exp_name }} - {{ result.prolific_id }}</h3>
     <pre>{{ result.qa_result|pprint }}</pre>
   {% endfor %}
 {% endblock %}
