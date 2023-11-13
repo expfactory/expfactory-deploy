@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="h2">
+    QA of results for {{ collection.name }}
+  </div>
+  {% for result in results %}
+    <pre>{{ result.qa_result|pprint }}</pre>
+  {% endfor %}
+{% endblock %}
+
+
