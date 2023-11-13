@@ -212,7 +212,7 @@ def collection_progress_alt(request, collection_id):
     context = {}
     # Result.objects.filter(subject__studycollectionsubject__study_collection=collection_id)
     context['collection'] = get_object_or_404(models.StudyCollection, id=collection_id)
-    context['battery_results'] = Battery.objects.filter(study__study_collection=collection_id).values('title').annotate(completed=Count(Q(assignments__result__status='complete'))).order_by('study__rank')
+    context['battery_results'] = exp_models.Battery.objects.filter(study__study_collection=collection_id).values('title').annotate(completed=Count(Q(assignments__result__status='complete'))).order_by('study__rank')
     return render(request, "prolific/collection_progress_alt.html", context)
 
 
@@ -311,3 +311,16 @@ def toggle_collection(request, collection_id):
     collection.active = not collection.active
     collection.save()
     return HttpResponseRedirect(reverse_lazy("prolific:study-collection-list"))
+
+class BlockedParticipantList(LoginRequiredMixin, ListView):
+    model = models.BlockedParticipant
+
+class BlockedParticipantUpdate(LoginRequiredMixin, UpdateView):
+    model = models.BlockedParticipant
+    fields = ["prolific_id", "active", "note"]
+    success_url = reverse_lazy('prolific:blocked-participant-list')
+
+class BlockedParticipantCreate(LoginRequiredMixin, CreateView):
+    model = models.BlockedParticipant
+    fields = ["prolific_id", "active", "note"]
+    success_url = reverse_lazy('prolific:blocked-participant-list')

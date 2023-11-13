@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="h2">
+    Blocked Participants List
+    <div class="battery-actions">
+      <a class="btn btn-primary" href="{% url 'prolific:blocked-participant-create' %}">Create </a>
+    </div>
+  </div>
+  <ul>
+  {% for object in object_list %}
+    <li>{{object.prolific_id}} - {{object.active}} - {{object.note}} - <a class="btn btn-primary" href="{% url 'prolific:blocked-participant-update' object.id %}">Edit</a>
+  {% endfor %}
+  </ul>
+
+{% endblock %}
