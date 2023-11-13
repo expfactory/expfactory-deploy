@@ -207,12 +207,13 @@ def publish_drafts(request, collection_id):
     return render(request, "prolific/create_drafts_responses.html", {'responses': responses, 'id': collection_id})
 
 
-''' Start thinking about alternative way to report on progress
 @login_required
 def collection_progress_alt(request, collection_id):
-    Result.objects.filter(subject__studycollectionsubject__study_collection=collection_id)
-    Battery.objects.filter(study__study_collection=collection_id).values('title').annotate(completed=Count(Q(assignments__result='complete')))
-'''
+    context = {}
+    # Result.objects.filter(subject__studycollectionsubject__study_collection=collection_id)
+    context['collection'] = get_object_or_404(models.StudyCollection, id=collection_id)
+    context['battery_results'] = Battery.objects.filter(study__study_collection=collection_id).values('title').annotate(completed=Count(Q(assignments__result__status='complete'))).order_by('study__rank')
+    return render(request, "prolific/collection_progress_alt.html", context)
 
 
 @login_required
