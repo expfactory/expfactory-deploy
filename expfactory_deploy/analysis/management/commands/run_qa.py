@@ -33,7 +33,7 @@ def study_collection_qa(id, rerun=False):
 
 
 def run_qa(results, rerun=False):
-    if (rerun is False):
+    if rerun is False:
         results = results.filter(
             ~Exists(ResultQA.objects.filter(exp_result=OuterRef("pk")))
         )
@@ -50,7 +50,7 @@ def run_qa(results, rerun=False):
             task_data = pandas.DataFrame(json.loads(trialdata))
         else:
             task_data = pandas.DataFrame(trialdata)
-        task_name = result.task_name.replace('_rdoc', '')
+        task_name = result.task_name.replace("_rdoc", "")
         metrics, error = apply_qa_funcs(task_name, task_data)
         if metrics != None:
             ResultQA(exp_result=result, qa_result=metrics, error=error).save()

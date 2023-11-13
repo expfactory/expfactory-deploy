@@ -1,7 +1,9 @@
-'''
+"""
 Pulled from:
 https://github.com/Dev-Logan-Bennett/expfactory-experiments-rdoc/blob/main/analysis/qc_data.ipynb
-'''
+"""
+
+
 def get_stopping_data(df, split_by_block_num=False):
     """
     Extracts and calculates metrics related to 'stop' and 'go' conditions for test trials.
@@ -293,28 +295,30 @@ def calculate_average_accuracy(
 
     return accuracy_by_condition.to_json()
 
+
 kwargs_lookup = {
-    'ax_cpt': { 'test_trial': 'test_probe' },
-    'cued_ts': {
-        'factorial_condition': True,
-        'factorial_conditions': ['cue_condition', 'task_condition']
+    "ax_cpt": {"test_trial": "test_probe"},
+    "cued_ts": {
+        "factorial_condition": True,
+        "factorial_conditions": ["cue_condition", "task_condition"],
     },
-    'flanker': {},
-    'go_nogo': {},
-    'n_back': { 'condition_col': 'delay' },
-    'span': {
-        'test_trial': 'test_inter-stimulus',
-        'correct_trial_col': 'correct_response'
+    "flanker": {},
+    "go_nogo": {},
+    "n_back": {"condition_col": "delay"},
+    "span": {
+        "test_trial": "test_inter-stimulus",
+        "correct_trial_col": "correct_response",
     },
-    'spatial_ts': {},
-    'spatial_cueing': {},
-    'stroop': {},
-    'stop_signal': {},
-    'visual_search': {
-        'factorial_condition': True,
-        'factorial_conditions': ['condition', 'num_stimuli']
-    }
+    "spatial_ts": {},
+    "spatial_cueing": {},
+    "stroop": {},
+    "stop_signal": {},
+    "visual_search": {
+        "factorial_condition": True,
+        "factorial_conditions": ["condition", "num_stimuli"],
+    },
 }
+
 
 def apply_qa_funcs(task__name, task__df):
     kwargs = kwargs_lookup.get(task__name, None)
@@ -323,10 +327,12 @@ def apply_qa_funcs(task__name, task__df):
     ret_metrics = {}
     ret_error = None
     try:
-        ret_metrics['attention_check_accuracy'] = calculate_attention_check_accuracy(task__df)
-        ret_metrics['omissions'] = calculate_omission_rate(task__df, **kwargs)
-        ret_metrics['accuracies'] = calculate_average_accuracy(task__df, **kwargs)
-        ret_metrics['rts'] = calculate_average_rt(task__df, **kwargs)
+        ret_metrics["attention_check_accuracy"] = calculate_attention_check_accuracy(
+            task__df
+        )
+        ret_metrics["omissions"] = calculate_omission_rate(task__df, **kwargs)
+        ret_metrics["accuracies"] = calculate_average_accuracy(task__df, **kwargs)
+        ret_metrics["rts"] = calculate_average_rt(task__df, **kwargs)
     except Exception as e:
         ret_error = e
     return ret_metrics, ret_error
