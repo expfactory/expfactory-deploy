@@ -56,4 +56,4 @@ def run_qa(results, rerun=False):
         if metrics != None:
             feedback = feedback_generator(task_name, **metrics)
             ', '.join(feedback)
-            ResultQA(exp_result=result, qa_result=metrics, error=error, feedback=feedback).save()
+            ResultQA.objects.update_or_create(exp_result=result, defaults={'qa_result': metrics, 'error': error, 'feedback': feedback})
