@@ -9,6 +9,7 @@
     {{ result.exp_name }} - {{ result.prolific_id }} - {{ result.feedback|default:"No Feedback" }}
     </summary>
     <pre>{{ result.qa_result|pprint }}</pre>
+  </details>
   {% endfor %}
 {% endblock %}
 
