@@ -291,6 +291,19 @@ def collection_recently_completed(request, collection_id, days, by):
         {"recent": recent, "td": td, "days": days, "collection": collection, "by": by},
     )
 
+@login_required
+def recent_participants(request):
+    collection_id = request.GET.get('collection_id', None)
+    limit = request.GET.get('limit', None)
+    context = {}
+    subjects = exp_models.Subject.objects.exclude(last_url_at=None).exclude(prolific_id=None).order_by("-last_url_at").select_related()
+    if collection_id:
+        context['collection'] = get_object_or_404(models.StudyCollection, id=collection_id)
+        subjects = subjects.filter(assignment__battery__study__study_collection__id=collection_id)
+    if limit:
+        subjects = subjects[:limit]
+    context['subjects'] = subjects
+    return render(request, "prolific/recent_participants.html", context)
 
 @login_required
 def collection_progress(request, collection_id):

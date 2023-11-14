@@ -26,4 +26,5 @@ urlpatterns = [
     path("blocked_participant/list", views.BlockedParticipantList.as_view(), name="blocked-participant-list"),
     path("blocked_participant/create", views.BlockedParticipantCreate.as_view(), name="blocked-participant-create"),
     path("blocked_participant/update/<int:pk>", views.BlockedParticipantUpdate.as_view(), name="blocked-participant-update"),
+    path("recent/participants", views.recent_participants, name="recent-participants"),
 ]
