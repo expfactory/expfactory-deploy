@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="h2">
+    Recently Completed {{ by }}s for {{ collection.name }}
+  </div>
+
+  <table id="result-table">
+  <thead>
+    <tr>
+      <th>Prolific ID</th>
+      <th>Completed At</th>
+      <th>
+      {% if by == 'result' %}
+        ExpName
+      {% else %}
+        Battery
+      {% endif %}
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for entry in recent %}
+    <tr>
+      <td>{{ entry.prolific_id }}</td>
+      <td>{{ entry.completed_at }}</td>
+      <td>{{ entry.parent }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+{% if errors %}
+<h3> Errors </h3>
+{% for error in errors %}
+  {{ error }}
+{% endfor %}
+{% endif %}
+{% endblock %}
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dataTable = new simpleDatatables.DataTable("#result-table", {
+    searchable: false,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}
