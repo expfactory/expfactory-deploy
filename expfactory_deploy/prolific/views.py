@@ -257,6 +257,11 @@ def publish_drafts(request, collection_id):
     )
 
 
+"""
+    Summary and progress views
+"""
+
+
 @login_required
 def collection_progress_alt(request, collection_id):
     context = {}
@@ -277,11 +282,16 @@ def collection_recently_completed(request, collection_id, days, by):
     if by == "assignment":
         recent = exp_models.Assignment.objects.filter(
             battery__study__study_collection=collection_id
-        ).annotate(prolific_id=F('subject__prolific_id'), parent=F('battery__title'))
+        ).annotate(prolific_id=F("subject__prolific_id"), parent=F("battery__title"))
     elif by == "result":
         recent = exp_models.Result.objects.filter(
             assignment__battery__study__study_collection=collection_id
-        ).annotate(prolific_id=F('assignment__subject__prolific_id'), parent=F('battery_experiment__experiment_instance__experiment_repo_id__name'))
+        ).annotate(
+            prolific_id=F("assignment__subject__prolific_id"),
+            parent=F(
+                "battery_experiment__experiment_instance__experiment_repo_id__name"
+            ),
+        )
     else:
         raise Http404("unsupported model")
     recent = recent.filter(completed_at__gte=td)
@@ -291,19 +301,37 @@ def collection_recently_completed(request, collection_id, days, by):
         {"recent": recent, "td": td, "days": days, "collection": collection, "by": by},
     )
 
+
+"""
+    Display recent participants using the fields inside the subject model for last seen.
+    A variant of this could live in experiments app. Only put here since we ignore any
+    one without a prolific id and can filter on study_collections.
+"""
+
+
 @login_required
 def recent_participants(request):
-    collection_id = request.GET.get('collection_id', None)
-    limit = request.GET.get('limit', None)
+    collection_id = request.GET.get("collection_id", None)
+    limit = int(request.GET.get("limit", None))
     context = {}
-    subjects = exp_models.Subject.objects.exclude(last_url_at=None).exclude(prolific_id=None).order_by("-last_url_at").select_related()
+    subjects = (
+        exp_models.Subject.objects.exclude(last_url_at=None)
+        .exclude(prolific_id=None)
+        .order_by("-last_url_at")
+        .select_related()
+    )
     if collection_id:
-        context['collection'] = get_object_or_404(models.StudyCollection, id=collection_id)
-        subjects = subjects.filter(assignment__battery__study__study_collection__id=collection_id)
+        context["collection"] = get_object_or_404(
+            models.StudyCollection, id=collection_id
+        )
+        subjects = subjects.filter(
+            assignment__battery__study__study_collection__id=collection_id
+        )
     if limit:
         subjects = subjects[:limit]
-    context['subjects'] = subjects
+    context["subjects"] = subjects
     return render(request, "prolific/recent_participants.html", context)
+
 
 @login_required
 def collection_progress(request, collection_id):
@@ -350,6 +378,10 @@ def collection_progress(request, collection_id):
     }
     return render(request, "prolific/collection_progress.html", context)
 
+
+"""
+    Summary and progress views end
+"""
 
 """
     Should probably exist as a method of the form itself.
