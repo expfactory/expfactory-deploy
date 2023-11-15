@@ -150,7 +150,7 @@ def calculate_average_rt(
         lambda group: group["rt"].mean()
     )
 
-    return rt_by_condition.to_dict()
+    return rt_by_condition.to_json()
 
 
 def calculate_omission_rate(
@@ -195,7 +195,7 @@ def calculate_omission_rate(
         lambda group: group["rt"].isna().mean()
     )
 
-    return omission_rate.to_dict()
+    return omission_rate.to_json()
 
 
 
@@ -290,7 +290,7 @@ def calculate_average_accuracy(
         correct_trial_col
     ].mean()
 
-    return accuracy_by_condition.to_dict()
+    return accuracy_by_condition.to_json()
 
 
 kwargs_lookup = {
@@ -327,9 +327,12 @@ def apply_qa_funcs(task__name, task__df):
         ret_metrics["attention_check_accuracy"] = calculate_attention_check_accuracy(
             task__df
         )
-        ret_metrics["omissions"] = calculate_omission_rate(task__df, **kwargs)
-        ret_metrics["accuracies"] = calculate_average_accuracy(task__df, **kwargs)
-        ret_metrics["rts"] = calculate_average_rt(task__df, **kwargs)
+        if (task__name == 'stop_signal'):
+            ret_metrics["stopping_data"] = get_stopping_data(task__df)
+        else:
+            ret_metrics["omissions"] = calculate_omission_rate(task__df, **kwargs)
+            ret_metrics["accuracies"] = calculate_average_accuracy(task__df, **kwargs)
+            ret_metrics["rts"] = calculate_average_rt(task__df, **kwargs)
     except Exception as e:
         ret_error = e
     return ret_metrics, ret_error
@@ -369,7 +372,7 @@ def check_same_response(
         value_counts = test_response_trials__df["response"].value_counts()
 
         proportions = value_counts / test_response_trials__df["response"].count()
-        proportions = proportions.to_dict()
+        proportions = proportions
         mismatch_correct_response = df[
             (df["correct_trial"] == 1) & (df["condition"] == "mismatch")
         ]["response"].unique()[0]
@@ -386,7 +389,7 @@ def check_same_response(
             proportions["match"] = proportions[match_correct_response]
             del proportions[match_correct_response]
 
-        return proportions
+        return proportions.to_json()
 
 
 def calculate_partial_accuracy__span(df):

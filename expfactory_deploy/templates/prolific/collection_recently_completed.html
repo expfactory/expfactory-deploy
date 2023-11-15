@@ -21,8 +21,8 @@
   <tbody>
   {% for entry in recent %}
     <tr>
-      <td>{{ entry.prolific_id }}</td>
-      <td>{{ entry.completed_at }}</td>
+      <td><a href="{% url 'experiments:subject-detail' entry.subject_id %}">{{ entry.prolific_id }}<a></td>
+      <td>{{ entry.status_changed }}</td>
       <td>{{ entry.parent }}</td>
     </tr>
   {% endfor %}

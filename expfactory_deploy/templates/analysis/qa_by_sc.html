@@ -2,15 +2,47 @@
 {% block content %}
   <div class="h2">
     QA of results for {{ collection.name }}
+    <div class="battery-actions">
+      <a class="btn btn-primary" href="{% url 'analysis:trigger-qa-by-sc-rerun' collection.id %}">Rerun QA on all results</a>
+    </div>
   </div>
+  <table id="result-table">
+  <thead>
+    <tr>
+      <th>Prolific ID</th>
+      <th>ExpName</th>
+      <th>Battery</th>
+      <th>QA Result</th>
+    </tr>
+  </thead>
+  <tbody>
   {% for result in results %}
-  <details>
-    <summary>
-    {{ result.exp_name }} - {{ result.prolific_id }} - {{ result.feedback|default:"No Feedback" }}
-    </summary>
-    <pre>{{ result.qa_result|pprint }}</pre>
-  </details>
+    <tr>
+      <td> <a href="{% url 'experiments:subject-detail' result.subject_id %}">{{ result.prolific_id }}</a> </td>
+      <td>{{ result.exp_name }}</td>
+      <td>{{ result.battery_name }}</td>
+      <td>
+        <details>
+          <summary>
+           {{ result.feedback|default:"No Feedback" }}
+          </summary>
+          <pre>{{ result.qa_result|pprint }}</pre>
+        </details>
+      </td>
+    </tr>
   {% endfor %}
+  </tbody>
+  </table>
+
 {% endblock %}
 
-
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dataTable = new simpleDatatables.DataTable("#result-table", {
+    searchable: true,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}

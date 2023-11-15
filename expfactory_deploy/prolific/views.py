@@ -282,11 +282,12 @@ def collection_recently_completed(request, collection_id, days, by):
     if by == "assignment":
         recent = exp_models.Assignment.objects.filter(
             battery__study__study_collection=collection_id
-        ).annotate(prolific_id=F("subject__prolific_id"), parent=F("battery__title"))
+        ).filter(status='completed').annotate(subject_id="subject__id", prolific_id=F("subject__prolific_id"), parent=F("battery__title"))
     elif by == "result":
         recent = exp_models.Result.objects.filter(
             assignment__battery__study__study_collection=collection_id
-        ).annotate(
+        ).filter(status='completed').annotate(
+            subject_id=F("assignment__subject__id"),
             prolific_id=F("assignment__subject__prolific_id"),
             parent=F(
                 "battery_experiment__experiment_instance__experiment_repo_id__name"
@@ -294,7 +295,7 @@ def collection_recently_completed(request, collection_id, days, by):
         )
     else:
         raise Http404("unsupported model")
-    recent = recent.filter(completed_at__gte=td)
+    recent = recent.filter(status_changed__gte=td)
     return render(
         request,
         "prolific/collection_recently_completed.html",
@@ -307,12 +308,10 @@ def collection_recently_completed(request, collection_id, days, by):
     A variant of this could live in experiments app. Only put here since we ignore any
     one without a prolific id and can filter on study_collections.
 """
-
-
 @login_required
 def recent_participants(request):
     collection_id = request.GET.get("collection_id", None)
-    limit = int(request.GET.get("limit", None))
+    limit = int(request.GET.get("limit", -1))
     context = {}
     subjects = (
         exp_models.Subject.objects.exclude(last_url_at=None)
@@ -327,6 +326,7 @@ def recent_participants(request):
         subjects = subjects.filter(
             assignment__battery__study__study_collection__id=collection_id
         )
+    subjects = subjects.distinct()
     if limit:
         subjects = subjects[:limit]
     context["subjects"] = subjects
