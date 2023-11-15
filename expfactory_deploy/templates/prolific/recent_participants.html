@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="h2">
+    Recent Participants
+    {% if collection %}
+      For {{ collection.name }}
+    {% endif %}
+  </div>
+
+  <table id="result-table">
+  <thead>
+    <tr>
+      <th>Prolific ID</th>
+      <th>URL</th>
+      <th>Loaded At</th>
+      <th>ExpName</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for sub in subjects %}
+    <tr>
+      <td>{{ sub.prolific_id }}</td>
+      <td>{{ sub.last_url }}</td>
+      <td>{{ sub.last_url_at }}</td>
+      <td>{{ sub.last_exp.name }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+{% if errors %}
+<h3> Errors </h3>
+{% for error in errors %}
+  {{ error }}
+{% endfor %}
+{% endif %}
+{% endblock %}
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dataTable = new simpleDatatables.DataTable("#result-table", {
+    searchable: false,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}

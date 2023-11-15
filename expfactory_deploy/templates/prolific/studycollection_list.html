@@ -22,12 +22,14 @@
           <a class="btn btn-primary btn-sm" href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a>
           <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Hide</a>
           {% if collection.study_set.all %}
-            <a class="btn btn-danger btn-sm" href="{% url 'prolific:collection-clear-remote-ids' collection.id %}">Clear Stored Prolific IDs</a>
+            <a class="btn btn-danger btn-sm" href="{% url 'prolific:collection-clear-remote-ids' collection.id %}" onclick="return confirm('Are you sure?')">Clear Stored Prolific IDs</a>
           {% endif %}
        </td>
        <td>
           <a href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details on Prolific</a> -
-          <a href="{% url 'prolific:collection-progress' collection.id %}">Collection Progress</a>
+          <a href="{% url 'prolific:collection-progress' collection.id %}">Collection Progress</a><br>
+          <a href="{% url 'prolific:recent-participants' %}?collection_id={{ collection.id }}&limit=15">Recently Loaded Experiments </a> -
+          <a href="{% url 'prolific:collection-recent-result' collection.id 3 %}">Recently Completed Experiments </a>
        </td>
       </tr>
       {% if collection.study_set.all %}

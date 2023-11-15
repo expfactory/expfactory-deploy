@@ -16,6 +16,7 @@ from django.forms import formset_factory, TextInput
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
 from taggit.models import Tag
@@ -448,6 +449,13 @@ class Serve(View):
                 id=experiment_id
             )
 
+    def set_last_load(self, request):
+        if self.subject:
+            self.subject.last_exp = self.experiment.experiment_repo_id
+            self.subject.last_url = request.build_absolute_uri()
+            self.subject.last_url_at = timezone.now()
+            self.subject.save()
+
     def get(self, request, *args, **kwargs):
         self.set_subject()
         self.set_battery()
@@ -465,6 +473,7 @@ class Serve(View):
             '''
 
         self.experiment, num_left = self.assignment.get_next_experiment()
+        self.set_last_load(request)
 
         if self.experiment is None:
             return self.complete(request)

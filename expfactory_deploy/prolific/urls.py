@@ -16,6 +16,8 @@ urlpatterns = [
     path("collection/<int:collection_id>/add_participants/", views.ParticipantFormView.as_view(), name="add-participants"),
     path("collection/<int:collection_id>/progress", views.collection_progress, name="collection-progress"),
     path("collection/<int:collection_id>/progress_alt", views.collection_progress_alt, name="collection-progress-alt"),
+    path("collection/<int:collection_id>/progress/recent/result/<int:days>", views.collection_recently_completed, {'by': 'result'}, name="collection-recent-result"),
+    path("collection/<int:collection_id>/progress/recent/assignment/<int:days>", views.collection_recently_completed, {'by': 'assignment'}, name="collection-recent-assignment"),
     path("collection/<int:collection_id>/toggle", views.toggle_collection, name="collection-toggle"),
     path("collection/<int:collection_id>/clear_remote_ids", views.clear_remote_ids, name="collection-clear-remote-ids"),
     path("remote/studies/", views.remote_studies_list, name="remote-studies-list"),
@@ -24,4 +26,5 @@ urlpatterns = [
     path("blocked_participant/list", views.BlockedParticipantList.as_view(), name="blocked-participant-list"),
     path("blocked_participant/create", views.BlockedParticipantCreate.as_view(), name="blocked-participant-create"),
     path("blocked_participant/update/<int:pk>", views.BlockedParticipantUpdate.as_view(), name="blocked-participant-update"),
+    path("recent/participants", views.recent_participants, name="recent-participants"),
 ]
