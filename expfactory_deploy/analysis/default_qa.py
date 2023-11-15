@@ -150,7 +150,7 @@ def calculate_average_rt(
         lambda group: group["rt"].mean()
     )
 
-    return rt_by_condition.to_dict()
+    return rt_by_condition.to_json()
 
 
 def calculate_omission_rate(
@@ -195,7 +195,7 @@ def calculate_omission_rate(
         lambda group: group["rt"].isna().mean()
     )
 
-    return omission_rate.to_dict()
+    return omission_rate.to_json()
 
 
 
@@ -290,7 +290,7 @@ def calculate_average_accuracy(
         correct_trial_col
     ].mean()
 
-    return accuracy_by_condition.to_dict()
+    return accuracy_by_condition.to_json()
 
 
 kwargs_lookup = {
@@ -369,7 +369,6 @@ def check_same_response(
         value_counts = test_response_trials__df["response"].value_counts()
 
         proportions = value_counts / test_response_trials__df["response"].count()
-        proportions = proportions.to_dict()
         mismatch_correct_response = df[
             (df["correct_trial"] == 1) & (df["condition"] == "mismatch")
         ]["response"].unique()[0]
@@ -386,7 +385,7 @@ def check_same_response(
             proportions["match"] = proportions[match_correct_response]
             del proportions[match_correct_response]
 
-        return proportions
+        return proportions.to_json()
 
 
 def calculate_partial_accuracy__span(df):

@@ -54,10 +54,13 @@ def run_qa(results, rerun=False):
         task_name = result.task_name.replace("_rdoc", "")
         metrics, error = apply_qa_funcs(task_name, task_data)
         if metrics != None:
-            feedback = []
+            feedback = ''
+            for key in metrics:
+                if type(metrics[key]) is str:
+                    metrics[key] = json.loads(metrics[key])
             try:
                 feedback = feedback_generator(task_name, **metrics)
-                ', '.join(feedback)
+                feedback = ', '.join(feedback)
             except Exception as e:
                 print("feedback failure")
                 print(f'result id: {result.id}')

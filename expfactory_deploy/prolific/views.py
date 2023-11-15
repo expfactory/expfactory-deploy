@@ -281,12 +281,12 @@ def collection_recently_completed(request, collection_id, days, by):
     td = timezone.now() - timedelta(days=days)
     if by == "assignment":
         recent = exp_models.Assignment.objects.filter(
-            battery__study__study_collection=collection_id
+            battery__study__study_collection=collection_id, status='completed'
         ).annotate(prolific_id=F("subject__prolific_id"), parent=F("battery__title"))
     elif by == "result":
         recent = exp_models.Result.objects.filter(
             assignment__battery__study__study_collection=collection_id
-        ).annotate(
+        ).filter(status='completed').annotate(
             prolific_id=F("assignment__subject__prolific_id"),
             parent=F(
                 "battery_experiment__experiment_instance__experiment_repo_id__name"
@@ -294,7 +294,7 @@ def collection_recently_completed(request, collection_id, days, by):
         )
     else:
         raise Http404("unsupported model")
-    recent = recent.filter(completed_at__gte=td)
+    recent = recent.filter(status_changed__gte=td)
     return render(
         request,
         "prolific/collection_recently_completed.html",
