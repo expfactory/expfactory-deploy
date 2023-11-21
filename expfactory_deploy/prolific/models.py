@@ -261,7 +261,7 @@ class StudyCollectionSubject(models.Model):
     def save(self, *args, **kwargs):
         number_of_groups = self.study_collection.number_of_groups
         if self.pk == None and number_of_groups > 0:
-            current_part_count = self.study_collection.studycollcetionsubject_set.count()
+            current_part_count = self.study_collection.studycollectionsubject_set.count()
             self.group_index = (current_part_count + 1) % number_of_groups
         super().save(*args, **kwargs)
 
