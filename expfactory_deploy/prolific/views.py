@@ -45,7 +45,6 @@ class ProlificServe(exp_views.Serve):
         return redirect(reverse('prolific:complete', kwargs={'assignment_id': self.assignment.id}))
     """
 
-
 class ProlificComplete(View):
     def get(self, request, *args, **kwargs):
         assignment = get_object_or_404(
@@ -287,7 +286,6 @@ def collection_recently_completed(request, collection_id, days, by):
         recent = exp_models.Result.objects.filter(
             assignment__battery__study__study_collection=collection_id
         ).filter(status='completed').annotate(
-            subject_id=F("assignment__subject__id"),
             prolific_id=F("assignment__subject__prolific_id"),
             parent=F(
                 "battery_experiment__experiment_instance__experiment_repo_id__name"

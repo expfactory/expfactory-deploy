@@ -24,10 +24,25 @@ class StudyCollection(models.Model):
     published = models.BooleanField(default=False)
     inter_study_delay = models.DurationField(null=True, blank=True)
     active = models.BooleanField(default=True)
+    number_of_groups = models.IntegerField(
+        default=0,
+        help_text='''
+            Number of different groups to randomly assign participants to.
+            A participants group number is injected into serve experiment template for use by experiments.
+            0 means nothing will be added to the context.
+        '''
+    )
 
     @property
     def study_count(self):
         return self.study_set.all().count()
+
+    def set_missing_group_indices(self):
+        group_count = 1
+        for scs in self.collection.studycollectionsubject_set.filter(group_index=0):
+            scs.group_index = group_count % self.number_of_groups
+            scs.save()
+            group_count += 1
 
     def clear_remote_ids(self):
         for study in self.study_set.all():
@@ -238,6 +253,17 @@ class CollectionSubjectManager(models.Manager):
 class StudyCollectionSubject(models.Model):
     study_collection = models.ForeignKey(StudyCollection, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    group_index = models.IntegerField(default=0)
+
+    ''' Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
+        to not give same number multiple times? Current use case is in a loop, should be fine.
+    '''
+    def save(self, *args, **kwargs):
+        number_of_groups = self.study_collection.number_of_groups
+        if self.pk == None and number_of_groups > 0:
+            current_part_count = self.study_collection.studycollcetionsubject_set.count()
+            self.group_index = (current_part_count + 1) % number_of_groups
+        super().save(*args, **kwargs)
 
 
 class SimpleCC(TimeStampedModel):

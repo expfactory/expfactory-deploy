@@ -372,7 +372,6 @@ def check_same_response(
         value_counts = test_response_trials__df["response"].value_counts()
 
         proportions = value_counts / test_response_trials__df["response"].count()
-        proportions = proportions
         mismatch_correct_response = df[
             (df["correct_trial"] == 1) & (df["condition"] == "mismatch")
         ]["response"].unique()[0]
