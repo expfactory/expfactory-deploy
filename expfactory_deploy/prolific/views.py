@@ -45,7 +45,6 @@ class ProlificServe(exp_views.Serve):
         return redirect(reverse('prolific:complete', kwargs={'assignment_id': self.assignment.id}))
     """
 
-
 class ProlificComplete(View):
     def get(self, request, *args, **kwargs):
         assignment = get_object_or_404(

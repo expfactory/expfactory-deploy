@@ -460,6 +460,19 @@ class Serve(View):
                 print(e)
                 return
 
+    ''' Another type of function that would be best to overwrite in prolific class, but fallback to experiments urls make dangerous.
+        StudyCollectionSubject reverse relation via battery/assignment is not necessarily unique at the moment. Finding multiples should
+        fail louder maybe.
+    '''
+    def get_js_vars(self):
+        js_vars = {}
+        scs = list(self.subject.studycollection_set.filter(study_collection__study__battery__assignment=self.assignment).distinct())
+        if len(scs) == 1 and scs[0].group_index > 1:
+            js_vars['group_index'] = scs[0].group_index
+        if len(scs) > 1:
+            print(f'multiple studycollectionsubjects found for sub {self.subject.id} and assignment {self.assignment.id}')
+        return js_vars
+
     def get(self, request, *args, **kwargs):
         self.set_subject()
         self.set_battery()
@@ -490,6 +503,7 @@ class Serve(View):
         # We could insert this into finish message
         # exp_context["num_left"] = num_left
         exp_context["exp_config"] = {}
+        exp_context["js_vars"] = self.get_js_vars()
         context = {**exp_context}
         print(context)
         return render(request, "experiments/jspsych_deploy.html", context)
