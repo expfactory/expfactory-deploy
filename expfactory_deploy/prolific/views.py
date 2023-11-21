@@ -307,12 +307,10 @@ def collection_recently_completed(request, collection_id, days, by):
     A variant of this could live in experiments app. Only put here since we ignore any
     one without a prolific id and can filter on study_collections.
 """
-
-
 @login_required
 def recent_participants(request):
     collection_id = request.GET.get("collection_id", None)
-    limit = int(request.GET.get("limit", None))
+    limit = int(request.GET.get("limit", -1))
     context = {}
     subjects = (
         exp_models.Subject.objects.exclude(last_url_at=None)
@@ -327,6 +325,7 @@ def recent_participants(request):
         subjects = subjects.filter(
             assignment__battery__study__study_collection__id=collection_id
         )
+    subjects = subjects.distinct()
     if limit:
         subjects = subjects[:limit]
     context["subjects"] = subjects

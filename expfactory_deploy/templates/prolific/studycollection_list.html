@@ -29,7 +29,8 @@
           <a href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details on Prolific</a> -
           <a href="{% url 'prolific:collection-progress' collection.id %}">Collection Progress</a><br>
           <a href="{% url 'prolific:recent-participants' %}?collection_id={{ collection.id }}&limit=15">Recently Loaded Experiments </a> -
-          <a href="{% url 'prolific:collection-recent-result' collection.id 3 %}">Recently Completed Experiments </a>
+          <a href="{% url 'prolific:collection-recent-result' collection.id 3 %}">Recently Completed Experiments </a><br>
+          <a href="{% url 'analysis:qa-by-sc' collection.id%}" >QA for results</a>
        </td>
       </tr>
       {% if collection.study_set.all %}

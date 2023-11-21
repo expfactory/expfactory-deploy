@@ -263,7 +263,7 @@ class Subject(models.Model):
     tags = TaggableManager()
     last_exp = models.ForeignKey(ExperimentRepo, blank=True, null=True, default=None, on_delete=models.SET_NULL)
     last_url = models.TextField(blank=True)
-    last_url_at = models.DateField(blank=True, null=True)
+    last_url_at = models.DateTimeField(blank=True, null=True)
 
 
     def __str__(self):

@@ -451,10 +451,14 @@ class Serve(View):
 
     def set_last_load(self, request):
         if self.subject:
-            self.subject.last_exp = self.experiment.experiment_repo_id
-            self.subject.last_url = request.build_absolute_uri()
-            self.subject.last_url_at = timezone.now()
-            self.subject.save()
+            try:
+                self.subject.last_exp = self.experiment_instance.experiment_repo_id
+                self.subject.last_url = request.build_absolute_uri()
+                self.subject.last_url_at = timezone.now()
+                self.subject.save()
+            except Exception as e:
+                print(e)
+                return
 
     def get(self, request, *args, **kwargs):
         self.set_subject()

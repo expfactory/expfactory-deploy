@@ -327,9 +327,12 @@ def apply_qa_funcs(task__name, task__df):
         ret_metrics["attention_check_accuracy"] = calculate_attention_check_accuracy(
             task__df
         )
-        ret_metrics["omissions"] = calculate_omission_rate(task__df, **kwargs)
-        ret_metrics["accuracies"] = calculate_average_accuracy(task__df, **kwargs)
-        ret_metrics["rts"] = calculate_average_rt(task__df, **kwargs)
+        if (task__name == 'stop_signal'):
+            ret_metrics["stopping_data"] = get_stopping_data(task__df)
+        else:
+            ret_metrics["omissions"] = calculate_omission_rate(task__df, **kwargs)
+            ret_metrics["accuracies"] = calculate_average_accuracy(task__df, **kwargs)
+            ret_metrics["rts"] = calculate_average_rt(task__df, **kwargs)
     except Exception as e:
         ret_error = e
     return ret_metrics, ret_error
