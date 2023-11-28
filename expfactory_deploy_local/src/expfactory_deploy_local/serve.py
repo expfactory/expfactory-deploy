@@ -36,6 +36,11 @@ group.add_argument(
     help="Comma delimited list of paths to experiments. Mutually exclusive with exp_config",
     type=lambda x: [Path(y) for y in x.split(',')]
 )
+parser.add_argument(
+    '-gi',
+    '--group_index',
+    help="Inject a group_index variable into the experiment context."
+)
 
 experiments = []
 
@@ -80,6 +85,8 @@ def run(args=None):
             os.symlink(experiment, Path(experiments_dir, experiment.stem))
 
     web.config.update({'experiments': experiments})
+    if (args.group_index is not None):
+        web.config.update({'group_index': args.group_index})
     # I think a directory starting with a period in the dirname of
     # sys.argv[0] threw webpy run func for a loop.
     # We don't need argv anymore so can clear it.
@@ -89,6 +96,8 @@ def run(args=None):
 def serve_experiment(experiment):
     exp_name = experiment.stem
     context = generate_experiment_context(Path(experiments_dir, exp_name), "/", f"/static/experiments/{exp_name}")
+    if (web.config.get('group_index', None)):
+        context['group_index'] = web.config.group_index
     return render.deploy_template(**context)
 
 class reset:

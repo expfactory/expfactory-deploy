@@ -15,6 +15,9 @@
       hidden
     ></button>
     <script>
+      {% if group_index %}
+        window.efVars = { 'group_index': {{ group_index }} }
+      {% endif %}
       {% if require_cookie_csrf %}
        $(function() {
          <!-- {# include "experiments/serve_battery_cookie.html" #} -->
