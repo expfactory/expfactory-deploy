@@ -688,8 +688,8 @@ def study_collection_subject_list(request, collection_id):
 @login_required
 def reissue_incomplete_study_collection(request, scs_id):
     scs = get_object_or_404(models.StudyCollectionSubject, pk=scs_id)
-    responses = scs.incomplete_study_collection()
-    context = {"responses": responses}
+    responses, new_scs = scs.incomplete_study_collection()
+    context = {"responses": responses, "old_scs": scs, "new_scs": new_scs}
     return render(request, "prolific/reissue_incomplete_study_collection.html", context)
 
 

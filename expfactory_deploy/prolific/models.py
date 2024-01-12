@@ -367,7 +367,7 @@ class StudyCollectionSubject(models.Model):
             response = studies[0].add_to_allowlist([self.subject.prolific_id])
             api_responses.append(response)
 
-        return api_responses
+        return api_responses, new_scs
 
 
 class SimpleCC(TimeStampedModel):

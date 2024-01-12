@@ -25,8 +25,8 @@
     <th>Data Submission</th>
   </thead>
   <tbody>
-    <tr>
     {% for entry in status %}
+    <tr>
       <td>
       {{ entry.0 }}
       </td>
@@ -38,9 +38,31 @@
           {{ assignment.status}}
         {% endfor %}
       </td>
-    {% endfor %}
     </tr>
+    {% endfor %}
   </tbody>
 </table>
-{% endblock %}
 
+<details>
+<summary class="h3">
+Reissue Incomplete Studies for Participant
+</summary>
+<div class="alert alert-warning" role="alert">
+  <p>
+  If a participant has a Prolific Submission is REJECTED or TIMED-OUT they will not be able to finish any remaining studies in the study collection.  This action will find which batteries the participant hasn't submitted data for, create a new study collection with these batteries, create drafts for the studies for the batteries, and associate this subject with that study collection. The api for any one of these steps may fail so scan the output for any obvious erros and review the new study collection to ensure its in good shape.
+</p>
+<p>
+  Caveats:
+  <ul>
+    <li>
+    Running this on a participant in good standing will allow them to potentially do the uncompleted batteries twice.
+    </li>
+    <li>
+      The code currently only takes into consideration what batteries have data for the participant, not the state of participant submission reported by the prolific api.
+    </li>
+  </ul>
+</p>
+</div>
+<a class="btn btn-danger" href="{% url 'prolific:collection-subject-reissue-incomplete' scs.id %}">Reissue</a>
+</details>
+{% endblock %}
