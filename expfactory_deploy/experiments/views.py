@@ -452,7 +452,7 @@ class Serve(View):
     def set_last_load(self, request):
         if self.subject:
             try:
-                self.subject.last_exp = self.experiment_instance.experiment_repo_id
+                self.subject.last_exp = self.experiment.experiment_repo_id
                 self.subject.last_url = request.build_absolute_uri()
                 self.subject.last_url_at = timezone.now()
                 self.subject.save()
@@ -466,8 +466,8 @@ class Serve(View):
     '''
     def get_js_vars(self):
         js_vars = {}
-        scs = list(self.subject.studycollection_set.filter(study_collection__study__battery__assignment=self.assignment).distinct())
-        if len(scs) == 1 and scs[0].group_index > 1:
+        scs = list(self.subject.studycollectionsubject_set.filter(study_collection__study__battery__assignment=self.assignment).distinct())
+        if len(scs) == 1:
             js_vars['group_index'] = scs[0].group_index
         if len(scs) > 1:
             print(f'multiple studycollectionsubjects found for sub {self.subject.id} and assignment {self.assignment.id}')
@@ -503,9 +503,8 @@ class Serve(View):
         # We could insert this into finish message
         # exp_context["num_left"] = num_left
         exp_context["exp_config"] = {}
-        exp_context["js_vars"] = self.get_js_vars()
+        exp_context["js_vars"] = {**self.get_js_vars(), **exp_context.get("js_vars", {})}
         context = {**exp_context}
-        print(context)
         return render(request, "experiments/jspsych_deploy.html", context)
 
 class ServeConsent(View):

@@ -184,11 +184,11 @@ def fetch_studies_by_status(id=None):
 def fetch_remote_study_details(id=None):
     study = outgoing_api.study_detail(id)
     participants = []
-    for filter in study.get("filters", []):
-        if filter.get("filter_id") == "participant_group_allowlist":
-            for gid in filter.get("selected_values", []):
+    for filter in getattr(study, "filters", []):
+        if getattr(filter, "filter_id", "") == "participant_group_allowlist":
+            for gid in getattr(filter, "selected_values", []):
                 response = outgoing_api.get_participants(gid)
-                participants.extend(response.get("results", []))
+                participants.extend(getattr(response, "results", []))
     return {"study": study, "participants": participants}
 
 
@@ -355,8 +355,8 @@ def collection_progress(request, collection_id):
             break
         try:
             details = fetch_remote_study_details(id=study.remote_id)
-        except e:
-            errors.append(f"Error on {study.remoteid}: {e}")
+        except Exception as e:
+            errors.append(f"Error on {study.remote_id}: {e}")
             continue
         for participant in details["participants"]:
             try:
