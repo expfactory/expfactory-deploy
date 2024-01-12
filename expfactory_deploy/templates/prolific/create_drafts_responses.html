@@ -3,9 +3,9 @@
 <h2>Responses from prolific api</h2>
 <a href="{% url 'prolific:remote-studies-list' id %}"> Per Study Details </a>
 <br>
-<ul>
-  {% for response in responses %}
-    <li><pre>{{ response|pprint }}</pre></li>
-  {% endfor %}
+{% for response in responses %}
+  <pre>{{ response|pprint }}</pre>
+  <br>
+{% endfor %}
 </ul>
 {% endblock %}

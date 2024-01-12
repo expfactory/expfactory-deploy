@@ -9,46 +9,55 @@
 
   <table class="table">
     <thead>
-      <th>Name</th>
+      <th width="33%">Manage</th>
       <th>Actions</th>
-      <th>Links</th>
+      <th>Progress</th>
     </thead>
     <tbody>
   {% for collection in object_list %}
     {% if collection.active %}
       <tr>
-        <td>{{ collection.name }}</td>
         <td>
-          <a class="btn btn-primary btn-sm" href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a>
-          <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Hide</a>
-          {% if collection.study_set.all %}
+            <details>
+              <summary>
+            {% if collection.deployed %}
+              <a href="{% url 'prolific:remote-studies-list' collection.id %}">
+            {% else %}
+              <a href="{% url 'prolific:study-collection-update' collection.id %}">
+            {% endif %}
+                {{ collection.name }}
+            </a>
+              </summary>
+              {% if collection.study_set.all %}
+                <ul>
+                  {% for study in collection.study_set.all %}
+                    <li>
+                      <a href="{% url 'experiments:battery-detail' study.battery.id %}">Battery {{ study.battery.title }}</a> <br>
+                      Prolific ID: {% if study.remote_id == '' %} None {% else %} {{ study.remote_id }} {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                No batteries associated with collection.
+              {% endif %}
+          </details>
+
+        </td>
+        <td>
+          {% if collection.deployed %}
             <a class="btn btn-danger btn-sm" href="{% url 'prolific:collection-clear-remote-ids' collection.id %}" onclick="return confirm('Are you sure?')">Clear Stored Prolific IDs</a>
           {% endif %}
+          <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Hide</a>
        </td>
        <td>
-          <a href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details on Prolific</a> -
-          <a href="{% url 'prolific:collection-progress' collection.id %}">Collection Progress</a><br>
-          <a href="{% url 'prolific:recent-participants' %}?collection_id={{ collection.id }}&limit=15">Recently Loaded Experiments </a> -
-          <a href="{% url 'prolific:collection-recent-result' collection.id 3 %}">Recently Completed Experiments </a><br>
-          <a href="{% url 'analysis:qa-by-sc' collection.id%}" >QA for results</a>
+            <a href="{% url 'prolific:collection-progress-by-prolific' collection.id %}">Progress according to Prolific API</a><br>
+            <a href="{% url 'prolific:collection-progress-by-data' collection.id %}">Progress by submitted trialdata</a><br>
+            <a href="{% url 'prolific:recent-participants' %}?collection_id={{ collection.id }}&limit=15">Recently Loaded Experiments </a><br>
+            <a href="{% url 'prolific:collection-recent-result' collection.id 3 %}">Recently Completed Experiments </a><br>
+            <a href="{% url 'analysis:qa-by-sc' collection.id%}" >QA for results</a><br>
        </td>
       </tr>
-      {% if collection.study_set.all %}
-        <tr class="table-active">
-        <td colspan="3">
-        <ul>
-          {% for study in collection.study_set.all %}
-            <li>
-              <a href="{% url 'experiments:battery-detail' study.battery.id %}">Battery {{ study.battery.id }} </a>
-              Prolific ID: {% if study.remote_id == '' %} None {% else %} {{ study.remote_id }} {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-        </tr>
-        {% endif %}
     {% endif %}
-  {% empty %}
-    <li>None</li>
   {% endfor %}
   </tbody>
   </table>

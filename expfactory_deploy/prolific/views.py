@@ -30,6 +30,12 @@ from prolific import forms
 from prolific import outgoing_api
 
 
+"""
+    subclass of experiments app serve class view to handle query params from prolific.
+    One issue here is that the query param keys are hard coded here and in prolific.models query_params.
+"""
+
+
 class ProlificServe(exp_views.Serve):
     def set_subject(self):
         prolific_id = self.request.GET.get("PROLIFIC_PID", None)
@@ -40,10 +46,33 @@ class ProlificServe(exp_views.Serve):
                 prolific_id=prolific_id
             )[0]
 
+    def set_assignment(self):
+        study_id = self.request.GET.get("STUDY_ID", None)
+        if study_id is None:
+            super().set_assignment()
+        else:
+            assignments = exp_models.Assignment.objects.filter(
+                subject=self.subject, battery=self.battery
+            )
+            assign_alt_id = assignments.filter(alt_id=study_id)
+            if len(assign_alt_id) > 0:
+                self.assignment = assign_alt_id[0]
+                return
+            active_assignments = assignments.filter(
+                Q(status="started") | Q(status="not-started")
+            )
+            if len(active_assignments) > 0:
+                self.assignment = active_assignments[0]
+                self.assignment.alt_id = study_id
+                self.assignment.save()
+            else:
+                super().set_assignment()
+
     """
     def complete(self, request):
         return redirect(reverse('prolific:complete', kwargs={'assignment_id': self.assignment.id}))
     """
+
 
 class ProlificComplete(View):
     def get(self, request, *args, **kwargs):
@@ -155,6 +184,7 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
             )
 
         if form.is_valid():
+            messages.success(request, "Study Collection saved")
             return HttpResponseRedirect(
                 reverse_lazy(
                     "prolific:study-collection-update",
@@ -162,7 +192,6 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
                 )
             )
         else:
-            print(form.errors)
             return HttpResponseRedirect(
                 reverse_lazy("prolific:study-collection-update")
             )
@@ -193,21 +222,94 @@ def fetch_remote_study_details(id=None):
 
 
 @login_required
-def remote_studies_list(request, id=None):
+def remote_studies_by_project(request, project_id):
+    studies_by_status = defaultdict(list)
     try:
-        study_collection = models.StudyCollection.objects.get(id=id)
+        studies_by_status = fetch_studies_by_status(id=project_id)
+    except Exception as e:
+        messages.error(request, e)
+
+
+@login_required
+def remote_studies_list(request, collection_id=None):
+    try:
+        study_collection = models.StudyCollection.objects.get(id=collection_id)
     except (ObjectDoesNotExist, ValueError):
         study_collection = None
 
+    studies_in_db = list(
+        models.Study.objects.filter(study_collection=study_collection).prefetch_related(
+            "battery"
+        )
+    )
+    sc_study_count = len(studies_in_db)
+    tracked_remote_ids = [
+        study.remote_id for study in studies_in_db if study.remote_id is not None
+    ]
+
     studies_by_status = defaultdict(list)
-    try:
-        studies_by_status = fetch_studies_by_status(id=id)
-    except Exception as e:
-        messages.error(request, e)
+
+    study_collection_subjects = models.StudyCollectionSubject.objects.filter(
+        study_collection=study_collection
+    ).prefetch_related("subject")
+
+    for study_id in tracked_remote_ids:
+        try:
+            api_study = fetch_remote_study_details(id=study_id)
+            api_study = api_study["study"]
+            studies_by_status[api_study["status"]].append(api_study)
+        except Exception as e:
+            print(e)
+            messages.error(request, e)
+
+    publish = False
+    draft = False
+    add_parts = False
+    bad_state = False
+    if len(tracked_remote_ids) == 0:
+        draft = True
+        publish = False
+
+        state_description = "There are no ids for prolific studies being tracked in the database. 'Create Drafts' will attempt to create a study on prolific for each battery in the current study collection."
+    elif "ACTIVE" in studies_by_status and len(studies_by_status["ACTIVE"]) == len(
+        tracked_remote_ids
+    ):
+        draft = False
+        publish = False
+        add_parts = True
+
+        state_description = "All of the study ids being tracked in the database for this study collection are listed as 'active' on Prolific. Any participants added to the study collection should be able to access the studies on prolific as they become eligible (ex: interstudy delay)."
+    elif "UNPUBLISHED" in studies_by_status and len(
+        studies_by_status["UNPUBLISHED"]
+    ) == len(tracked_remote_ids):
+        draft = False
+        publish = True
+        add_parts = True
+
+        state_description = "All of the study ids being tracked in the database exist as drafts on prolific's website but have not been published there. Until they are published they will be hidden from participants regardless of the participants association to the study collection listed here."
+
+    elif "COMPLETED" in studies_by_status and len(
+        studies_by_status["COMPLETED"]
+    ) == len(tracked_remote_ids):
+        state_description = "Collection for studies on prolific has completed. If you need to collect data for more participants use the 'clear remote ids' on the study colleciton list page to reset the databses state to not track any prolific study ids. From there drafts will need to be created, published and participants added."
+
+    else:
+        bad_state = True
+
+        state_description = "It appears not all studies in the study collection have the same status on prolific. This shouldn't happen normally. If there is a timed out message at the top of the page, reload the page to see if all the api requests go through. Otherwise you can attempt to use the 'clear remote ids' on the study colleciton list page to reset the databses state to not track any prolific study ids. From there drafts will need to be created, published and participants added. Any current active or unpublished studies should be manually closed or deleted on prolific."
+
+    studies_by_status.default_factory = None
     context = {
         "studies_by_status": studies_by_status,
         "study_collection": study_collection,
+        "study_collection_subjects": study_collection_subjects,
         "id": id,
+        "studies_in_db": studies_in_db,
+        "publish": publish,
+        "draft": draft,
+        "add_parts": add_parts,
+        "bad_state": bad_state,
+        "state_description": state_description,
     }
     return render(request, "prolific/remote_studies_list.html", context)
 
@@ -231,6 +333,7 @@ def create_drafts_view(request, collection_id):
         responses = collection.create_drafts()
     except Exception as e:
         messages.error(request, e)
+    responses = json_encode_api_response(responses)
     return render(
         request,
         "prolific/create_drafts_responses.html",
@@ -249,6 +352,7 @@ def publish_drafts(request, collection_id):
         except Exception as e:
             messages.error(request, e)
 
+    responses = json_encode_api_response(responses)
     return render(
         request,
         "prolific/create_drafts_responses.html",
@@ -256,79 +360,22 @@ def publish_drafts(request, collection_id):
     )
 
 
+def json_encode_api_response(responses):
+    for response in responses:
+        try:
+            response = json.loads(response.content)
+        except (json.JSONDecodeError, AttributeError):
+            continue
+    return responses
+
+
 """
     Summary and progress views
 """
 
-
-@login_required
-def collection_progress_alt(request, collection_id):
-    context = {}
-    context["collection"] = get_object_or_404(models.StudyCollection, id=collection_id)
-    context["battery_results"] = (
-        exp_models.Battery.objects.filter(study__study_collection=collection_id)
-        .values("title")
-        .annotate(completed=Count(Q(assignment__result__status="complete")))
-        .order_by("study__rank")
-    )
-    return render(request, "prolific/collection_progress_alt.html", context)
-
-
-@login_required
-def collection_recently_completed(request, collection_id, days, by):
-    collection = get_object_or_404(models.StudyCollection, id=collection_id)
-    td = timezone.now() - timedelta(days=days)
-    if by == "assignment":
-        recent = exp_models.Assignment.objects.filter(
-            battery__study__study_collection=collection_id
-        ).filter(status='completed').annotate(subject_id="subject__id", prolific_id=F("subject__prolific_id"), parent=F("battery__title"))
-    elif by == "result":
-        recent = exp_models.Result.objects.filter(
-            assignment__battery__study__study_collection=collection_id
-        ).filter(status='completed').annotate(
-            prolific_id=F("assignment__subject__prolific_id"),
-            parent=F(
-                "battery_experiment__experiment_instance__experiment_repo_id__name"
-            ),
-        )
-    else:
-        raise Http404("unsupported model")
-    recent = recent.filter(status_changed__gte=td)
-    return render(
-        request,
-        "prolific/collection_recently_completed.html",
-        {"recent": recent, "td": td, "days": days, "collection": collection, "by": by},
-    )
-
-
 """
-    Display recent participants using the fields inside the subject model for last seen.
-    A variant of this could live in experiments app. Only put here since we ignore any
-    one without a prolific id and can filter on study_collections.
+    collection_progress is the first stab at a progress page. Superceded by collection_progress_by_* views
 """
-@login_required
-def recent_participants(request):
-    collection_id = request.GET.get("collection_id", None)
-    limit = int(request.GET.get("limit", -1))
-    context = {}
-    subjects = (
-        exp_models.Subject.objects.exclude(last_url_at=None)
-        .exclude(prolific_id=None)
-        .order_by("-last_url_at")
-        .select_related()
-    )
-    if collection_id:
-        context["collection"] = get_object_or_404(
-            models.StudyCollection, id=collection_id
-        )
-        subjects = subjects.filter(
-            assignment__battery__study__study_collection__id=collection_id
-        )
-    subjects = subjects.distinct()
-    if limit:
-        subjects = subjects[:limit]
-    context["subjects"] = subjects
-    return render(request, "prolific/recent_participants.html", context)
 
 
 @login_required
@@ -375,6 +422,172 @@ def collection_progress(request, collection_id):
         "errors": errors,
     }
     return render(request, "prolific/collection_progress.html", context)
+
+
+"""
+    short-study object returned by list_submissions prolific endpoint
+    Attributes:
+        id (str): Submission id.
+        participant_id (str): Participant id.
+        status (SubmissionShortStatus): Status of the submission.
+        started_at (datetime.datetime): Date started
+        has_siblings (bool): Whether or not the submission has sibling submissions (sharing the same study).
+        completed_at (Union[Unset, None, datetime.datetime]): Date completed
+        study_code (Union[Unset, None, str]): The completion code used by the participant to complete the study.
+"""
+
+
+@login_required
+def collection_progress_by_prolific_submissions(request, collection_id):
+    context = {}
+
+    collection = get_object_or_404(models.StudyCollection, id=collection_id)
+    studies = collection.study_set.all().order_by("rank").prefetch_related("battery")
+    collection_subjects = models.StudyCollectionSubject.objects.filter(
+        study_collection=collection
+    ).prefetch_related("subject")
+
+    subject_study_status = {}
+    for study in studies:
+        api_results = outgoing_api.list_submissions(study.remote_id)
+        for result in api_results:
+            if not subject_study_status.get("participant_id", None):
+                subject_study_status[result.participant_id] = {}
+            subject_study_status[result.participant_id][study.remote_id] = result.status
+
+    no_api_result_subjects = [
+        x.subject.prolific_id
+        for x in collection_subjects
+        if x.subject.prolific_id not in subject_study_status
+    ]
+    context = {
+        "collection": collection,
+        "studies": studies,
+        "subject_study_status": subject_study_status,
+        "no_api_result_subjects": no_api_result_subjects,
+    }
+    return render(
+        request, "prolific/collection_progress_by_prolific_submissions.html", context
+    )
+
+
+@login_required
+def collection_progress_by_experiment_submissions(request, collection_id):
+    collection = get_object_or_404(models.StudyCollection, id=collection_id)
+    studies = (
+        collection.study_set.all()
+        .order_by("rank")
+        .prefetch_related("battery")
+        .annotate(exp_count=Count("battery__experiment_instances"))
+    )
+    assignments = (
+        exp_models.Assignment.objects.filter(
+            subject__studycollectionsubject__study_collection=collection
+        )
+        .prefetch_related("battery")
+        .annotate(result_count=Count("result"))
+    )
+    subjects = exp_models.Subject.objects.filter(
+        studycollectionsubject__study_collection=collection
+    )
+
+    battery_assignments = defaultdict(lambda: defaultdict(list))
+    for assignment in assignments:
+        battery_assignments[assignment.battery_id][
+            assignment.subject.prolific_id
+        ].append(assignment.result_count)
+
+    study_assignments = {}
+    for study in studies:
+        batt_assignments = battery_assignments[study.battery.id]
+        single_assignment_per_subject = {
+            sub: assignment.pop()
+            for sub, assignment in batt_assignments.items()
+            if len(assignment)
+        }
+        study_assignments[study.id] = (study, single_assignment_per_subject)
+
+    context = {
+        "collection": collection,
+        "studies": studies,
+        "assignments": assignments,
+        "subjects": [x.prolific_id for x in subjects],
+        "study_assignments": study_assignments,
+    }
+    return render(
+        request, "prolific/collection_progress_by_experiment_submissions.html", context
+    )
+
+
+@login_required
+def collection_recently_completed(request, collection_id, days, by):
+    collection = get_object_or_404(models.StudyCollection, id=collection_id)
+    td = timezone.now() - timedelta(days=days)
+    if by == "assignment":
+        recent = (
+            exp_models.Assignment.objects.filter(
+                battery__study__study_collection=collection_id
+            )
+            .filter(status="completed")
+            .annotate(
+                subject_id="subject__id",
+                prolific_id=F("subject__prolific_id"),
+                parent=F("battery__title"),
+            )
+        )
+    elif by == "result":
+        recent = (
+            exp_models.Result.objects.filter(
+                assignment__battery__study__study_collection=collection_id
+            )
+            .filter(status="completed")
+            .annotate(
+                prolific_id=F("assignment__subject__prolific_id"),
+                parent=F(
+                    "battery_experiment__experiment_instance__experiment_repo_id__name"
+                ),
+            )
+        )
+    else:
+        raise Http404("unsupported model")
+    recent = recent.filter(status_changed__gte=td)
+    return render(
+        request,
+        "prolific/collection_recently_completed.html",
+        {"recent": recent, "td": td, "days": days, "collection": collection, "by": by},
+    )
+
+
+"""
+    Display recent participants using the fields inside the subject model for last seen.
+    A variant of this could live in experiments app. Only put here since we ignore any
+    one without a prolific id and can filter on study_collections.
+"""
+
+
+@login_required
+def recent_participants(request):
+    collection_id = request.GET.get("collection_id", None)
+    limit = int(request.GET.get("limit", -1))
+    context = {}
+    subjects = (
+        exp_models.Subject.objects.exclude(last_url_at=None)
+        .exclude(prolific_id=None)
+        .order_by("-last_url_at")
+        .select_related()
+    )
+    if collection_id:
+        context["collection"] = get_object_or_404(
+            models.StudyCollection, id=collection_id
+        )
+        subjects = subjects.filter(
+            assignment__battery__study__study_collection__id=collection_id
+        )
+    subjects = subjects.distinct()
+    if limit:
+        subjects = subjects[:limit]
+    context["subjects"] = subjects
+    return render(request, "prolific/recent_participants.html", context)
 
 
 """
@@ -451,6 +664,69 @@ def toggle_collection(request, collection_id):
     collection.active = not collection.active
     collection.save()
     return HttpResponseRedirect(reverse_lazy("prolific:study-collection-list"))
+
+
+"""
+    View that displays all the subjects that have been associated with a study colleciton.
+    This is typically done when a prolific ID is added to the first study in a study collection.
+"""
+
+
+@login_required
+def study_collection_subject_list(request, collection_id):
+    collection = get_object_or_404(models.StudyCollection, pk=collection_id)
+    study_collection_subjects = models.StudyCollectionSubject.objects.filter(
+        study_collection__pk=collection_id
+    ).select_related("subject")
+    context = {
+        "study_collection_subjects": study_collection_subjects,
+        "collection": collection,
+    }
+    return render(request, "prolific/study_collection_subjects.html", context)
+
+
+@login_required
+def reissue_incomplete_study_collection(request, scs_id):
+    scs = get_object_or_404(models.StudyCollectionSubject, pk=scs_id)
+    responses = scs.incomplete_study_collection()
+    context = {"responses": responses}
+    return render(request, "prolific/reissue_incomplete_study_collection.html", context)
+
+
+@login_required
+def study_collection_subject_detail(
+    request, scs_id=None, collection_id=None, prolific_id=None
+):
+    if scs_id:
+        scs = get_object_or_404(models.StudyCollectionSubject, pk=scs_id)
+    else:
+        scs = get_object_or_404(
+            models.StudyCollectionSubject,
+            study_collection__id=collection_id,
+            subject__prolific_id=prolific_id,
+        )
+
+    studies = scs.study_collection.study_set.all().order_by("rank")
+    status = []
+    for study in studies:
+        # we have to get all submissions and then filter on subject id?
+        api_results = outgoing_api.list_submissions(study.remote_id)
+        prolific_status = None
+        for result in api_results:
+            if result.get("participant_id", None) == prolific_id:
+                prolific_status = result
+                break
+
+        battery_status = exp_models.Assignment.objects.filter(
+            subject=scs.subject, battery=study.battery
+        )
+        status.append((study, battery_status, prolific_status))
+
+    context = {
+        "scs": scs,
+        "status": status,
+    }
+    return render(request, "prolific/study_collection_subject_detail.html", context)
 
 
 class BlockedParticipantList(LoginRequiredMixin, ListView):

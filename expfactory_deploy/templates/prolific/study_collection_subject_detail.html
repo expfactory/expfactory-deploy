@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Single Participant Status for Subject Collection</h2>
+<h3>Participant</h3>
+<a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a> - Group index {{ scs.group_index }}
+<h3>Study Collection</h3>
+{% if scs.study_collection.deployed %}
+  <a href="{% url 'prolific:remote-studies-list' scs.study_collection.id %}">
+{% else %}
+  <div class="alert alert-warning" role="alert">
+    Not Deployed to Prolific
+  </div><br>
+  <a href="{% url 'prolific:study-collection-update' scs.study_collection.id %}">
+{% endif %}
+{{ scs.study_collection.name }}
+</a>
+
+<br>
+
+<h3>Status</h3>
+<table class="table">
+  <thead>
+    <th>Study</th>
+    <th>Prolific Submission</th>
+    <th>Data Submission</th>
+  </thead>
+  <tbody>
+    <tr>
+    {% for entry in status %}
+      <td>
+      {{ entry.0 }}
+      </td>
+      <td>
+      {{ entry.2 }}
+      </td>
+      <td>
+        {% for assignment in entry.1 %}
+          {{ assignment.status}}
+        {% endfor %}
+      </td>
+    {% endfor %}
+    </tr>
+  </tbody>
+</table>
+{% endblock %}
+

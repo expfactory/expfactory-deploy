@@ -2,29 +2,61 @@
 {% block content %}
 {% if study_collection %}
   <div class="h2">
-    Remote Studies for
-    <a href="{% url 'prolific:study-collection-update' study_collection.id %}">
-      {{study_colleciton.name}} (id: {{study_collection.id}})
-    </a>
+    Study Collection Details and Status
     <div class="battery-actions">
       <a class="btn btn-primary" href="{% url 'prolific:collection-progress' study_collection.id %}">Collection Progress</a>
-      <a class="btn btn-primary" href="{% url 'prolific:add-participants' study_collection.id %}">Add Subjects to Studies</a>
-      <a class="btn btn-primary" href="{% url 'prolific:create-drafts' study_collection.id %}">Create Drafts</a>
-      <a class="btn btn-primary" href="{% url 'prolific:publish-drafts' study_collection.id %}">Publish Drafts</a>
+      {% if add_parts %}
+      <a class="btn btn-primary {{ add_parts|yesno:",disabled" }}" href="{% url 'prolific:add-participants' study_collection.id %}">Add Subjects to Studies</a>
+      {% endif %}
+      {% if draft %}
+      <a class="btn btn-primary {{ draft|yesno:",disabled" }}" href="{% url 'prolific:create-drafts' study_collection.id %}">Create Drafts</a>
+      {% endif %}
+      {% if publish %}
+      <a class="btn btn-primary {{ publish|yesno:",disabled" }}" href="{% url 'prolific:publish-drafts' study_collection.id %}">Publish Drafts</a>
+      {% endif %}
     </div>
   </div>
-{% elif id %}
-<h2>Remote Studies for Prolific Project {{id}} ({{ studies|length }})</h2>
-{% else %}
-<h2>All Remote Studies ({{ studies|length }})</h2>
-{% endif %}
-{% for status, studies in studies_by_status.items %}
-  <h3>{{ status }}</h3>
-  {% for study in studies %}
+  <br>
+  <h3>Details</h3>
   <details>
-    <summary><a href="{% url 'prolific:remote-study-detail' study.id %}">{{ study.id }}</a></summary>
-    <pre>{{ study|pprint }}</pre>
+    <summary>
+      {{study_collection.name}}<br>(id: {{study_collection.id}})
+    </summary>
+        Prolific Project ID: {{ study_collection.project }} <br>
+        Reward: {{ study_collection.reward }} <br>
+        Total Available Spaces: {{ study_collection.total_available_places }} <br>
+        Estimated Completion Time: {{ study_collection.estimated_completion_time }} <br>
+        Title: {{ study_collection.title }} <br>
+        Inter Study Delay: {{ study_collection.inter_study_delay }} <br>
+        Description: {{ study_collection.description }} <br>
+        Number of Groups: {{ study_collection.number_of_groups }} <br>
+        {% if not draft %}
+        <div class="alert alert-info" role="alert">
+          To edit these details the remote ids will need to be cleared <a href="{% url 'prolific:study-collection-list' %}">here</a>. After the collection is edited any studies for the collection on prolific will need to be recreated via create drafts.
+        </div>
+        {% endif %}
   </details>
+  <h3> Study Collection Status</h3>
+    <div class="state-description">
+      <div class="alert alert-info" role="alert">
+      {{ state_description }}
+      </div>
+    </div>
+  <h3>Status of Individual Collections on Prolific</h3>
+  <div class="prolific-study-status-list">
+  {% for status, studies in studies_by_status.items %}
+    <h4>{{ status }}</h4>
+    {% for study in studies %}
+    <details>
+      <summary><a href="{% url 'prolific:remote-study-detail' study.id %}">{{ study.id }}</a></summary>
+      <pre>{{ study|pprint }}</pre>
+    </details>
+    {% endfor %}
+    </div>
   {% endfor %}
-{% endfor %}
+  <h3> Subjects Associated With Study Collection</h3>
+  {% for scs in study_collection_subjects %}
+    <a href="{% url 'prolific:collection-subject-detail' scs_id=scs.id %}">{{ scs.subject.prolific_id }}</a><br>
+  {% endfor %}
+{% endif %}
 {% endblock %}

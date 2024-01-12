@@ -4,9 +4,7 @@
     <div class="h2">
       Study Collection
       <div class="battery-actions">
-        {% if collection_id %}
-          <a class="btn btn-primary" href="{% url 'prolific:create-drafts' collection_id %}">Create Drafts</a>
-        {% endif %}
+        <a class="btn btn-primary" href="{% url 'prolific:remote-studies-list' collection_id %}">Manage Prolific State</a>
         <input class="btn btn-primary" type="submit" name="action" form="collection_form" value="Save Changes"/>
       </div>
     </div>

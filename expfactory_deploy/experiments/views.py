@@ -505,7 +505,6 @@ class Serve(View):
         exp_context["exp_config"] = {}
         exp_context["js_vars"] = {**self.get_js_vars(), **exp_context.get("js_vars", {})}
         context = {**exp_context}
-        print(context)
         return render(request, "experiments/jspsych_deploy.html", context)
 
 class ServeConsent(View):
