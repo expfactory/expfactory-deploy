@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Single Participant Status for Subject Collection</h2>
+<h3>Participant</h3>
+<a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a> - Group index {{ scs.group_index }}
+<h3>Study Collection</h3>
+{% if scs.study_collection.deployed %}
+  <a href="{% url 'prolific:remote-studies-list' scs.study_collection.id %}">
+{% else %}
+  <div class="alert alert-warning" role="alert">
+    Not Deployed to Prolific
+  </div><br>
+  <a href="{% url 'prolific:study-collection-update' scs.study_collection.id %}">
+{% endif %}
+{{ scs.study_collection.name }}
+</a>
+
+<br>
+
+<h3>Status</h3>
+<table class="table">
+  <thead>
+    <th>Study</th>
+    <th>Prolific Submission</th>
+    <th>Data Submission</th>
+  </thead>
+  <tbody>
+    {% for entry in status %}
+    <tr>
+      <td>
+      {{ entry.0 }}
+      </td>
+      <td>
+      {{ entry.2 }}
+      </td>
+      <td>
+        {% for assignment in entry.1 %}
+          {{ assignment.status}}
+        {% endfor %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<details>
+<summary class="h3">
+Reissue Incomplete Studies for Participant
+</summary>
+<div class="alert alert-warning" role="alert">
+  <p>
+  If a participant has a Prolific Submission is REJECTED or TIMED-OUT they will not be able to finish any remaining studies in the study collection.  This action will find which batteries the participant hasn't submitted data for, create a new study collection with these batteries, create drafts for the studies for the batteries, and associate this subject with that study collection. The api for any one of these steps may fail so scan the output for any obvious erros and review the new study collection to ensure its in good shape.
+</p>
+<p>
+  Caveats:
+  <ul>
+    <li>
+    Running this on a participant in good standing will allow them to potentially do the uncompleted batteries twice.
+    </li>
+    <li>
+      The code currently only takes into consideration what batteries have data for the participant, not the state of participant submission reported by the prolific api.
+    </li>
+  </ul>
+</p>
+</div>
+<a class="btn btn-danger" href="{% url 'prolific:collection-subject-reissue-incomplete' scs.id %}">Reissue</a>
+</details>
+{% endblock %}

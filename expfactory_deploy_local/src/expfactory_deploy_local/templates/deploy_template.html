@@ -5,6 +5,11 @@
     <meta charset="utf-8" />
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
+    {% if group_index %}
+    <script>
+        window.efVars = { 'group_index': {{ group_index }} }
+    </script>
+    {% endif %}
     {{ experiment_load | safe }}
   </head>
   <body>

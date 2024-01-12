@@ -294,6 +294,8 @@ class Assignment(SubjectTaskStatusModel):
     ordering = models.ForeignKey('ExperimentOrder', on_delete=models.SET_NULL, blank=True, null=True)
     # index that can be used to divy cohort up by as experiment sees fit.
     group_index = models.IntegerField(default=0)
+    # For storing identifying information from query parameters at battery load time.
+    alt_id = models.TextField(blank=True)
 
     @property
     def results(self):

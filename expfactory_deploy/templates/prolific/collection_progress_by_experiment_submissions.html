@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load dict_get %}
+{% block content %}
+  <div class="h2">
+    Collection Progress for {{ collection.name }}
+    <div class="battery-actions">
+      <a class="btn btn-primary" href="{% url 'prolific:add-participants' collection.id %}">Add Subjects to Studies</a>
+      <a class="btn btn-primary" href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details List</a>
+    </div>
+  </div>
+  <p>
+    Table contains the number of submitted results for each particpant for each battery used in the collection.
+  </p>
+  <table class="table">
+    <thead>
+      <th>Subject</th>
+        {% for study in studies %}
+          <th>
+            {{ study.battery.title }}
+          </th>
+        {% endfor %}
+    </thead>
+    <tbody>
+      {% for subject in subjects %}
+        <tr>
+          <td>{{ subject }}</td>
+          {% for study, assignment in study_assignments.items %}
+            <td>
+              {% with assign=assignment.1|dict_get:subject %}
+                {{ assign }}/{{assignment.0.exp_count}}
+              {% endwith %}
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+{% endblock %}

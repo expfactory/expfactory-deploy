@@ -28,7 +28,7 @@
       <tr>
         <td><a href="{% url 'experiments:subject-detail' subject.id %}">{{ subject.prolific_id }}</a></td>
       {% for bid, group in groups.items %}
-        <td> {{ group.date_added }} - {{ group.completed|yesno:"Results,No Results"}}</td>
+        <td> {{ group.completed }} - {{ group.completed|yesno:"Results,No Results"}}</td>
       {% endfor %}
       </tr>
     {% endfor %}

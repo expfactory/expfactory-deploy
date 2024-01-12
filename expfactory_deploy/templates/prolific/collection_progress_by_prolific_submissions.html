@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load dict_get %}
+{% block content %}
+  <div class="h2">
+    Collection Progress for {{ collection.name }}
+    <div class="battery-actions">
+      <a class="btn btn-primary" href="{% url 'prolific:add-participants' collection.id %}">Add Subjects to Studies</a>
+      <a class="btn btn-primary" href="{% url 'prolific:remote-studies-list' collection.id %}">Study Details List</a>
+    </div>
+  </div>
+  <h3>Subject Submissions to Prolific</h3>
+  <p>
+    This table shows results from the prolific api for each study in this collection. A submission is only listed by the prolific api once a participant has accepted a study. Participants can only accept a study if it has been published and are in that studies participant group. When a participant is added to a study collection from our end they are only added to the participant group of the first study in the study collection.
+  </p>
+  <p>
+  <table class="table">
+    <thead>
+        <th>Subject</th>
+      {% for study in studies %}
+        <th>{{ study.remote_id }}</th>
+      {% endfor %}
+    </thead>
+    <tbody>
+  {% for subject, study_status in subject_study_status.items %}
+      <tr>
+        <td>{{ subject.prolific_id }}</td>
+        {% for study in studies %}
+          <td>
+          {% if study.remote_id in study_status|dict_get:study.remote_id %}
+            {{ study_status|dict_get:study.remote_id }}
+          {% else %}
+            N/A
+          {% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+  {% empty %}
+      <td> No Results From Prolific API </td>
+  {% endfor %}
+    </tbody>
+  </table>
+
+  {% if no_api_result_subjects|length %}
+    <p>
+      These subjects are associated with the study collection on our end but have no submissions with prolific.
+    </p>
+    {% for subject in no_api_result_subjects %}
+      <a href="{% url 'prolific:collection-subject-detail' collection_id=collection.id prolific_id=subject %}">
+        {{ subject }}
+      </a>
+      <br>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

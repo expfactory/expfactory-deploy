@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+Internal name: {{ collection.name }}<br>
+Base study title: {{ collection.title }}<br>
+Prolific project id: {{ collection.project }}<br>
+
+<ul>
+{% for scs in study_collection_subjects %}
+  <li>
+    <a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a> - Group index {{ scs.group_index }}
+    <br>
+    <a href="{% url 'prolific:collection-subject-detail' scs_id=scs.id %}">Detail</a>
+  </li>
+{% endfor %}
+</ul>
+
+{% endblock %}

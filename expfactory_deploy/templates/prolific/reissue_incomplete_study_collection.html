@@ -1,0 +1,16 @@
+
+{% extends "base.html" %}
+{% block content %}
+
+<h2> API responses for reissue attempt </h2>
+<a href="{% url 'prolific:remote-studies-list' collection_id=old_scs.study_collection.id %}">Old Study Collection</a><br>
+<a href="{% url 'prolific:remote-studies-list' collection_id=new_scs.study_collection.id %}">New Study Collection</a><br>
+<ul>
+{% for response in responses %}
+<li>
+{{ response }}
+</li>
+{% endfor %}
+</ul>
+
+{% endblock %}

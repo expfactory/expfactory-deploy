@@ -113,3 +113,12 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+.td-link-list {
+  list-style-type: none;
+  padding: .25em;
+}
+
+.prolific-study-status-list {
+  padding-left: 2em;
+}
