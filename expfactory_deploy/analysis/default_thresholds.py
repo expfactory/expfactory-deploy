@@ -14,7 +14,7 @@ mean_accuracy__thresholds = {
     "span": {"response": 0.2, "processing": 0.6},
     "spatial_cueing": {"valid": 0.6, "invalid": 0.6, "nocue": 0.6, "doublecue": 0.6},
     "spatial_ts": {"tswitch_cswitch": 0.6, "tstay_cstay": 0.6, "tstay_cswitch": 0.6},
-    "stop_signal": 0.5,
+    "stop_signal": 0.6,
     "stroop": {"congruent": 0.6, "incongruent": 0.6},
     "visual_search": {
         ("conjunction", 8.0): 0.6,
