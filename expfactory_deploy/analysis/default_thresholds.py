@@ -14,7 +14,7 @@ mean_accuracy__thresholds = {
     "span": {"response": 0.2, "processing": 0.6},
     "spatial_cueing": {"valid": 0.6, "invalid": 0.6, "nocue": 0.6, "doublecue": 0.6},
     "spatial_ts": {"tswitch_cswitch": 0.6, "tstay_cstay": 0.6, "tstay_cswitch": 0.6},
-    "stop_signal": 0.5,
+    "stop_signal": 0.6,
     "stroop": {"congruent": 0.6, "incongruent": 0.6},
     "visual_search": {
         ("conjunction", 8.0): 0.6,
@@ -34,7 +34,7 @@ mean_rt__thresholds = {
     "flanker": {"congruent": 1000, "incongruent": 1000},
     "go_nogo": {"go": 1000},
     "n_back": {1.0: 1000, 2.0: 1000},
-    "span": {"response": 1000, "processing": 1000},
+    "span": {"response": None, "processing": 1250},
     "spatial_cueing": {
         "valid": 1000,
         "invalid": 1000,
@@ -97,6 +97,7 @@ mean_span__thresholds = {
     "accuracy": {"same-domain": 0.2, "storage-only": 0.2, "partial_response": 0.25},
     "rt": {
         "same-domain": 1250,
+        "storage-only": None
     },
     "omission": {
         "omission_rate_empty_response_trials": 0.2,
