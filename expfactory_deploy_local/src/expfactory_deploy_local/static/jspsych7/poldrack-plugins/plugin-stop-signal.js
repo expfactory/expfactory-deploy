@@ -6,53 +6,53 @@ var jsPoldracklabStopSignal = (function (jspsych) {
     parameters: {
       response_ends_trial: {
         type: jspsych.ParameterType.BOOL,
-        default: false
+        default: false,
       },
-	    stimulus: {
+      stimulus: {
         type: jspsych.COMPLEX,
-        default: undefined
+        default: undefined,
       },
-	    SS_stimulus: {
+      SS_stimulus: {
         type: jspsych.COMPLEX,
-        default: undefined
+        default: undefined,
       },
       SS_trial_type: {
         type: jspsych.STRING,
-        default: undefined
+        default: undefined,
       },
       stimulus_duration: {
         type: jspsych.INT,
-        default: -1
+        default: -1,
       },
       SS_duration: {
         type: jspsych.INT,
-        default: -1
+        default: -1,
       },
       trial_duration: {
         type: jspsych.INT,
-        default: -1
+        default: -1,
       },
       SSD: {
         type: jspsych.INT,
-        default: undefined
+        default: undefined,
       },
       post_trial_gap: {
         type: jspsych.INT,
-        default: 1000
+        default: 1000,
       },
       prompt: {
         type: jspsych.STRING,
-        default: ""
+        default: "",
       },
       choices: {
-        type: jspsych.KEYS
+        type: jspsych.KEYS,
       },
       correct_choice: {
         type: jspsych.KEY,
-        default: null
+        default: null,
       },
-    }
-  }
+    },
+  };
 
   /**
    * **poldracklab-stop-signal**
@@ -71,35 +71,33 @@ var jsPoldracklabStopSignal = (function (jspsych) {
       var setTimeoutHandlers = [];
 
       // display stimulus
-      const elemId = 'jspsych-stop-signal-stimulus'
-      const elemType = 'div'
-      display_element.innerHTML = `<${elemType} id='${elemId}'>${trial.stimulus}</${elemType}>${trial.prompt}`
+      const elemId = "jspsych-stop-signal-stimulus";
+      const elemType = "div";
+      display_element.innerHTML = `<${elemType} id='${elemId}'>${trial.stimulus}</${elemType}>${trial.prompt}`;
 
       // store response
-      var response = {rt: null, key: null};
+      var response = { rt: null, key: null };
 
       // function to end trial when it is time
-      var end_trial = function() {
+      var end_trial = function () {
         // kill any remaining setTimeout handlers
         for (var i = 0; i < setTimeoutHandlers.length; i++) {
           clearTimeout(setTimeoutHandlers[i]);
         }
 
         // kill keyboard listeners
-        if(typeof keyboardListener !== 'undefined'){
+        if (typeof keyboardListener !== "undefined") {
           jsPsych.pluginAPI.cancelKeyboardResponse(keyboardListener);
         }
 
         // gather the data to store for the trial
-        console.log(response.key)
         var trial_data = {
-          "rt": response.rt,
-          "response": response.key,
-          "correct": response.key === trial.correct_choice
+          rt: response.rt,
+          response: response.key,
         };
 
         // clear the display
-        display_element.innerHTML = ''
+        display_element.innerHTML = "";
 
         if (trial.save_trial_parameters === undefined) {
           trial.save_trial_parameters = {
@@ -112,24 +110,22 @@ var jsPoldracklabStopSignal = (function (jspsych) {
             trial_duration: true,
             SSD: true,
             choices: true,
-            correct_choice: true
-          }
+            correct_choice: false,
+          };
         }
-
 
         // move on to the next trial
         jsPsych.finishTrial(trial_data);
       };
 
       // function to handle responses by the subject
-      var after_response = function(info) {
-
+      var after_response = function (info) {
         // after a valid response, the stimulus will have the CSS class 'responded'
         // which can be used to provide visual feedback that a response was recorded
-        $("#jspsych-stop-signal-stimulus").addClass('responded');
+        $("#jspsych-stop-signal-stimulus").addClass("responded");
 
         // only record the first response
-        if(response.key == null){
+        if (response.key == null) {
           response = info;
         }
 
@@ -142,46 +138,50 @@ var jsPoldracklabStopSignal = (function (jspsych) {
       var keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
         callback_function: after_response,
         valid_responses: trial.choices,
-        rt_method: 'performance',
+        rt_method: "performance",
         persist: false,
-        allow_held_key: false
+        allow_held_key: false,
       });
 
       // hide image if timing is set
       if (trial.stimulus_duration > 0) {
-        var t1 = setTimeout(function() {
-          document.getElementById('jspsych-stop-signal-stimulus').setAttribute('hidden', 'foo');
+        var t1 = setTimeout(function () {
+          document
+            .getElementById("jspsych-stop-signal-stimulus")
+            .setAttribute("hidden", "foo");
         }, trial.stimulus_duration);
         setTimeoutHandlers.push(t1);
       }
 
       // end trial if time limit is set
       if (trial.trial_duration > 0) {
-        var t2  = setTimeout(function() {
+        var t2 = setTimeout(function () {
           end_trial();
-        }, trial.trial_duration );
+        }, trial.trial_duration);
         setTimeoutHandlers.push(t2);
       }
 
-      if (trial.SS_trial_type.toLowerCase() == 'stop') {
+      if (trial.SS_trial_type.toLowerCase() == "stop") {
         if (trial.SSD >= 0) {
-          const SS_stimulus = `<div id='jspsych-stop-signal-SS'>${trial.SS_stimulus}</div>`
-          var t3 = setTimeout(function() {
-            display_element.innerHTML += SS_stimulus
+          const SS_stimulus = `<div id='jspsych-stop-signal-SS'>${trial.SS_stimulus}</div>`;
+          var t3 = setTimeout(function () {
+            display_element.innerHTML += SS_stimulus;
           }, trial.SSD);
           setTimeoutHandlers.push(t3);
         }
 
         // hide SS after a fixed interval (or when stimulus ends)
         if (trial.SS_duration > 0) {
-          var t4 = setTimeout(function() {
-            document.getElementById('jspsych-stop-signal-SS').setAttribute('hidden', 'foo');
-          }, trial.SS_duration+trial.SSD);
+          var t4 = setTimeout(function () {
+            document
+              .getElementById("jspsych-stop-signal-SS")
+              .setAttribute("hidden", "foo");
+          }, trial.SS_duration + trial.SSD);
           setTimeoutHandlers.push(t4);
         }
       }
     }
   }
-  PoldracklabStopSignalPlugin.info = info
+  PoldracklabStopSignalPlugin.info = info;
   return PoldracklabStopSignalPlugin;
 })(jsPsychModule);
