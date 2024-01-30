@@ -129,20 +129,35 @@ var jsPsychAttentionCheckRdoc = (function (jspsych) {
         this.simulate_visual(trial, simulation_options, load_callback);
       }
     }
+
     create_simulation_data(trial, simulation_options) {
+      const current_question = trial.question;
+      const correct_key_string = String.fromCharCode(
+        trial.key_answer
+      ).toLowerCase();
+
+      const simulated_response = this.jsPsych.pluginAPI.getValidKey(
+        trial.choices
+      );
+
       const default_data = {
-        current_question: current_question,
-        current_key_answer: current_key_answer,
+        attention_check_question: current_question,
+        correct_response: correct_key_string,
         rt: this.jsPsych.randomization.sampleExGaussian(500, 50, 1 / 150, true),
-        response: this.jsPsych.pluginAPI.getValidKey(trial.choices),
+        response: simulated_response,
+        correct_trial: correct_key_string === simulated_response ? 1 : 0,
       };
+
       const data = this.jsPsych.pluginAPI.mergeSimulationData(
         default_data,
         simulation_options
       );
+
       this.jsPsych.pluginAPI.ensureSimulationDataConsistency(trial, data);
+
       return data;
     }
+
     simulate_data_only(trial, simulation_options) {
       const data = this.create_simulation_data(trial, simulation_options);
       this.jsPsych.finishTrial(data);
