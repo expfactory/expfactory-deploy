@@ -22,11 +22,19 @@
       <td>{{ result.exp_name }}</td>
       <td>{{ result.battery_name }}</td>
       <td>
-        <details>
+        {% if result.error %}
+          <details class="alert alert-danger">
+        {% else %}
+          <details>
+        {% endif %}
           <summary>
            {{ result.feedback|default:"No Feedback" }}
           </summary>
           <pre>{{ result.qa_result|pprint }}</pre>
+          {% if result.error %}
+            {{ result.error }}
+          {% endif %}
+
         </details>
       </td>
     </tr>

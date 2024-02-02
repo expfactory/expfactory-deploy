@@ -1,5 +1,6 @@
 import ast
 import json
+import math
 import pandas
 
 from django.core.management.base import BaseCommand, CommandError
@@ -9,7 +10,6 @@ from prolific import models as pm
 from experiments import models as em
 from analysis.models import ResultQA
 from analysis.default_qa import apply_qa_funcs
-from analysis.default_thresholds import feedback_generator
 
 
 class Command(BaseCommand):
@@ -30,7 +30,7 @@ def study_collection_qa(id, rerun=False):
         subject__studycollectionsubject__study_collection=id
     )
 
-    run_qa(results_qs)
+    run_qa(results_qs, rerun)
 
 
 def run_qa(results, rerun=False):
@@ -38,6 +38,7 @@ def run_qa(results, rerun=False):
         results = results.filter(
             ~Exists(ResultQA.objects.filter(exp_result=OuterRef("pk")))
         )
+
     results = results.annotate(
         task_name=F("battery_experiment__experiment_instance__experiment_repo_id__name")
     )
@@ -51,18 +52,22 @@ def run_qa(results, rerun=False):
             task_data = pandas.DataFrame(json.loads(trialdata))
         else:
             task_data = pandas.DataFrame(trialdata)
-        task_name = result.task_name.replace("_rdoc", "")
-        metrics, error = apply_qa_funcs(task_name, task_data)
+        task_name = result.task_name
+        metrics, feedback, error = apply_qa_funcs(task_name, task_data)
+
         if metrics != None:
-            feedback = ''
             for key in metrics:
                 if type(metrics[key]) is str:
                     metrics[key] = json.loads(metrics[key])
-            try:
-                feedback = feedback_generator(task_name, **metrics)
-                feedback = ', '.join(feedback)
-            except Exception as e:
-                print("feedback failure")
-                print(f'result id: {result.id}')
-                print(e)
-            ResultQA.objects.update_or_create(exp_result=result, defaults={'qa_result': metrics, 'error': error, 'feedback': feedback})
+                if metrics[key] is None:
+                    continue
+                try:
+                    if math.isnan(metrics[key]):
+                        metrics[key] = None
+                except TypeError:
+                    continue
+
+        ResultQA.objects.update_or_create(
+            exp_result=result,
+            defaults={"qa_result": metrics, "error": error, "feedback": feedback},
+        )
