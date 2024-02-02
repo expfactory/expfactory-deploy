@@ -494,9 +494,9 @@ def collection_progress_by_prolific_submissions(request, collection_id):
     for study in studies:
         api_results = outgoing_api.list_submissions(study.remote_id)
         for result in api_results:
-            if not subject_study_status.get("participant_id", None):
-                subject_study_status[result.participant_id] = {}
-            subject_study_status[result.participant_id][study.remote_id] = result.status
+            if not subject_study_status.get(result["participant_id"], None):
+                subject_study_status[result["participant_id"]] = {}
+            subject_study_status[result["participant_id"]][study.remote_id] = result["status"]
 
     no_api_result_subjects = [
         x.subject.prolific_id

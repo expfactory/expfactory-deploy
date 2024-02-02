@@ -152,5 +152,5 @@ def publish(sid):
 def list_submissions(sid=None):
     response = make_call(get_submissions, study=sid)
     if hasattr(response, "status_code"):
-        raise GenericProlificException()
+        raise GenericProlificException(f"response has status_code {response}")
     return response["results"]
