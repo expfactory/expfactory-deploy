@@ -28,7 +28,11 @@ def qa_by_sc(request, id):
         .order_by("exp_result__battery_experiment__battery__study__rank")
     )
 
-    return render(request, "analysis/qa_by_sc.html", {"results": results, "collection": collection})
+    return render(
+        request,
+        "analysis/qa_by_sc.html",
+        {"results": results, "collection": collection},
+    )
 
 
 @login_required

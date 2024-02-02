@@ -67,6 +67,7 @@ def run_qa(results, rerun=False):
                 except TypeError:
                     continue
 
-
-        ResultQA.objects.update_or_create(exp_result=result, defaults={'qa_result': metrics, 'error': error, 'feedback': feedback})
-
+        ResultQA.objects.update_or_create(
+            exp_result=result,
+            defaults={"qa_result": metrics, "error": error, "feedback": feedback},
+        )

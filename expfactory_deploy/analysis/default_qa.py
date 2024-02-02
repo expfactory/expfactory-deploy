@@ -58,7 +58,13 @@ def apply_qa_funcs(task_name, task_df):
 
 
 def feedback_generator(
-    task_name, attention_check_accuracy, accuracy, rt, omissions, check_response=None, **kwargs
+    task_name,
+    attention_check_accuracy,
+    accuracy,
+    rt,
+    omissions,
+    check_response=None,
+    **kwargs,
 ):
     feedbacks = []
     threshold = thresholds[task_name]
@@ -68,7 +74,9 @@ def feedback_generator(
         feedbacks.append(feedback)
 
     if accuracy < threshold["accuracy"]:
-        feedback = f"Overall task accuracy of {accuracy*100:.2f}% is low for {task_name}."
+        feedback = (
+            f"Overall task accuracy of {accuracy*100:.2f}% is low for {task_name}."
+        )
         feedbacks.append(feedback)
     if rt > threshold["rt"]:
         feedback = f"Overall rt of {rt} is high for {task_name}."
@@ -79,12 +87,11 @@ def feedback_generator(
 
     if check_response is not None:
         if check_response > threshold["check_response"]:
-            feedback = (
-                f"Single response proportion of {check_response} is high for {task_name}."
-            )
+            feedback = f"Single response proportion of {check_response} is high for {task_name}."
             feedbacks.append(feedback)
 
     return feedbacks
+
 
 def get_attention_check_accuracy(df):
     attention_checks = df[(df["trial_id"] == "test_attention_check")]
