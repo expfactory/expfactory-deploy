@@ -466,7 +466,7 @@ class Serve(View):
     '''
     def get_js_vars(self):
         js_vars = {}
-        scs = list(self.subject.studycollection_set.filter(study_collection__study__battery__assignment=self.assignment).distinct())
+        scs = list(self.subject.studycollectionsubject_set.filter(study_collection__study__battery__assignment=self.assignment).distinct())
         if len(scs) == 1 and scs[0].group_index > 1:
             js_vars['group_index'] = scs[0].group_index
         if len(scs) > 1:
@@ -595,8 +595,12 @@ class Results(View):
         data['ip'] = request.META['REMOTE_ADDR']
         if finished:
             models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status="completed").save()
-        elif assignment.status == "not-started":
+        else:
+            models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status="started").save()
+
+        if assignment.status == "not-started":
             assignment.status = "started"
+
         assignment.save()
         return HttpResponse('recieved')
 
