@@ -28,7 +28,11 @@
           <details>
         {% endif %}
           <summary>
-           {{ result.feedback|default:"No Feedback" }}
+            {% if result.feedback|length %}
+              {{ result.feedback }}
+            {% else %}
+              No Feedback
+            {% endif %}
           </summary>
           <pre>{{ result.qa_result|pprint }}</pre>
           {% if result.error %}
