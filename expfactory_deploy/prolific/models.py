@@ -122,9 +122,11 @@ class StudyCollection(models.Model):
             return
         study = studies[0]
         if not study.remote_id:
-            raise Exception("No study id")
+            # raise Exception("No study id")
+            return
         if not study.participant_group:
-            raise Exception("No participant group")
+            # raise Exception("No participant group")
+            return
         response = api.get_participants(study.participant_group)
         print(response)
         to_promote = set([x['participant_id'] for x in response['results']])
