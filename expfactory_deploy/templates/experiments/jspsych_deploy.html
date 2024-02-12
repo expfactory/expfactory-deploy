@@ -26,10 +26,23 @@
                 <button id="next_experiment_button" type="button" class="btn btn-success">Next Experiment</button>
             </div>`;
 
+          let interactionData = {}
           if (jsPsych.data.hasOwnProperty('getData')) {
             data = jsPsych.data.getData()
           } else {
             data = jsPsych.data.get().json()
+            interactionData = jsPsych.data.getInteractionData().json();
+          }
+
+          let browser = {}
+          try {
+            browser = {
+              "userAgent": navigator.userAgent,
+              "windowWidth": window.innerWidth,
+              "windowHeight": window.innerHeight
+            }
+          } catch {
+            browser = {"error": "failed to access navigator or window object"}
           }
 
           let trialdata = {
@@ -37,7 +50,9 @@
             "current_trial": 0,
             "dateTime": (new Date().getTime()),
             "trialdata": data,
-            "status": "finished"
+            "status": "finished",
+            "browser": browser,
+            "interactionData": interactionData
           };
 
           document.body.insertAdjacentHTML('beforeend', finished_message)
