@@ -17,15 +17,8 @@
         }
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-        /* onFinish start */
-        function onFinish(data) {
-          var finished_message = `
-            <div id="finished_message" style="margin:100px">
-                <h1>Experiment Complete</h1>
-                <p>{{ end_message }}</p>
-                <button id="next_experiment_button" type="button" class="btn btn-success">Next Experiment</button>
-            </div>`;
-
+        function generatePostData() {
+          let data = {}
           let interactionData = {}
           if (jsPsych.data.hasOwnProperty('getData')) {
             data = jsPsych.data.getData()
@@ -45,7 +38,7 @@
             browser = {"error": "failed to access navigator or window object"}
           }
 
-          let trialdata = {
+          let postData = {
             "uniqueid": "{{ uniqueId }}",
             "current_trial": 0,
             "dateTime": (new Date().getTime()),
@@ -53,20 +46,49 @@
             "status": "finished",
             "browser": browser,
             "interactionData": interactionData
-          };
+          }
+          return postData
+        }
 
+        function dataSync() {
+          let postData = generatePostData()
+          postData["status"] = "started"
+          $.ajax({
+            type: "POST",
+            contentType: "application/json",
+            headers: {'X-CSRFToken': csrftoken},
+            url : "{{ post_url }}",
+            data : JSON.stringify(postData),
+            dataType: 'text',
+            error: (error) => {
+              console.log(error)
+            }
+          })
+        }
+        window.dataSync = dataSync
+
+        /* onFinish start */
+        function onFinish() {
+          var finished_message = `
+            <div id="finished_message" style="margin:100px">
+                <h1>Experiment Complete</h1>
+                <p>{{ end_message }}</p>
+                <button id="next_experiment_button" type="button" class="btn btn-success">Next Experiment</button>
+            </div>`;
+
+          let postData = generatePostData()
           document.body.insertAdjacentHTML('beforeend', finished_message)
           $.ajax({
             type: "POST",
             contentType: "application/json",
             headers: {'X-CSRFToken': csrftoken},
             url : "{{ post_url }}",
-            data : JSON.stringify(trialdata),
+            data : JSON.stringify(postData),
+            dataType: 'text',
             error: (error) => {
               jsPsych.data.get().localSave('csv', `${new Date().getTime()}.csv`);
               console.log(error)
             },
-            dataType: 'text',
             success: (data) => {
               $("#next_experiment_button").click(() => {
                 console.log("Finished!");

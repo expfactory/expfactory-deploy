@@ -595,8 +595,12 @@ class Results(View):
         data['ip'] = request.META['REMOTE_ADDR']
         if finished:
             models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status="completed").save()
-        elif assignment.status == "not-started":
+        else:
+            models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status="started").save()
+
+        if assignment.status == "not-started":
             assignment.status = "started"
+
         assignment.save()
         return HttpResponse('recieved')
 
