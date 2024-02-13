@@ -593,15 +593,25 @@ class Results(View):
         data, finished = self.process_exp_data(request.body, assignment)
         data['user_agent'] = request.META['HTTP_USER_AGENT']
         data['ip'] = request.META['REMOTE_ADDR']
-        if finished:
-            models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status="completed").save()
+
+        new_status = "completed" if finished else "started"
+        results = models.Result.objects.filter(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject)
+        inprogress_statuses = ["started", "not-started"]
+
+
+        inprogress_results = [x for x in results if x.status in inprogress_statuses]
+        if len(inprogress_results):
+            result = inprogress_results[0]
+            result.data = data
+            result.status = new_status
+            result.save()
         else:
-            models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status="started").save()
+            models.Result(assignment=assignment, battery_experiment=batt_exp, subject=assignment.subject, data=data, status=new_status).save()
 
         if assignment.status == "not-started":
             assignment.status = "started"
+            assignment.save()
 
-        assignment.save()
         return HttpResponse('recieved')
 
 class SubjectDetail(LoginRequiredMixin, DetailView):
