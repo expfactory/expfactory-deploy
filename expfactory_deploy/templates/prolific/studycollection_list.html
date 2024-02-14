@@ -46,6 +46,8 @@
         <td>
           {% if collection.deployed %}
             <a class="btn btn-danger btn-sm" href="{% url 'prolific:collection-clear-remote-ids' collection.id %}" onclick="return confirm('Are you sure?')">Clear Stored Prolific IDs</a>
+          {% else %}
+          <a class="btn btn-primary btn-sm" href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a>
           {% endif %}
           <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Hide</a>
        </td>

@@ -244,7 +244,7 @@ def remote_studies_list(request, collection_id=None):
     )
     sc_study_count = len(studies_in_db)
     tracked_remote_ids = [
-        study.remote_id for study in studies_in_db if study.remote_id is not None
+        study.remote_id for study in studies_in_db if study.remote_id
     ]
 
     studies_by_status = defaultdict(list)
@@ -398,7 +398,7 @@ def collection_progress(request, collection_id):
             subject_groups[subject][study.battery.id] = {"completed": completed}
 
     for study in studies:
-        if subjects.count() == 0:
+        if subjects.count() == 0 or not study.remote_id:
             break
         try:
             details = fetch_remote_study_details(id=study.remote_id)
