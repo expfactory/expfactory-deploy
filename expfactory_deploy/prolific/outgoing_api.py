@@ -98,10 +98,14 @@ def create_draft(study_details):
     response = make_call(create_study, json_body=to_create)
     return response
 
-
+'''
+    Feb 2024 prolfici api update changed part groups from being project based to being workspace based.
+    For the time being we'll pull this from the env, but it should be added as an option to the DB
+'''
 def create_part_group(pid, name):
+    workspace_id = settings.PROLIFIC_DEFAULT_WORKSPACE
     to_create = api_models.CreateParticipantGroupJsonBody.from_dict(
-        {"project_id": pid, "name": name}
+        {"workspace_id": workspace_id, "name": name}
     )
     response = make_call(create_participant_group, ac=True, json_body=to_create)
     return response
