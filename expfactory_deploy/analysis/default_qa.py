@@ -9,10 +9,10 @@ thresholds = {
         "check_response": 0.9,
     },
     "n_back_rdoc": {
-        "accuracy": 0.9,
+        "accuracy": 0.6,
         "rt": 1000,
         "omissions": 0.2,
-        "check_response": 0.6,
+        "check_response": 0.9,
     },
     "span_rdoc__behavioral": {"accuracy": 0.25, "rt": 1000, "omissions": 0.2},
     "simple_span_rdoc": {"accuracy": 0.25, "rt": 1000, "omissions": 0.2},
