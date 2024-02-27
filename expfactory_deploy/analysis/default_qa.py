@@ -6,10 +6,10 @@ thresholds = {
         "accuracy": 0.6,
         "rt": 1000,
         "omissions": 0.2,
-        "check_response": 0.6,
+        "check_response": 0.9,
     },
     "n_back_rdoc": {
-        "accuracy": 0.6,
+        "accuracy": 0.9,
         "rt": 1000,
         "omissions": 0.2,
         "check_response": 0.6,
