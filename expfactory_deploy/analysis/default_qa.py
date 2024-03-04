@@ -108,7 +108,8 @@ def get_span_processing_rt(df):
 
 def get_span_omissions(df):
     test_trials = df[df["trial_id"] == "test_trial"]
-    proportion = (test_trials["response"].apply(lambda x: len(x) == 4)).mean()
+    na_count = test_trials["response"].isna().sum()
+    proportion = na_count / len(test_trials)
     return proportion
 
 
