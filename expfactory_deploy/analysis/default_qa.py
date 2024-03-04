@@ -32,7 +32,9 @@ def apply_qa_funcs(task_name, task_df):
         metrics["attention_check_accuracy"] = get_attention_check_accuracy(task_df)
         metrics["accuracy"] = get_accuracy(task_df)
 
-        if task_name == "span_rdoc__behavioral":
+        span_tasks = ["simple_span_rdoc", "operation_span_rdoc", "span_rdoc__behavioral"]
+        
+        if task_name in span_tasks:
             metrics["rt"] = get_span_processing_rt(task_df)
             metrics["omissions"] = get_span_omissions(task_df)
             metrics["accuracy"] = get_span_accuracy(task_df)
