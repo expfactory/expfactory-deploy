@@ -27,6 +27,7 @@ from pyrolific.api.participant_groups import (
 )
 
 from pyrolific.api.submissions import get_submissions, get_submission
+import pyrolific.api.messages as api_messages
 from pyrolific.api import studies
 
 token = settings.PROLIFIC_KEY
@@ -158,3 +159,7 @@ def list_submissions(sid=None):
     if hasattr(response, "status_code"):
         raise GenericProlificException()
     return response["results"]
+
+def send_message(participant_id, study_id, message):
+    response = make_call(api_messages.send_massage, recipent_id=participant_id, body=message, study_id=study_id)
+    return response

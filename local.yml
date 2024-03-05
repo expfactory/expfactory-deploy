@@ -51,6 +51,15 @@ services:
     depends_on:
       - django
 
+  q2worker:
+    <<: *django
+    image: expfactory_deploy_local_q2_worker
+    container_name: q2worker
+    depends_on:
+      - postgres
+    ports: []
+    command: /start_django_q2
+
 #  docs:
 #    image: expfactory_deploy_local_docs
 #    container_name: docs

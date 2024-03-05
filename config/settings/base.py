@@ -72,6 +72,7 @@ THIRD_PARTY_APPS = [
     "reversion_compare",
     "taggit",
     "tinymce",
+    "django_q"
 ]
 
 LOCAL_APPS = [
@@ -329,3 +330,15 @@ FILE_UPLOAD_MAX_MEMORY_SIZE=429916160
 PROLIFIC_KEY=env("PROLIFIC_KEY", default=None)
 PROLIFIC_PARTICIPANT=env("PROLIFIC_PARTICIPANT", default=None)
 PROLIFIC_DEFAULT_WORKSPACE=env("PROLIFIC_DEFAULT_WORKSPACE", default=None)
+
+
+Q_CLUSTER = {
+    'name': 'DjangORM',
+    'workers': 1,
+    'timeout': 90,
+    'retry': 120,
+    'queue_limit': 500,
+    'bulk': 10,
+    'orm': 'default'
+}
+

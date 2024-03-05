@@ -4,7 +4,7 @@ argon2-cffi==21.3.0
 boto3==1.26.21
 celery==5.2.7
 debugpy==1.6.4
-pyrolific==1.4.2
+pyrolific==1.4.3
 django-tinymce==3.6.1
 pandas==2.1.2
 
@@ -23,6 +23,7 @@ django-redis==5.2.0
 django-reversion==5.0.4
 django-reversion-compare==0.15.0
 django-taggit==3.1.0
+django-q2
 # Django REST Framework
 djangorestframework==3.14.0
 flower==1.2.0
@@ -34,3 +35,4 @@ pytz==2022.6
 rcssmin==1.1.0
 redis==4.3.5
 uvicorn==0.20.0
+factory_boy

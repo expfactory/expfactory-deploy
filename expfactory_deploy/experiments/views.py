@@ -27,7 +27,7 @@ from experiments.utils.repo import find_new_experiments, get_latest_commit
 from experiments.utils.assignments import batch_assignments
 from experiments.utils.export import export_battery, export_subject, export_single_result
 
-from prolific.models import SimpleCC, Study
+from prolific.models import SimpleCC, Study, StudyCollectionSubject
 
 sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
 
@@ -433,6 +433,15 @@ class Serve(View):
     def complete(self, request):
         studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=self.subject)
         completion_codes = [(x.remote_id, x.completion_code) for x in studies if x.completion_code]
+
+        if self.assignment.alt_id:
+            from prolific.tasks import on_complete_battery
+            study = Study.objects.filter(remote_id=self.assignment.alt_id)
+            scs = StudyCollectionSubject.objects.filter(subject=self.subject, study_collection=study.study_collection)
+            if len(study) and len(scs):
+                on_complete_battery(scs, study)
+
+
         if len(completion_codes):
             return render(request, "prolific/complete.html", {'completion_codes': completion_codes})
         try:
@@ -441,6 +450,9 @@ class Serve(View):
         except ObjectDoesNotExist:
             return redirect(reverse('experiments:complete'))
 
+    '''
+        This sets expperiment as a BatteryExperiment while assignment.next_experiment returns a ExperimentInstance. Are we currently using this?
+    '''
     def set_experiment(self):
         experiment_id = self.kwargs.get("experiment_id")
         if experiment_id is not None:
@@ -452,7 +464,8 @@ class Serve(View):
     def set_last_load(self, request):
         if self.subject:
             try:
-                self.subject.last_exp = self.experiment.experiment_instance.experiment_repo_id
+                if self.experiment:
+                    self.subject.last_exp = self.experiment.experiment_repo_id
                 self.subject.last_url = request.build_absolute_uri()
                 self.subject.last_url_at = timezone.now()
                 self.subject.save()
