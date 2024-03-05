@@ -6,15 +6,18 @@ thresholds = {
         "accuracy": 0.6,
         "rt": 1000,
         "omissions": 0.2,
-        "check_response": 0.6,
+        "check_response": 0.9,
     },
     "n_back_rdoc": {
         "accuracy": 0.6,
         "rt": 1000,
         "omissions": 0.2,
-        "check_response": 0.6,
+        "check_response": 0.9,
     },
     "span_rdoc__behavioral": {"accuracy": 0.25, "rt": 1000, "omissions": 0.2},
+    "simple_span_rdoc": {"accuracy": 0.25, "rt": 1000, "omissions": 0.2},
+    "operation_span_rdoc": {"accuracy": 0.25, "rt": 1000, "omissions": 0.2},
+    "color_discrimination_rdoc": {"accuracy": 0.8, "rt": 3000, "omissions": 0.2},
     "spatial_cueing_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "spatial_task_switching_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "stop_signal_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
@@ -32,7 +35,9 @@ def apply_qa_funcs(task_name, task_df):
         metrics["attention_check_accuracy"] = get_attention_check_accuracy(task_df)
         metrics["accuracy"] = get_accuracy(task_df)
 
-        if task_name == "span_rdoc__behavioral":
+        span_tasks = ["simple_span_rdoc", "operation_span_rdoc", "span_rdoc__behavioral"]
+        
+        if task_name in span_tasks:
             metrics["rt"] = get_span_processing_rt(task_df)
             metrics["omissions"] = get_span_omissions(task_df)
             metrics["accuracy"] = get_span_accuracy(task_df)
@@ -108,7 +113,8 @@ def get_span_processing_rt(df):
 
 def get_span_omissions(df):
     test_trials = df[df["trial_id"] == "test_trial"]
-    proportion = (test_trials["response"].apply(lambda x: len(x) == 4)).mean()
+    na_count = test_trials["response"].isna().sum()
+    proportion = na_count / len(test_trials)
     return proportion
 
 
