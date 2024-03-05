@@ -54,18 +54,18 @@ class StudyCollection(models.Model):
     time_to_start_first_study = models.DurationField(
         null=True,
         blank=True,
-        help_text="Upon adding participant to a study collection, they have this long to start the first study before being removed from study",
+        help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being removed from study",
     )
     study_time_to_warning = models.DurationField(
         null=True,
         blank=True,
-        help_text="After completing a study participants will be reminded to start on the next study after this amount of time.",
+        help_text="hh:mm:ss - After completing a study participants will be reminded to start on the next study after this amount of time.",
     )
     study_warning_message = models.TextField(blank=True)
     study_grace_interval = models.DurationField(
         null=True,
         blank=True,
-        help_text="Time after warning message has been sent to kick participant from the study.",
+        help_text="hh:mm:ss - Time after warning message has been sent to kick participant from the study.",
     )
     study_kick_on_timeout = models.BooleanField(
         default=False,
@@ -74,13 +74,13 @@ class StudyCollection(models.Model):
     collection_time_to_warning = models.DurationField(
         null=True,
         blank=True,
-        help_text="Overall time participant has to complete all studies before recieving a warning message.",
+        help_text="hh:mm:ss - Overall time participant has to complete all studies before recieving a warning message.",
     )
     collection_warning_message = models.TextField(blank=True)
     collection_grace_interval = models.DurationField(
         null=True,
         blank=True,
-        help_text="Time after warning message is sent to kick participant from remaining studies.",
+        help_text="hh:mm:ss - Time after warning message is sent to kick participant from remaining studies.",
     )
     collection_kick_on_timeout = models.BooleanField(
         default=False,
@@ -290,7 +290,7 @@ class Study(models.Model):
             if not hasattr(response, "status_code"):
                 return response
 
-        study_args = self.study_collection.default_study_args(nested_action=next_group)
+        study_args = self.study_collection.default_study_args(nested_actions=next_group)
         study_args[
             "name"
         ] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
@@ -329,6 +329,10 @@ class Study(models.Model):
             return
         api.add_to_part_group(self.participant_group, pids)
 
+    def remove_participant(self, pid):
+        if not self.participant_group:
+            return
+        api.remove_from_part_group(self.participant_group, [pid])
 
 class StudyRank(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE)

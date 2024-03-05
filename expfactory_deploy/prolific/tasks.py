@@ -1,3 +1,7 @@
+from datetime import datetime, timedelta
+
+from django.db.models import Count
+
 from experiments import models as em
 from prolific import models as pm
 from prolific import outgoing_api as api
@@ -20,14 +24,14 @@ on battery completion:
 """
 def on_add_to_collection(scs):
     schedule(
-        "prolific.tasks.collection_end_time_to_first",
+        "prolific.tasks.collection_end_time_to_first_study",
         f"{scs.id}",
-        next_run=datetime.now() + scs.time_to_start_first_study,
+        next_run=datetime.now() + scs.study_collection.time_to_start_first_study,
     )
     schedule(
         "prolific.tasks.collection_warning",
         f"{scs.id}",
-        next_run=datetime.now() + scs.time_to_warning,
+        next_run=datetime.now() + scs.study_collection.collection_time_to_warning,
     )
 
 
@@ -82,6 +86,7 @@ def studdy_end_grace(scs_id, study_id):
     )
     if not started:
         study.remove_participant(scs.subject.prolific_id)
+        return(f'removed ${scs.subject.prolific_id} from ${study} for not starting first experiment on time')
 
 
 def collection_end_time_to_first_study(scs_id):
@@ -138,7 +143,7 @@ def collection_warning(scs_id):
         schedule(
             "prolific.tasks.collection_end_grace",
             f"{scs_id}",
-            next_run=datetime.now() + scs.collection_grace_interval,
+            next_run=datetime.now() + scs.study_collection.collection_grace_interval,
         )
         # membership in first study is garunteed.
         first_study = scs.study_collection.study_set.order_by("rank")[0]
