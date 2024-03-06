@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 
 from experiments.models import Battery, Subject, Assignment
@@ -99,7 +100,7 @@ class StudyCollection(models.Model):
         studies = self.study_set.all().order_by("rank")
         prev = None
         for study in studies:
-            if prev.id == sid:
+            if prev and prev.id == sid:
                 return study
             prev = study
         return None
@@ -206,7 +207,7 @@ class StudyCollection(models.Model):
                     to_promote.remove(pid)
             add_to_group = to_promote - submitted - blocked
             if len(add_to_group):
-                api.add_to_part_group(study.participant_group, list(add_to_group))
+                study.add_to_allowlist(list(add_to_group))
             to_promote = to_promote - add_to_group - blocked
         return
 
@@ -328,11 +329,21 @@ class Study(models.Model):
             # make new group
             return
         api.add_to_part_group(self.participant_group, pids)
+        for pid in pids:
+            if pid != None:
+                subject, created = Subject.objects.get_or_create(prolific_id=pid)
+                study_subject, ss_created = StudySubject.objects.get_or_create(study=self, subject=subject)
 
     def remove_participant(self, pid):
         if not self.participant_group:
             return
         api.remove_from_part_group(self.participant_group, [pid])
+        if pid != None:
+            try:
+                subject = Subject.objects.get(prolific_id=pid)
+                study_subject = StudySubject.objects.get(study=self, subject=subject).delete()
+            except ObjectDoesNotExist:
+                return
 
 class StudyRank(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
@@ -343,13 +354,27 @@ class StudyRank(models.Model):
 
 
 class StudySubject(models.Model):
-    study = models.ForeignKey(Study, on_delete=models.CASCADE)
-    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
-    prolific_session_id = models.TextField(blank=True)
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, blank=True)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, blank=True, null=True)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, blank=True)
+    assigned_to_study = models.DateTimeField(auto_now_add=True, blank=True, null=True)
 
-    def result_qa(self):
-        return
+    def save(self, *args, **kwargs):
+        if self.pk == None:
+            assignments = Assignment.objects.filter(subject=self.subject, battery=self.study.battery, alt_id=self.study.remote_id)
+            if len(assignments) == 0:
+                assignment = Assignment.objects.create(subject=self.subject, battery=self.study.battery, alt_id=self.study.remote_id)
+                assignment.save()
+                self.assignment = assignment
+            elif len(assignments) == 1:
+                self.assignment = assignments[0]
+            else:
+                # pray on what to do here. Choose one based on timestamp or status?
+                self.assignment = assignments[0]
+        super().save(*args, **kwargs)
 
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['study', 'subject'], name="UniqueStudySubject")]
 
 """
 class CollectionSubjectManager(models.Manager):
@@ -379,12 +404,17 @@ class StudyCollectionSubject(models.Model):
             self.group_index = (current_part_count + 1) % number_of_groups
         super().save(*args, **kwargs)
 
+    def next_study(self, current_study):
+        next_studies = Study.objects.filter(study_collection=current_study.study_collection).order_by("rank").filter(rank__gt=current_study.rank)
+        if len(next_studies):
+            return next_studies[0]
+        return None
+
     """ If a participant times out, returns, or other fails to complete a study in prolific we
         have no simple way of 'reassigining' that study to them for another attempt.
 
         This function will create a new study collection for the subjects remaining batteries.
     """
-
     def incomplete_study_collection(self):
         old_id = self.study_collection.id
         study_collection = StudyCollection.objects.get(id=old_id)

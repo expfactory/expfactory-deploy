@@ -21,6 +21,7 @@ from taggit.managers import TaggableManager
 from .utils import repo as repo
 from users.models import Group
 
+
 @reversion.register()
 class Framework(models.Model):
     """ Framework used by experiments. """
@@ -324,6 +325,16 @@ class Assignment(SubjectTaskStatusModel):
         if self.pk == None and self.battery.random_order:
             self.ordering = ExperimentOrder.objects.create(battery=self.battery)
             self.ordering.generate_order_items()
+        if self.pk and self.status == 'completed':
+            old = Assignment.objects.get(id=self.pk)
+            if old.status != self.status:
+                study_subjects = self.studysubject_set.all()
+                if len(study_subjects):
+                    from prolific.tasks import on_complete_battery
+                    study = study_subjects[0].study
+                    sc = study.study_collection
+                    on_complete_battery(sc, study.id, self.subject.id)
+
         super().save(*args, **kwargs)
 
     def get_next_experiment(self):

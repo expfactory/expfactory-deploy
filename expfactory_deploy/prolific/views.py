@@ -622,7 +622,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
 
         subjects = []
         for id in ids:
-            subject, created = exp_models.Subject.objects.get_or_create(prolific_id=id)
+            subject, sub_created = exp_models.Subject.objects.get_or_create(prolific_id=id)
             subjects.append(subject)
 
         for subject in subjects:
@@ -632,10 +632,13 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             ) = models.StudyCollectionSubject.objects.get_or_create(
                 study_collection=collection, subject=subject
             )
+            if created:
+                on_add_to_collection(subject_collection)
 
-        if created:
-            on_add_to_collection(subject_collection)
-
+        first_study = collection.study_set.all().order_by("rank")[0]
+        print(f'calling add to allow on {first_study.id} with pids: {ids}')
+        first_study.add_to_allowlist(ids)
+        '''
         pids_to_add = defaultdict(list)
         studies = models.Study.objects.filter(study_collection=collection).order_by(
             "rank"
@@ -653,6 +656,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
 
         for study in studies:
             study.add_to_allowlist(pids_to_add[study.remote_id])
+        '''
 
         return super().form_valid(form)
 

@@ -339,6 +339,7 @@ Q_CLUSTER = {
     'retry': 120,
     'queue_limit': 500,
     'bulk': 10,
-    'orm': 'default'
+    'orm': 'default',
+    'poll': 4
 }
 

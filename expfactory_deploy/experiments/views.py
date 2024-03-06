@@ -434,12 +434,14 @@ class Serve(View):
         studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=self.subject)
         completion_codes = [(x.remote_id, x.completion_code) for x in studies if x.completion_code]
 
+        '''
         if self.assignment.alt_id:
             from prolific.tasks import on_complete_battery
             study = Study.objects.filter(remote_id=self.assignment.alt_id)
             scs = StudyCollectionSubject.objects.filter(subject=self.subject, study_collection=study.study_collection)
             if len(study) and len(scs):
                 on_complete_battery(scs, study)
+        '''
 
 
         if len(completion_codes):
