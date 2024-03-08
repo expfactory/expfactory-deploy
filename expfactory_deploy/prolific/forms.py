@@ -41,6 +41,15 @@ class StudyCollectionForm(ModelForm):
             "inter_study_delay",
             "description",
             "number_of_groups",
+            "time_to_start_first_study",
+            "study_time_to_warning",
+            "study_warning_message",
+            "study_grace_interval",
+            "study_kick_on_timeout",
+            "collection_time_to_warning",
+            "collection_warning_message",
+            "collection_grace_interval",
+            "collection_kick_on_timeout",
         ]
         widgets = {
             "name": forms.TextInput(),

@@ -1,12 +1,17 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.conf import settings
 
 from experiments.models import Battery, Subject, Assignment
-from model_utils.models import TimeStampedModel
 from prolific import outgoing_api as api
 from pyrolific import models as api_models
+
+from model_utils import Choices
+from model_utils.models import TimeStampedModel
+from model_utils.fields import StatusField, MonitorField
 
 """
 Due to how prolific tracks time for payment we much chunk large batteries into
@@ -45,6 +50,41 @@ class StudyCollection(models.Model):
         on_delete=models.SET_NULL,
         related_name="children",
     )
+    time_to_start_first_study = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being removed from study",
+    )
+    study_time_to_warning = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="hh:mm:ss - After completing a study participants will be reminded to start on the next study after this amount of time.",
+    )
+    study_warning_message = models.TextField(blank=True)
+    study_grace_interval = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="hh:mm:ss - Time after warning message has been sent to kick participant from the study.",
+    )
+    study_kick_on_timeout = models.BooleanField(
+        default=False,
+        help_text="If True kick participant after a expiration of grace period if they have not started the study.",
+    )
+    collection_time_to_warning = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="hh:mm:ss - Overall time participant has to complete all studies before recieving a warning message.",
+    )
+    collection_warning_message = models.TextField(blank=True)
+    collection_grace_interval = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="hh:mm:ss - Time after warning message is sent to kick participant from remaining studies.",
+    )
+    collection_kick_on_timeout = models.BooleanField(
+        default=False,
+        help_text="If True kick participant after the expiration of grace period from having not completed all studies.",
+    )
 
     @property
     def study_count(self):
@@ -53,6 +93,15 @@ class StudyCollection(models.Model):
     @property
     def deployed(self):
         return bool(self.study_set.exclude(remote_id="").count())
+
+    def next_study(self, sid):
+        studies = self.study_set.all().order_by("rank")
+        prev = None
+        for study in studies:
+            if prev and prev.id == sid:
+                return study
+            prev = study
+        return None
 
     def set_missing_group_indices(self):
         group_count = 1
@@ -160,32 +209,47 @@ class StudyCollection(models.Model):
                     to_promote.remove(pid)
             add_to_group = to_promote - submitted - blocked
             if len(add_to_group):
-                api.add_to_part_group(study.participant_group, list(add_to_group))
+                study.add_to_allowlist(list(add_to_group))
             to_promote = to_promote - add_to_group - blocked
         return
 
-    def default_study_args(self):
+    """
+    https://github.com/rwblair/pyrolific/issues/3
+    """
+
+    def default_study_args(self, nested_actions=False):
+        completion_code_kwargs = {
+            "completion_code": "",
+            "completion_code_action": "AUTOMATICALLY_APPROVE",
+        }
+        if nested_actions:
+            completion_code_kwargs = {
+                "completion_codes": [
+                    {
+                        "code": "",
+                        "code_type": "COMPLETED",
+                        "actions": [
+                            {"action": "AUTOMATICALLY_APPROVE"},
+                        ],
+                    }
+                ],
+            }
+
         return {
             "name": self.title,
             "description": f"{self.description}",
             "prolific_id_option": "url_parameters",
             "completion_option": "code",
-            "completion_codes": [
-                {
-                    "code": "",
-                    "code_type": "COMPLETED",
-                    "actions": [
-                        {"action": "AUTOMATICALLY_APPROVE"},
-                    ],
-                }
-            ],
             "total_available_places": self.total_available_places,
             "estimated_completion_time": self.estimated_completion_time,
             "reward": self.reward,
             "device_compatibility": ["desktop"],
+            **completion_code_kwargs,
         }
 
-query_params = "?PROLIFIC_PID={{%PROLIFIC_PID%}}&STUDY_ID={{%STUDY_ID%}}&SESSION_ID={{%SESSION_ID%}}"
+query_params = (
+    f"?{settings.PROLIFIC_PARTICIPANT_PARAM}={{{{%PROLIFIC_PID%}}}},{settings.PROLIFIC_STUDY_PARAM}={{{{%STUDY_ID%}}}},{settings.PROLIFIC_SESSION_PARAM}={{{{%SESSION_ID%}}}}"
+)
 
 def part_group_action(pid=""):
     return {"action": "ADD_TO_PARTICIPANT_GROUP", "participant_group": pid}
@@ -227,18 +291,30 @@ class Study(models.Model):
             if not hasattr(response, "status_code"):
                 return response
 
+<<<<<<< HEAD
         study_args = self.study_collection.default_study_args()
         study_args['name'] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
         study_args['external_study_url'] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}{query_params}"
+=======
+        study_args = self.study_collection.default_study_args(nested_actions=next_group)
+        study_args[
+            "name"
+        ] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
+        study_args[
+            "external_study_url"
+        ] = f"https://deploy.expfactory.org/prolific/serve{self.battery.id}{query_params}"
+>>>>>>> edfd0453acab46e047a25c04d2fa91d7710bd342
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
-        study_args["completion_codes"][0]["code"] = self.completion_code
 
         if next_group:
+            study_args["completion_codes"][0]["code"] = self.completion_code
             study_args["completion_codes"][0]["code_type"] = "COMPLETED"
             study_args["completion_codes"][0]["actions"].append(
                 part_group_action(next_group)
             )
+        else:
+            study_args["completion_code"] = self.completion_code
 
         if self.participant_group:
             study_args["filters"] = [default_allowlist(self.participant_group)]
@@ -259,7 +335,21 @@ class Study(models.Model):
             # make new group
             return
         api.add_to_part_group(self.participant_group, pids)
+        for pid in pids:
+            if pid != None:
+                subject, created = Subject.objects.get_or_create(prolific_id=pid)
+                study_subject, ss_created = StudySubject.objects.get_or_create(study=self, subject=subject)
 
+    def remove_participant(self, pid):
+        if not self.participant_group:
+            return
+        api.remove_from_part_group(self.participant_group, [pid])
+        if pid != None:
+            try:
+                subject = Subject.objects.get(prolific_id=pid)
+                study_subject = StudySubject.objects.get(study=self, subject=subject).delete()
+            except ObjectDoesNotExist:
+                return
 
 class StudyRank(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
@@ -270,13 +360,27 @@ class StudyRank(models.Model):
 
 
 class StudySubject(models.Model):
-    study = models.ForeignKey(Study, on_delete=models.CASCADE)
-    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
-    prolific_session_id = models.TextField(blank=True)
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, blank=True)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, blank=True, null=True)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, blank=True)
+    assigned_to_study = models.DateTimeField(auto_now_add=True, blank=True, null=True)
 
-    def result_qa(self):
-        return
+    def save(self, *args, **kwargs):
+        if self.pk == None:
+            assignments = Assignment.objects.filter(subject=self.subject, battery=self.study.battery, alt_id=self.study.remote_id)
+            if len(assignments) == 0:
+                assignment = Assignment.objects.create(subject=self.subject, battery=self.study.battery, alt_id=self.study.remote_id)
+                assignment.save()
+                self.assignment = assignment
+            elif len(assignments) == 1:
+                self.assignment = assignments[0]
+            else:
+                # pray on what to do here. Choose one based on timestamp or status?
+                self.assignment = assignments[0]
+        super().save(*args, **kwargs)
 
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['study', 'subject'], name="UniqueStudySubject")]
 
 """
 class CollectionSubjectManager(models.Manager):
@@ -288,6 +392,10 @@ class StudyCollectionSubject(models.Model):
     study_collection = models.ForeignKey(StudyCollection, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     group_index = models.IntegerField(default=0)
+    STATUS = Choices("n/a", "not-started", "started", "completed", "failed", "redo", "kicked", "flagged")
+    status = StatusField(default="n/a")
+    failed_at = MonitorField(monitor="status", when=["kicked", "flagged", "failed"], default=None, null=True)
+    warned_at = models.DateTimeField(default=None, blank=True, null=True)
 
     """ Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
         to not give same number multiple times? Current use case is in a loop, should be fine.
@@ -302,12 +410,17 @@ class StudyCollectionSubject(models.Model):
             self.group_index = (current_part_count + 1) % number_of_groups
         super().save(*args, **kwargs)
 
+    def next_study(self, current_study):
+        next_studies = Study.objects.filter(study_collection=current_study.study_collection).order_by("rank").filter(rank__gt=current_study.rank)
+        if len(next_studies):
+            return next_studies[0]
+        return None
+
     """ If a participant times out, returns, or other fails to complete a study in prolific we
         have no simple way of 'reassigining' that study to them for another attempt.
 
         This function will create a new study collection for the subjects remaining batteries.
     """
-
     def incomplete_study_collection(self):
         old_id = self.study_collection.id
         study_collection = StudyCollection.objects.get(id=old_id)
@@ -383,3 +496,6 @@ class BlockedParticipant(TimeStampedModel):
     prolific_id = models.TextField(unique=True)
     active = models.BooleanField(default=True)
     note = models.TextField(blank=True)
+
+
+# def onComplete(subject, battery, study_collection)

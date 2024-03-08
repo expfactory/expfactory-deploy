@@ -21,6 +21,7 @@ from taggit.managers import TaggableManager
 from .utils import repo as repo
 from users.models import Group
 
+
 @reversion.register()
 class Framework(models.Model):
     """ Framework used by experiments. """
@@ -213,6 +214,9 @@ class Battery(TimeStampedModel, StatusField):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
 
+    def __str__(self):
+        return f'{self.title} - ID: {self.id}'
+
     def duplicate(self, status='draft'):
         """ passing object we wish to clone through model constructor allows
         created field to be properly set
@@ -269,6 +273,8 @@ class Subject(models.Model):
     def __str__(self):
         if self.handle:
             return f"{self.handle}"
+        if self.prolific_id:
+            return f"{self.prolific_id}"
         return f"{self.uuid}"
 
 
@@ -297,6 +303,10 @@ class Assignment(SubjectTaskStatusModel):
     # For storing identifying information from query parameters at battery load time.
     alt_id = models.TextField(blank=True)
 
+    def __str__(self):
+        if self.alt_id:
+            return f'{self.subject} - {self.battery} - {self.alt_id}'
+        return f'{self.subject} - {self.battery}'
     @property
     def results(self):
         return self.result_set.all()
@@ -315,34 +325,18 @@ class Assignment(SubjectTaskStatusModel):
         if self.pk == None and self.battery.random_order:
             self.ordering = ExperimentOrder.objects.create(battery=self.battery)
             self.ordering.generate_order_items()
+        if self.pk and self.status == 'completed':
+            old = Assignment.objects.get(id=self.pk)
+            if old.status != self.status:
+                study_subjects = self.studysubject_set.all()
+                if len(study_subjects):
+                    from prolific.tasks import on_complete_battery
+                    study = study_subjects[0].study
+                    sc = study.study_collection
+                    on_complete_battery(sc, study.id, self.subject.id)
+
         super().save(*args, **kwargs)
 
-    '''
-    def get_next_experiment(self):
-        if self.ordering == None:
-            order = "?" if self.battery.random_order else "order"
-            batt_exps = (
-                BatteryExperiments.objects.filter(battery=self.battery)
-                .order_by(order)
-            )
-        else:
-            batt_exps = self.ordering.experimentorderitem_set.all().order_by("order")
-        exempt_results = Result.objects.filter(
-                Q(status=Result.STATUS.completed) | Q(status=Result.STATUS.failed),
-                battery_experiment__battery=self.battery, subject=self.subject,
-            )
-        exempt = [exp.battery_experiment for exp in exempt_results]
-        unfinished = [batt_exp for batt_exp in batt_exps if batt_exp not in exempt]
-        if len(unfinished):
-            if self.status == "not-started":
-                self.status = "started"
-                self.save()
-            return unfinished[0].experiment_instance, len(unfinished)
-        else:
-            self.status = "completed"
-            self.save()
-            return None, 0
-    '''
     def get_next_experiment(self):
         if self.ordering == None:
             order = "?" if self.battery.random_order else "order"

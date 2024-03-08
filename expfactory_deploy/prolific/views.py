@@ -29,6 +29,7 @@ from prolific import models
 from prolific import forms
 from prolific import outgoing_api
 
+from prolific.tasks import on_add_to_collection
 
 """
     subclass of experiments app serve class view to handle query params from prolific.
@@ -38,7 +39,7 @@ from prolific import outgoing_api
 
 class ProlificServe(exp_views.Serve):
     def set_subject(self):
-        prolific_id = self.request.GET.get("PROLIFIC_PID", None)
+        prolific_id = self.request.GET.get("participant", None)
         if prolific_id is None:
             self.subject = None
         else:
@@ -47,7 +48,7 @@ class ProlificServe(exp_views.Serve):
             )[0]
 
     def set_assignment(self):
-        study_id = self.request.GET.get("STUDY_ID", None)
+        study_id = self.request.GET.get("study", None)
         if study_id is None:
             super().set_assignment()
         else:
@@ -332,6 +333,9 @@ def create_drafts_view(request, collection_id):
     try:
         responses = collection.create_drafts()
     except Exception as e:
+        print("in create view exception")
+        print(e)
+        print("!!!!!!!!!!!")
         messages.error(request, e)
     responses = json_encode_api_response(responses)
     return render(
@@ -606,8 +610,6 @@ def collection_recently_completed(request, collection_id, days, by):
     A variant of this could live in experiments app. Only put here since we ignore any
     one without a prolific id and can filter on study_collections.
 """
-
-
 @login_required
 def recent_participants(request):
     collection_id = request.GET.get("collection_id", None)
@@ -663,7 +665,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
 
         subjects = []
         for id in ids:
-            subject, created = exp_models.Subject.objects.get_or_create(prolific_id=id)
+            subject, sub_created = exp_models.Subject.objects.get_or_create(prolific_id=id)
             subjects.append(subject)
 
         for subject in subjects:
@@ -673,11 +675,18 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             ) = models.StudyCollectionSubject.objects.get_or_create(
                 study_collection=collection, subject=subject
             )
+            if created:
+                on_add_to_collection(subject_collection)
 
+        first_study = collection.study_set.all().order_by("rank")[0]
+        print(f'calling add to allow on {first_study.id} with pids: {ids}')
+        first_study.add_to_allowlist(ids)
+        '''
         pids_to_add = defaultdict(list)
         studies = models.Study.objects.filter(study_collection=collection).order_by(
             "rank"
         )
+
         # Only works with study in inner for loop, we only want to add each subject at most once to an allowlist in this call.
         for subject in subjects:
             for study in studies:
@@ -690,6 +699,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
 
         for study in studies:
             study.add_to_allowlist(pids_to_add[study.remote_id])
+        '''
 
         return super().form_valid(form)
 

@@ -27,6 +27,7 @@ from pyrolific.api.participant_groups import (
 )
 
 from pyrolific.api.submissions import get_submissions, get_submission
+from pyrolific.api.messages import send_message as _send_message
 from pyrolific.api import studies
 
 token = settings.PROLIFIC_KEY
@@ -72,6 +73,8 @@ def make_call(api_func, ac=False, **kwargs):
         print(response)
         return response
         # raise GenericProlificException(response.status)
+    if response.status_code == 204:
+        return True
     response = response.parsed.to_dict()
     if "links" in response and response["_links"]["next"]["href"] is not None:
         raise GenericProlificException("Next link found, implement pagination")
@@ -158,3 +161,8 @@ def list_submissions(sid=None):
     if hasattr(response, "status_code"):
         raise GenericProlificException(f"response has status_code {response}")
     return response["results"]
+
+def send_message(participant_id, study_id, message):
+    body = api_models.send_message.SendMessage.from_dict({'recipient_id': participant_id, 'body': message, 'study_id': study_id})
+    response = make_call(_send_message, json_body=body)
+    return response
