@@ -291,19 +291,13 @@ class Study(models.Model):
             if not hasattr(response, "status_code"):
                 return response
 
-<<<<<<< HEAD
-        study_args = self.study_collection.default_study_args()
-        study_args['name'] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
-        study_args['external_study_url'] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}{query_params}"
-=======
         study_args = self.study_collection.default_study_args(nested_actions=next_group)
         study_args[
             "name"
         ] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
         study_args[
             "external_study_url"
-        ] = f"https://deploy.expfactory.org/prolific/serve{self.battery.id}{query_params}"
->>>>>>> edfd0453acab46e047a25c04d2fa91d7710bd342
+        ] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}{query_params}"
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
 
