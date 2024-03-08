@@ -226,3 +226,8 @@ if SENTRY_DSN:
 #
 # Your stuff...
 # ------------------------------------------------------------------------------
+PROLIFIC_PARTICIPANT_PARAM="PROLIFIC_ID"
+PROLIFIC_STUDY_PARAM="STUDY_ID"
+PROLIFIC_SESSION_PARAM="SESSION_ID"
+
+

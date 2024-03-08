@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.conf import settings
 
 from experiments.models import Battery, Subject, Assignment
 from prolific import outgoing_api as api
@@ -245,9 +246,8 @@ class StudyCollection(models.Model):
             **completion_code_kwargs,
         }
 
-
 query_params = (
-    "?participant={{%PROLIFIC_PID%}},study={{%STUDY_ID%}},session={{%SESSION_ID%}}"
+    f"?{settings.PROLIFIC_PARTICIPANT_PARAM}={{{{%PROLIFIC_PID%}}}},{settings.PROLIFIC_STUDY_PARAM}={{{{%STUDY_ID%}}}},{settings.PROLIFIC_SESSION_PARAM}={{{{%SESSION_ID%}}}}"
 )
 
 
