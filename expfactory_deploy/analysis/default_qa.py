@@ -33,16 +33,21 @@ def apply_qa_funcs(task_name, task_df):
 
     try:
         metrics["attention_check_accuracy"] = get_attention_check_accuracy(task_df)
-        metrics["accuracy"] = get_accuracy(task_df)
+
+        if task_name != "stop_signal_rdoc":
+            metrics["accuracy"] = get_accuracy(task_df)
 
         span_tasks = ["simple_span_rdoc", "operation_span_rdoc", "span_rdoc__behavioral"]
         
         if task_name in span_tasks:
-            metrics["rt"] = get_span_processing_rt(task_df)
+            average_rt, average_accuracy = get_span_processing(task_df)
+            metrics["rt"] = average_rt
+            metrics['processing_accuracy'] = average_accuracy
             metrics["omissions"] = get_span_omissions(task_df)
             metrics["accuracy"] = get_span_accuracy(task_df)
         elif task_name == "stop_signal_rdoc":
             metrics.update(**get_stopping(task_df))
+            metrics['accuracy'] = metrics['go_accuracy']
         else:
             metrics["rt"] = get_average_rt(task_df)
             metrics["omissions"] = get_omissions(task_df)
@@ -95,6 +100,21 @@ def feedback_generator(
             feedback = f"Single response proportion of {check_response} is high for {task_name}."
             feedbacks.append(feedback)
 
+
+    if task_name == 'stop_signal_rdoc':
+        stop_accuracy = kwargs['stop_accuracy']
+        if stop_accuracy < 0.25:
+            feedback = f"Stop accuracy of {stop_accuracy*100:.2f}% is too low for {task_name}."
+            feedbacks.append(feedback)
+        elif stop_accuracy > 0.75:
+            feedback = f"Stop accuracy of {stop_accuracy*100:.2f}% is too high for {task_name}."
+            feedbacks.append(feedback)
+
+    if task_name == 'operation_span_rdoc':
+        processing_accuracy = kwargs['processing_accuracy']
+        if processing_accuracy < 0.6:
+            feedback = f"Processing accuracy of {processing_accuracy*100:.2f}% is too low for {task_name}."
+            feedbacks.append(feedback)
     return feedbacks
 
 
@@ -104,12 +124,13 @@ def get_attention_check_accuracy(df):
     return attention_check_accuracy
 
 
-def get_span_processing_rt(df):
+def get_span_processing(df):
     test_trials = df[df["trial_id"] == "test_inter-stimulus"]
     correct_test_trials = test_trials[test_trials["correct_trial"] == 1]
     average_rt = correct_test_trials["rt"].mean()
-    return average_rt
 
+    average_accuracy = test_trials["correct_trial"].mean()
+    return average_rt, average_accuracy
 
 def get_span_omissions(df):
     test_trials = df[df["trial_id"] == "test_trial"]
