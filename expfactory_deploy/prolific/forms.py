@@ -42,6 +42,7 @@ class StudyCollectionForm(ModelForm):
             "description",
             "number_of_groups",
             "time_to_start_first_study",
+            "failure_to_start_message",
             "study_time_to_warning",
             "study_warning_message",
             "study_grace_interval",

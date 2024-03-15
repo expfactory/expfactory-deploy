@@ -58,6 +58,7 @@ class StudyCollection(models.Model):
         blank=True,
         help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being removed from study",
     )
+    failure_to_start_message = models.TextField(blank=True)
     study_time_to_warning = models.DurationField(
         null=True,
         blank=True,

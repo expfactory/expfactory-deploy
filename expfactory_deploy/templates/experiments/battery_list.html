@@ -20,6 +20,7 @@
               {% if battery.status != 'inactive' %}
                 - <a href="{% url 'experiments:battery-clone' battery.id %}"> Clone </a>
                 - <a href="{% url 'experiments:battery-deactivate-confirm' battery.id %}"> Deactivate </a>
+                - <a href="{% url 'experiments:propagate-instructions' battery.id %}"> Update Children </a>
               {% endif %}
             </h3>
               <div class="child-battery-lists">
