@@ -625,6 +625,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             subject, sub_created = exp_models.Subject.objects.get_or_create(prolific_id=id)
             subjects.append(subject)
 
+        first_study = collection.study_set.first()
         for subject in subjects:
             (
                 subject_collection,
@@ -632,12 +633,16 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             ) = models.StudyCollectionSubject.objects.get_or_create(
                 study_collection=collection, subject=subject
             )
+            if first_study:
+                study_subject, created = models.StudySubject.objects.get_or_create(study=first_study, subject=subject)
             if created:
                 on_add_to_collection(subject_collection)
+            if first_study and created:
+                subject_collection.current_study = first_study
 
-        first_study = collection.study_set.all().order_by("rank")[0]
-        print(f'calling add to allow on {first_study.id} with pids: {ids}')
-        first_study.add_to_allowlist(ids)
+        if first_study:
+            print(f'calling add to allow on {first_study.id} with pids: {ids}')
+            first_study.add_to_allowlist(ids)
         '''
         pids_to_add = defaultdict(list)
         studies = models.Study.objects.filter(study_collection=collection).order_by(
@@ -738,6 +743,11 @@ def study_collection_subject_detail(
     }
     return render(request, "prolific/study_collection_subject_detail.html", context)
 
+@login_required
+def study_subject_by_collection(request, collection_id):
+    study_subjects = models.StudySubject.objects.get(collection__id=collection_id).select_related()
+    context = {'study_subjects': study_subjects}
+    return render(request, "prolific/study_subjects_by_collection.html", context)
 
 class BlockedParticipantList(LoginRequiredMixin, ListView):
     model = models.BlockedParticipant

@@ -359,6 +359,12 @@ class StudySubject(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, blank=True, null=True)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, blank=True)
     assigned_to_study = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    STATUS = Choices("n/a", "not-started", "started", "completed", "failed", "redo", "kicked", "flagged")
+    status = StatusField(choices_name="STATUS", default="n/a")
+    failed_at = MonitorField(monitor="status", when=["kicked", "flagged", "failed"], default=None, null=True)
+    warned_at = models.DateTimeField(default=None, blank=True, null=True)
+    STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
+    status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
 
     def save(self, *args, **kwargs):
         if self.pk == None:
@@ -388,9 +394,12 @@ class StudyCollectionSubject(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     group_index = models.IntegerField(default=0)
     STATUS = Choices("n/a", "not-started", "started", "completed", "failed", "redo", "kicked", "flagged")
-    status = StatusField(default="n/a")
+    status = StatusField(choices_name="STATUS", default="n/a")
     failed_at = MonitorField(monitor="status", when=["kicked", "flagged", "failed"], default=None, null=True)
     warned_at = models.DateTimeField(default=None, blank=True, null=True)
+    current_study = models.ForeignKey(Study, blank=True, on_delete=models.SET_NULL)
+    STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
+    status = StatusField(choices_name="STATUS_REASON", default="n/a")
 
     """ Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
         to not give same number multiple times? Current use case is in a loop, should be fine.

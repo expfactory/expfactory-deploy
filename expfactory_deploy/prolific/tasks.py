@@ -26,13 +26,14 @@ on battery completion:
 
 def on_add_to_collection(scs):
     sc = scs.study_collection
+    ss = pm.objects.get(subject=scs.subject, study=sc.study_set.first())
     if (
         sc.time_to_start_first_study != None
         and sc.time_to_start_first_study > timedelta(0)
     ):
         schedule(
-            "prolific.tasks.collection_end_time_to_first_study",
-            f"{scs.id}",
+            "prolific.tasks.initial_warning",
+            ss.id,
             next_run=datetime.now() + sc.time_to_start_first_study,
         )
     if (
@@ -41,7 +42,7 @@ def on_add_to_collection(scs):
     ):
         schedule(
             "prolific.tasks.collection_warning",
-            f"{scs.id}",
+            scs.id,
             next_run=datetime.now() + sc.collection_time_to_warning,
         )
 
@@ -49,6 +50,9 @@ def on_add_to_collection(scs):
 def on_complete_battery(sc, current_study, subject_id):
     study = sc.next_study(current_study)
     delay = sc.inter_study_delay if sc.inter_study_delay != None else timedelta(0)
+    ss = pm.StudySubject.objects.get(study=current_study, subject=subject_id)
+    if ss.status == "kicked":
+        return
     schedule(
         "prolific.tasks.end_study_delay",
         study.id,
@@ -60,9 +64,12 @@ def on_complete_battery(sc, current_study, subject_id):
 def end_study_delay(study_id, subject_id):
     study = pm.Study.objects.get(id=study_id)
     subject = em.Subject.objects.get(id=subject_id)
-    study.add_to_allowlist([subject.prolific_id])
+    study_subject, created = pm.StudySubject.objects.get_or_create(study=study, subject=subject)
     sc = study.study_collection
     scs = pm.StudyCollectionSubject.objects.get(subject=subject, study_collection=sc)
+    scs.current_study=study
+    scs.save()
+    study.add_to_allowlist([subject.prolific_id])
 
     if (
         sc.collection_time_to_warning != None
@@ -86,11 +93,14 @@ def study_warning(scs_id, study_id):
         .count()
     )
     if not started:
+        study_subject = pm.StudySubject.get(study=study, subject=scs.subject)
         api.send_message(
             scs.subject.prolific_id,
             study_id,
             sc.collection_warning_message,
         )
+        study_subject.warned_at = datetime.now()
+        study_subject.save()
         if sc.study_grace_interval != None and sc.study_grace_interval > timedelta(0):
             schedule(
                 "prolific.tasks.study_end_grace",
@@ -104,31 +114,61 @@ def study_end_grace(scs_id, study_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
     study = pm.Study.objects.get(id=study_id)
     started = (
-        em.Assignment.objects.filter(alt_id=study.remote_id)
+        em.Assignment.objects.filter(subject=scs.subject, alt_id=study.remote_id)
         .exclude(status="not-started")
         .count()
     )
-    if not started:
+    if started:
+        return f"{scs.subject} has started {study} taking no action"
+
+    study_subject, created = pm.StudySubject.objects.get_or_create(study=study, subject=scs.subject)
+
+    if scs.study_collection.study.kick_on_timeout:
         study.remove_participant(scs.subject.prolific_id)
-        return f"removed ${scs.subject.prolific_id} from ${study} for not starting battery on time"
+        message = f"removed ${scs.subject.prolific_id} from ${study} for not starting battery on time"
+    else:
+        status = "flagged"
+        message = f"flagged ${scs.subject.prolific_id} from ${study} for not starting battery on time"
+
+    study_subject.status = status
+    study_subject.status_reason = "study-timer"
+    scs.status = status
+    scs.status_reason = "study-timer"
+    study_subject.save()
+    scs.save()
 
 
-def collection_end_time_to_first_study(scs_id):
-    scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
-    first_study = scs.study_collection.study_set.order_by("rank")[0]
-    if (
-        em.Assignment.objects.filter(battery=first_study.battery)
-        .exclude(status="not-started")
-        .count()
-        == 0
-    ):
-        api.send_message(
-            scs.subject.prolific_id,
-            first_study.remote_id,
-            scs.study_collection.failure_to_start_message,
-        )
-        first_study.remove_participant(scs.subject.prolific_id)
-        return f"removed {scs.subject.prolific_id} from {scs.study_collection}. Failed to start first battery on time"
+def initial_warning(ss_id):
+    ss = pm.StudySubject.objects.get(id=ss_id)
+    if ss.assignment.status != "not-started":
+        return f"{ss.subject} started {ss.study} before time to first study"
+    api.send_message(
+        ss.subject.prolific_id,
+        ss.study.remote_id,
+        ss.study.study_collection.collection_warning_message
+    )
+    ss.warned_at = datetime.now()
+    ss.save()
+    schedule(
+        "initial_end_grace",
+        ss_id,
+        next_run=datetime.now() + scs.study_collection.collection_grace_interval,
+    )
+
+def initial_end_grace(ss_id):
+    ss = pm.StudySubject.objects.get(id=ss_id)
+    if ss.assignment.status != "not-started":
+        return f"{ss.subject} started {ss.study} before time to first study grace ended"
+    api.send_message(
+        scs.subject.prolific_id,
+        first_study.remote_id,
+        scs.study_collection.failure_to_start_message,
+    )
+    ss.study.remove_participant(ss.subject.prolific_id)
+    ss.status = "kicked"
+    ss.status_reason("initial-timer")
+    ss.save()
+    return f"removed {scs.subject.prolific_id} from {scs.study_collection}. Failed to start first battery on time"
 
 
 def collection_warning(scs_id):
@@ -154,7 +194,10 @@ def collection_warning(scs_id):
                 + scs.study_collection.collection_grace_interval,
             )
         # membership in first study is garunteed.
-        first_study = scs.study_collection.study_set.order_by("rank")[0]
+        if scs.current_study:
+            study = scs.current_study
+        else:
+            study = scs.study_collection.study_set.first()
         api.send_message(
             scs.subject.prolific_id,
             first_study.id,
@@ -180,6 +223,8 @@ def collection_end_grace(scs_id):
             for study in scs.study_collection.study_set.all():
                 study.remove_participant(pid=scs.subject.prolific_id)
             scs.status = "kicked"
+            scs.status_reason = "collection-timer"
         else:
             scs.status = "flagged"
+            scs.status_reason = "collection-timer"
         scs.save()
