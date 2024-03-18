@@ -25,6 +25,9 @@ on battery completion:
 
 
 def on_add_to_collection(scs):
+    if scs.failed_at:
+        print("trying to add to failed SCS ${scs.id} ${scs.failed_at}")
+        return
     sc = scs.study_collection
     ss = pm.objects.get(subject=scs.subject, study=sc.study_set.first())
     if (
@@ -53,6 +56,9 @@ def on_complete_battery(sc, current_study, subject_id):
     ss = pm.StudySubject.objects.get(study=current_study, subject=subject_id)
     if ss.status == "kicked":
         return
+    if ss.study_collection and ss.study_collection_subject.failed_at:
+        return
+
     schedule(
         "prolific.tasks.end_study_delay",
         study.id,
@@ -61,13 +67,22 @@ def on_complete_battery(sc, current_study, subject_id):
     )
 
 
+"""
+    This is the inter-study delay, we want subjects to wait before starting next study.
+"""
+
+
 def end_study_delay(study_id, subject_id):
     study = pm.Study.objects.get(id=study_id)
     subject = em.Subject.objects.get(id=subject_id)
-    study_subject, created = pm.StudySubject.objects.get_or_create(study=study, subject=subject)
+    study_subject, created = pm.StudySubject.objects.get_or_create(
+        study=study, subject=subject
+    )
     sc = study.study_collection
     scs = pm.StudyCollectionSubject.objects.get(subject=subject, study_collection=sc)
-    scs.current_study=study
+    if scs.failed_at:
+        return
+    scs.current_study = study
     scs.save()
     study.add_to_allowlist([subject.prolific_id])
 
@@ -81,6 +96,11 @@ def end_study_delay(study_id, subject_id):
             study_id,
             next_run=datetime.now() + sc.study_collection.study_time_to_warning,
         )
+
+
+"""
+    Any study must be started within a certain amount of time.
+"""
 
 
 def study_warning(scs_id, study_id):
@@ -112,6 +132,8 @@ def study_warning(scs_id, study_id):
 
 def study_end_grace(scs_id, study_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
+    if scs.failed_at:
+        return
     study = pm.Study.objects.get(id=study_id)
     started = (
         em.Assignment.objects.filter(subject=scs.subject, alt_id=study.remote_id)
@@ -121,9 +143,12 @@ def study_end_grace(scs_id, study_id):
     if started:
         return f"{scs.subject} has started {study} taking no action"
 
-    study_subject, created = pm.StudySubject.objects.get_or_create(study=study, subject=scs.subject)
+    study_subject, created = pm.StudySubject.objects.get_or_create(
+        study=study, subject=scs.subject
+    )
 
     if scs.study_collection.study.kick_on_timeout:
+        status = "kicked"
         study.remove_participant(scs.subject.prolific_id)
         message = f"removed ${scs.subject.prolific_id} from ${study} for not starting battery on time"
     else:
@@ -138,14 +163,21 @@ def study_end_grace(scs_id, study_id):
     scs.save()
 
 
+"""
+    These are special for the first study a participant must start.
+"""
+
+
 def initial_warning(ss_id):
     ss = pm.StudySubject.objects.get(id=ss_id)
+    if ss.study_collection_subject.failed_at:
+        return
     if ss.assignment.status != "not-started":
         return f"{ss.subject} started {ss.study} before time to first study"
     api.send_message(
         ss.subject.prolific_id,
         ss.study.remote_id,
-        ss.study.study_collection.collection_warning_message
+        ss.study.study_collection.collection_warning_message,
     )
     ss.warned_at = datetime.now()
     ss.save()
@@ -155,8 +187,12 @@ def initial_warning(ss_id):
         next_run=datetime.now() + scs.study_collection.collection_grace_interval,
     )
 
+
 def initial_end_grace(ss_id):
     ss = pm.StudySubject.objects.get(id=ss_id)
+    if ss.study_collection_subject.failed_at:
+        return
+
     if ss.assignment.status != "not-started":
         return f"{ss.subject} started {ss.study} before time to first study grace ended"
     api.send_message(
@@ -171,8 +207,15 @@ def initial_end_grace(ss_id):
     return f"removed {scs.subject.prolific_id} from {scs.study_collection}. Failed to start first battery on time"
 
 
+"""
+    There is an absolute max amount of time a subject can take to complete all studies.
+"""
+
+
 def collection_warning(scs_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
+    if scs.failed_at:
+        return
     batteries = em.Battery.objects.filter(
         study__study_collection__id=scs.study_collection.id
     )
@@ -209,6 +252,8 @@ def collection_warning(scs_id):
 
 def collection_end_grace(scs_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
+    if scs.failed_at:
+        return
     batteries = em.Battery.objects.filter(
         study__study_collection__id=scs.study_collection.id
     )

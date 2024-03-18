@@ -4,14 +4,52 @@ Internal name: {{ collection.name }}<br>
 Base study title: {{ collection.title }}<br>
 Prolific project id: {{ collection.project }}<br>
 
-<ul>
-{% for scs in study_collection_subjects %}
-  <li>
-    <a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a> - Group index {{ scs.group_index }}
-    <br>
-    <a href="{% url 'prolific:collection-subject-detail' scs_id=scs.id %}">Detail</a>
-  </li>
-{% endfor %}
-</ul>
+<h2>Study Collection Subjects</h2>
+<table id="subject-table">
+  <thead>
+    <tr>
+      <th>Subject</th>
+      <th>Status</th>
+      <th>Warnings</th>
+      <th>Current Study</th>
+    </tr>
+  </thead>
+  <tbody id="subject_tbody">
+    {% for scs in study_collection_subjects %}
+    <tr>
+      <td>
+        <a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a> - Group index {{ scs.group_index }}
+      </td>
+      <td>
+        {{ scs.status }}
+      </td>
+      <td>
+        <ul>
+        {% if scs.failed_at %}
+          <li>
+          Failed At: {{ scs.failed_at }}
+          </li>
+        {% endif %}
+        {% if scs.ttfs_warned_at %}
+          <li>
+          Start fist study warning: {{ scs.ttfs_warned_at }}
+          </li>
+        {% endif %}
+        {% if scs.ttcc_warned_at %}
+          <li>
+          Complete all studies warning: {{ scs.ttfs_warned_at }}
+          </li>
+        {% endif %}
+        </ul>
+      </td>
+      <td>
+        {% if scs.current_study %}
+        {{ scs.current_study.study.battery }} - {{ scs.current_study.study.remote_id }} - {{ scs.current_study.status }}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
 {% endblock %}
