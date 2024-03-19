@@ -123,4 +123,5 @@ urlpatterns = [
         name="blocked-participant-update",
     ),
     path("recent/participants", views.recent_participants, name="recent-participants"),
+    path("delete/<int:collection_id>/<str:subject_id>", views.delete_study_subject_relations, name="delete-study-subject-relations"),
 ]

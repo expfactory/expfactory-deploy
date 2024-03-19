@@ -122,3 +122,17 @@
 .prolific-study-status-list {
   padding-left: 2em;
 }
+
+/*
+  https://developer.mozilla.org/en-US/docs/Web/CSS/Layout_cookbook/Card
+*/
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-gap: 20px;
+}
+
+.card {
+  padding: .125em;
+}
+

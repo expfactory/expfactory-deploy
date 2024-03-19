@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -392,7 +393,7 @@ class StudySubject(models.Model):
     def study_collection_subject(self):
         if not self.study:
             return
-        StudyCollectionSubject.objects.get(
+        return StudyCollectionSubject.objects.get(
             study_collection=self.study.study_collection, subject=self.subject
         )
 
@@ -458,12 +459,15 @@ class StudyCollectionSubject(models.Model):
     warned_at = models.DateTimeField(default=None, blank=True, null=True)
     current_study = models.ForeignKey(Study, blank=True, null=True, on_delete=models.SET_NULL, default=None)
     STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
-    status = StatusField(choices_name="STATUS_REASON", default="n/a")
+    status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
     ttfs_warned_at = models.DateTimeField(default=None, blank=True, null=True)
     ttcc_warned_at = models.DateTimeField(default=None, blank=True, null=True)
     ttcc_flagged_at = MonitorField(
         monitor="status", when=["flagged"], default=None, null=True
     )
+    @property
+    def ended(self):
+        return self.status in ["failed", "completed", "kicked"] or self.failed_at
 
     """ Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
         to not give same number multiple times? Current use case is in a loop, should be fine.
@@ -476,6 +480,7 @@ class StudyCollectionSubject(models.Model):
                 self.study_collection.studycollectionsubject_set.count()
             )
             self.group_index = (current_part_count + 1) % number_of_groups
+
         super().save(*args, **kwargs)
 
     def next_study(self, current_study):
@@ -487,6 +492,14 @@ class StudyCollectionSubject(models.Model):
         if len(next_studies):
             return next_studies[0]
         return None
+
+    def study_statuses(self):
+        stCount = self.study_collection.study_set.count()
+        stSubs = StudySubject.objects.filter(subject=self.subject, study__study_collection=self.study_collection)
+        statuses = defaultdict(list)
+        [statuses[x.assignment.status].append(x) for x in stSubs]
+        return statuses
+
 
     """ If a participant times out, returns, or other fails to complete a study in prolific we
         have no simple way of 'reassigining' that study to them for another attempt.

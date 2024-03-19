@@ -289,7 +289,7 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
         BatteryExperiments, on_delete=models.SET_NULL, null=True
     )
     # in case we want to collect results without an assignment
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
+    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True)
     data = models.TextField(blank=True)
 
 

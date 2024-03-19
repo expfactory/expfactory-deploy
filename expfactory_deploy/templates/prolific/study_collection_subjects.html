@@ -1,14 +1,56 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="h2">
+  Study Collection {{ collection.id }}
+  <div class="battery-actions">
+    <a class="btn btn-primary" href="{% url 'prolific:remote-studies-list' collection.id %}">Manage Prolific State</a>
+    <a class="btn btn-primary" href="{% url 'prolific:study-collection-update' collection.id %}">Edit</a>
+  </div>
+</div>
+
 Internal name: {{ collection.name }}<br>
 Base study title: {{ collection.title }}<br>
 Prolific project id: {{ collection.project }}<br>
+Inter-Study Delay:
+{{ collection.inter_study_delay }}
+
+<div class="cards">
+  <article class="card">
+    <header><h4>Study Defaults</h4></header>
+    Reward:<br>{{ collection.reward }}<br>
+    Estimated Completion Time: <br>{{ collection.estimated_completion_time }}<br>
+    Places per study: <br>{{ collection.total_available_places }}<br>
+    Number of Groups: <br>{{ collection.number_of_groups }}<br>
+  </article>
+  <article class="card">
+    <header><h4>Collection Wide Timers</h4></header>
+    Time to Warning: <br>{{ collection.collection_time_to_warning }}<br>
+    Warning Message: <br>{{ collection.collection_warning_message }}<br>
+    Grace Interval: <br>{{ collection.collection_grace_interval }}<br>
+    Kick on Timeout: <br>{{ collection.collection_kick_on_timeout }}<br>
+  </article>
+  <article class="card">
+    <header><h4>Per Study Timers</h4></header>
+    Time to Warning: <br>{{ collection.study_time_to_warning }}<br>
+    Warning Message:<br>{{ collection.study_warning_message }}<br>
+    Grace Interval: <br>{{ collection.study_grace_interval }}<br>
+    Kick on Timeout: <br>{{ collection.study_kick_on_timeout }}<br>
+  </article>
+  <article class="card">
+    <header><h4>Initial Timers</h4></header>
+    Time to Start First Study: <br>{{ collection.time_to_start_first_study }}<br>
+    Failure to Start Message: <br>{{ collection.failure_to_start_message }}<br>
+  </article>
+</div>
+
+
 
 <h2>Study Collection Subjects</h2>
 <table id="subject-table">
   <thead>
     <tr>
       <th>Subject</th>
+      <th>Group</th>
       <th>Status</th>
       <th>Warnings</th>
       <th>Current Study</th>
@@ -18,7 +60,10 @@ Prolific project id: {{ collection.project }}<br>
     {% for scs in study_collection_subjects %}
     <tr>
       <td>
-        <a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a> - Group index {{ scs.group_index }}
+        <a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a>
+      </td>
+      <td>
+        {{ scs.group_index }}
       </td>
       <td>
         {{ scs.status }}
@@ -37,14 +82,14 @@ Prolific project id: {{ collection.project }}<br>
         {% endif %}
         {% if scs.ttcc_warned_at %}
           <li>
-          Complete all studies warning: {{ scs.ttfs_warned_at }}
+          Complete all studies warning: {{ scs.ttcc_warned_at }}
           </li>
         {% endif %}
         </ul>
       </td>
       <td>
         {% if scs.current_study %}
-        {{ scs.current_study.study.battery }} - {{ scs.current_study.study.remote_id }} - {{ scs.current_study.status }}
+        {{ scs.current_study.battery }} - {{ scs.current_study.remote_id }}
         {% endif %}
       </td>
     </tr>
@@ -53,3 +98,15 @@ Prolific project id: {{ collection.project }}<br>
 </table>
 
 {% endblock %}
+
+{% block inline_javascript %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const dataTable = new simpleDatatables.DataTable("#subject-table", {
+    searchable: true,
+    paging: false
+  })
+}, false);
+</script>
+{% endblock inline_javascript %}
+

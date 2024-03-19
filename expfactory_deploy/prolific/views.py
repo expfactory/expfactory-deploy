@@ -600,12 +600,8 @@ def recent_participants(request):
     Should probably exist as a method of the form itself.
     given a list of prolific Ids and study collection:
         - create Subject instances for PIDs if they don't exist.
-        - create assignments if subject was created?
         - StudyCollectionSubject, permenatly links collection and pid.
-            - What are we really doing with this model?
-        - See what batteries subject has completed
-            - find earliest incomplete in StudyCollection rank order.
-            - via prolific api add them to partgroup/allowlist/etc...
+        - Create a StudySubject and by association for first study.
 """
 
 
@@ -635,6 +631,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             )
             if first_study:
                 study_subject, created = models.StudySubject.objects.get_or_create(study=first_study, subject=subject)
+            print(f'first study: {first_study}, ss.study: {study_subject.study}')
             if created:
                 on_add_to_collection(subject_collection)
             if first_study and created:
@@ -748,6 +745,17 @@ def study_subject_by_collection(request, collection_id):
     study_subjects = models.StudySubject.objects.get(collection__id=collection_id).select_related()
     context = {'study_subjects': study_subjects}
     return render(request, "prolific/study_subjects_by_collection.html", context)
+
+@login_required
+def delete_study_subject_relations(request, collection_id, subject_id):
+    stSubs = models.StudySubject.objects.filter(study__study_collection__id=collection_id, subject__prolific_id=subject_id)
+    print(stSubs)
+    if stSubs:
+        [x.assignment.delete() for x in stSubs]
+    scs = models.StudyCollectionSubject.objects.filter(study_collection__id=collection_id, subject__prolific_id=subject_id)
+    print(scs)
+    [x.delete() for x in scs]
+    return HttpResponseRedirect(reverse_lazy("prolific:collection-subject-list", kwargs={"collection_id": collection_id}))
 
 class BlockedParticipantList(LoginRequiredMixin, ListView):
     model = models.BlockedParticipant
