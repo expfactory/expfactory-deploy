@@ -1,3 +1,4 @@
+import ast
 import datetime
 import os
 import random
@@ -213,6 +214,7 @@ class Battery(TimeStampedModel, StatusField):
     inter_task_break = models.DurationField(default=datetime.timedelta())
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
+    pass_check = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.title} - ID: {self.id}'
@@ -287,7 +289,7 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
         BatteryExperiments, on_delete=models.SET_NULL, null=True
     )
     # in case we want to collect results without an assignment
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, null=True)
+    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True)
     data = models.TextField(blank=True)
 
 
@@ -364,6 +366,21 @@ class Assignment(SubjectTaskStatusModel):
             self.status = "completed"
             self.save()
             return None, 0
+
+    def pass_check(self):
+        if self.status != "completed":
+            return False
+        results = self.result_set.all()
+        for result in results:
+            trial_data = ast.literal_eval(result.data)
+            # In an ideal world this field would be configurable per experiment.
+            include = trial_data.get("include_subject", None)
+            if include == False:
+                return False
+            if include is None:
+                # maybe we want to continue in this case?
+                return False
+        return True
 
     class Meta:
         constraints = [

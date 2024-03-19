@@ -4,7 +4,7 @@
   <div class="h2">
     Study Collection Details and Status
     <div class="battery-actions">
-      <a class="btn btn-primary" href="{% url 'prolific:collection-progress' study_collection.id %}">Collection Progress</a>
+      <a class="btn btn-primary" href="{% url 'prolific:collection-subject-list' study_collection.id %}">Subjects</a>
       {% if add_parts %}
       <a class="btn btn-primary {{ add_parts|yesno:",disabled" }}" href="{% url 'prolific:add-participants' study_collection.id %}">Add Subjects to Studies</a>
       {% endif %}
@@ -52,8 +52,8 @@
       <pre>{{ study|pprint }}</pre>
     </details>
     {% endfor %}
-    </div>
   {% endfor %}
+  </div>
   <h3> Subjects Associated With Study Collection</h3>
   {% for scs in study_collection_subjects %}
     <a href="{% url 'prolific:collection-subject-detail' scs_id=scs.id %}">{{ scs.subject.prolific_id }}</a><br>

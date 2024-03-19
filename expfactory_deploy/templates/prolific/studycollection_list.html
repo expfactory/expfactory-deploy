@@ -52,6 +52,7 @@
           <a class="btn btn-primary btn-sm" href="{% url 'prolific:collection-toggle' collection.id %}">Hide</a>
        </td>
        <td>
+            <a href="{% url 'prolific:collection-subject-list' collection.id %}">Subjects</a><br>
             <a href="{% url 'prolific:collection-progress-by-prolific' collection.id %}">Progress according to Prolific API</a><br>
             <a href="{% url 'prolific:collection-progress-by-data' collection.id %}">Progress by submitted trialdata</a><br>
             <a href="{% url 'prolific:recent-participants' %}?collection_id={{ collection.id }}&limit=15">Recently Loaded Experiments </a><br>

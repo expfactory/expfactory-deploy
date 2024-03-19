@@ -643,12 +643,8 @@ def recent_participants(request):
     Should probably exist as a method of the form itself.
     given a list of prolific Ids and study collection:
         - create Subject instances for PIDs if they don't exist.
-        - create assignments if subject was created?
         - StudyCollectionSubject, permenatly links collection and pid.
-            - What are we really doing with this model?
-        - See what batteries subject has completed
-            - find earliest incomplete in StudyCollection rank order.
-            - via prolific api add them to partgroup/allowlist/etc...
+        - Create a StudySubject and by association for first study.
 """
 
 
@@ -668,6 +664,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             subject, sub_created = exp_models.Subject.objects.get_or_create(prolific_id=id)
             subjects.append(subject)
 
+        first_study = collection.study_set.first()
         for subject in subjects:
             (
                 subject_collection,
@@ -675,12 +672,17 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             ) = models.StudyCollectionSubject.objects.get_or_create(
                 study_collection=collection, subject=subject
             )
+            if first_study:
+                study_subject, created = models.StudySubject.objects.get_or_create(study=first_study, subject=subject)
+            print(f'first study: {first_study}, ss.study: {study_subject.study}')
             if created:
                 on_add_to_collection(subject_collection)
+            if first_study and created:
+                subject_collection.current_study = first_study
 
-        first_study = collection.study_set.all().order_by("rank")[0]
-        print(f'calling add to allow on {first_study.id} with pids: {ids}')
-        first_study.add_to_allowlist(ids)
+        if first_study:
+            print(f'calling add to allow on {first_study.id} with pids: {ids}')
+            first_study.add_to_allowlist(ids)
         '''
         pids_to_add = defaultdict(list)
         studies = models.Study.objects.filter(study_collection=collection).order_by(
@@ -781,6 +783,22 @@ def study_collection_subject_detail(
     }
     return render(request, "prolific/study_collection_subject_detail.html", context)
 
+@login_required
+def study_subject_by_collection(request, collection_id):
+    study_subjects = models.StudySubject.objects.get(collection__id=collection_id).select_related()
+    context = {'study_subjects': study_subjects}
+    return render(request, "prolific/study_subjects_by_collection.html", context)
+
+@login_required
+def delete_study_subject_relations(request, collection_id, subject_id):
+    stSubs = models.StudySubject.objects.filter(study__study_collection__id=collection_id, subject__prolific_id=subject_id)
+    print(stSubs)
+    if stSubs:
+        [x.assignment.delete() for x in stSubs]
+    scs = models.StudyCollectionSubject.objects.filter(study_collection__id=collection_id, subject__prolific_id=subject_id)
+    print(scs)
+    [x.delete() for x in scs]
+    return HttpResponseRedirect(reverse_lazy("prolific:collection-subject-list", kwargs={"collection_id": collection_id}))
 
 class BlockedParticipantList(LoginRequiredMixin, ListView):
     model = models.BlockedParticipant

@@ -27,7 +27,9 @@
           {% for study, assignment in study_assignments.items %}
             <td>
               {% with assign=assignment.1|dict_get:subject %}
-                {{ assign }}/{{assignment.0.exp_count}}
+                {% if assign %}
+                  {{ assign }}/{{assignment.0.exp_count}}
+                {% endif %}
               {% endwith %}
             </td>
           {% endfor %}

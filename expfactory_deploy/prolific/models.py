@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -55,6 +56,7 @@ class StudyCollection(models.Model):
         blank=True,
         help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being removed from study",
     )
+    failure_to_start_message = models.TextField(blank=True)
     study_time_to_warning = models.DurationField(
         null=True,
         blank=True,
@@ -247,9 +249,8 @@ class StudyCollection(models.Model):
             **completion_code_kwargs,
         }
 
-query_params = (
-    f"?{settings.PROLIFIC_PARTICIPANT_PARAM}={{{{%PROLIFIC_PID%}}}},{settings.PROLIFIC_STUDY_PARAM}={{{{%STUDY_ID%}}}},{settings.PROLIFIC_SESSION_PARAM}={{{{%SESSION_ID%}}}}"
-)
+
+query_params = f"?{settings.PROLIFIC_PARTICIPANT_PARAM}={{{{%PROLIFIC_PID%}}}},{settings.PROLIFIC_STUDY_PARAM}={{{{%STUDY_ID%}}}},{settings.PROLIFIC_SESSION_PARAM}={{{{%SESSION_ID%}}}}"
 
 def part_group_action(pid=""):
     return {"action": "ADD_TO_PARTICIPANT_GROUP", "participant_group": pid}
@@ -332,7 +333,9 @@ class Study(models.Model):
         for pid in pids:
             if pid != None:
                 subject, created = Subject.objects.get_or_create(prolific_id=pid)
-                study_subject, ss_created = StudySubject.objects.get_or_create(study=self, subject=subject)
+                study_subject, ss_created = StudySubject.objects.get_or_create(
+                    study=self, subject=subject
+                )
 
     def remove_participant(self, pid):
         if not self.participant_group:
@@ -341,9 +344,12 @@ class Study(models.Model):
         if pid != None:
             try:
                 subject = Subject.objects.get(prolific_id=pid)
-                study_subject = StudySubject.objects.get(study=self, subject=subject).delete()
+                study_subject = StudySubject.objects.get(
+                    study=self, subject=subject
+                ).delete()
             except ObjectDoesNotExist:
                 return
+
 
 class StudyRank(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE)
@@ -355,15 +361,55 @@ class StudyRank(models.Model):
 
 class StudySubject(models.Model):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, blank=True)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, blank=True, null=True)
+    subject = models.ForeignKey(
+        Subject, on_delete=models.CASCADE, blank=True, null=True
+    )
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, blank=True)
     assigned_to_study = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    STATUS = Choices(
+        "n/a",
+        "not-started",
+        "started",
+        "completed",
+        "failed",
+        "redo",
+        "kicked",
+        "flagged",
+    )
+    status = StatusField(choices_name="STATUS", default="n/a")
+    failed_at = MonitorField(
+        monitor="status", when=["kicked", "flagged", "failed"], default=None, null=True
+    )
+    warned_at = models.DateTimeField(default=None, blank=True, null=True)
+    STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
+    status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
+
+    """
+    Maybe we should just set this as a foreign key. If we have a study collection subject and want all the study subjects we do something like:
+    StudySubject.objects.filter(subject=my_sub, study__study_collection=scs.study_collection)
+    """
+
+    @property
+    def study_collection_subject(self):
+        if not self.study:
+            return
+        return StudyCollectionSubject.objects.get(
+            study_collection=self.study.study_collection, subject=self.subject
+        )
 
     def save(self, *args, **kwargs):
         if self.pk == None:
-            assignments = Assignment.objects.filter(subject=self.subject, battery=self.study.battery, alt_id=self.study.remote_id)
+            assignments = Assignment.objects.filter(
+                subject=self.subject,
+                battery=self.study.battery,
+                alt_id=self.study.remote_id,
+            )
             if len(assignments) == 0:
-                assignment = Assignment.objects.create(subject=self.subject, battery=self.study.battery, alt_id=self.study.remote_id)
+                assignment = Assignment.objects.create(
+                    subject=self.subject,
+                    battery=self.study.battery,
+                    alt_id=self.study.remote_id,
+                )
                 assignment.save()
                 self.assignment = assignment
             elif len(assignments) == 1:
@@ -374,11 +420,21 @@ class StudySubject(models.Model):
         super().save(*args, **kwargs)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['study', 'subject'], name="UniqueStudySubject")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["study", "subject"], name="UniqueStudySubject"
+            )
+        ]
+
 
 """
 class CollectionSubjectManager(models.Manager):
     def create_from_subjects(self, subjects, collection):
+"""
+
+"""
+    ttfs - Timer To First Study
+    ttcc - Timer To Complete Collection
 """
 
 
@@ -386,10 +442,32 @@ class StudyCollectionSubject(models.Model):
     study_collection = models.ForeignKey(StudyCollection, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     group_index = models.IntegerField(default=0)
-    STATUS = Choices("n/a", "not-started", "started", "completed", "failed", "redo", "kicked", "flagged")
-    status = StatusField(default="n/a")
-    failed_at = MonitorField(monitor="status", when=["kicked", "flagged", "failed"], default=None, null=True)
+    STATUS = Choices(
+        "n/a",
+        "not-started",
+        "started",
+        "completed",
+        "failed",
+        "redo",
+        "kicked",
+        "flagged",
+    )
+    status = StatusField(choices_name="STATUS", default="n/a")
+    failed_at = MonitorField(
+        monitor="status", when=["kicked", "failed"], default=None, null=True
+    )
     warned_at = models.DateTimeField(default=None, blank=True, null=True)
+    current_study = models.ForeignKey(Study, blank=True, null=True, on_delete=models.SET_NULL, default=None)
+    STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
+    status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
+    ttfs_warned_at = models.DateTimeField(default=None, blank=True, null=True)
+    ttcc_warned_at = models.DateTimeField(default=None, blank=True, null=True)
+    ttcc_flagged_at = MonitorField(
+        monitor="status", when=["flagged"], default=None, null=True
+    )
+    @property
+    def ended(self):
+        return self.status in ["failed", "completed", "kicked"] or self.failed_at
 
     """ Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
         to not give same number multiple times? Current use case is in a loop, should be fine.
@@ -402,19 +480,33 @@ class StudyCollectionSubject(models.Model):
                 self.study_collection.studycollectionsubject_set.count()
             )
             self.group_index = (current_part_count + 1) % number_of_groups
+
         super().save(*args, **kwargs)
 
     def next_study(self, current_study):
-        next_studies = Study.objects.filter(study_collection=current_study.study_collection).order_by("rank").filter(rank__gt=current_study.rank)
+        next_studies = (
+            Study.objects.filter(study_collection=current_study.study_collection)
+            .order_by("rank")
+            .filter(rank__gt=current_study.rank)
+        )
         if len(next_studies):
             return next_studies[0]
         return None
+
+    def study_statuses(self):
+        stCount = self.study_collection.study_set.count()
+        stSubs = StudySubject.objects.filter(subject=self.subject, study__study_collection=self.study_collection)
+        statuses = defaultdict(list)
+        [statuses[x.assignment.status].append(x) for x in stSubs]
+        return statuses
+
 
     """ If a participant times out, returns, or other fails to complete a study in prolific we
         have no simple way of 'reassigining' that study to them for another attempt.
 
         This function will create a new study collection for the subjects remaining batteries.
     """
+
     def incomplete_study_collection(self):
         old_id = self.study_collection.id
         study_collection = StudyCollection.objects.get(id=old_id)

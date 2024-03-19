@@ -307,6 +307,19 @@ def deactivate_battery(request, pk):
     battery.status = "inactive"
     battery.save()
     # return HttpResponseRedirect(referer)
+
+@login_required
+def propagate_instructions(request, pk):
+    battery = get_object_or_404(models.Battery, pk=pk)
+    update_count = 0
+    if battery.status == "template":
+        for child in battery.children.all():
+            if child.instructions != battery.instructions:
+                child.instructions = battery.instructions
+                child.save()
+                update_count += 1
+    pluralize_child = "children" if update_count != 1 else "child"
+    messages.info(request, f'Updated {update_count} {pluralize_child}')
     return HttpResponseRedirect(reverse_lazy("experiments:battery-list"))
 
 @login_required

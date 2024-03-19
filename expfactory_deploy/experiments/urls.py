@@ -123,6 +123,12 @@ urlpatterns = [
         name="battery-deactivate-confirm",
     ),
     path(
+        "battery/<int:pk>/propagate/instructions",
+        views.propagate_instructions,
+        name="propagate-instructions",
+    ),
+
+    path(
         "battery/<int:pk>/update/",
         views.BatteryComplex.as_view(),
         name="battery-update",
