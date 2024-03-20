@@ -178,6 +178,7 @@ def study_end_grace(scs_id, study_id):
 
 def initial_warning(ss_id):
     ss = pm.StudySubject.objects.get(id=ss_id)
+    scs = ss.study_collection_subject
     if ss.study_collection_subject.ended:
         return f"{ss.subject} listed as having failed collection {ss.study_collection_subject.id}"
     if ss.assignment.status != "not-started":
@@ -190,7 +191,6 @@ def initial_warning(ss_id):
     warned_at = datetime.now()
     ss.warned_at = warned_at
     ss.save()
-    scs = ss.study_subject_collection
     scs.ttfs_warned_at = warned_at
     scs.save()
     schedule(

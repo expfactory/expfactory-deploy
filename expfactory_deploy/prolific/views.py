@@ -4,6 +4,7 @@ import pprint
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -39,7 +40,8 @@ from prolific.tasks import on_add_to_collection
 
 class ProlificServe(exp_views.Serve):
     def set_subject(self):
-        prolific_id = self.request.GET.get("participant", None)
+        part_param = settings.PROLIFIC_PARTICIPANT_PARAM
+        prolific_id = self.request.GET.get(part_param, None)
         if prolific_id is None:
             self.subject = None
         else:
@@ -48,7 +50,8 @@ class ProlificServe(exp_views.Serve):
             )[0]
 
     def set_assignment(self):
-        study_id = self.request.GET.get("study", None)
+        study_param = settings.PROLIFIC_STUDY_PARAM
+        study_id = self.request.GET.get(study_param, None)
         if study_id is None:
             super().set_assignment()
         else:

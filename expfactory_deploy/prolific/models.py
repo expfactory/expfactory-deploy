@@ -30,7 +30,7 @@ class StudyCollection(models.Model):
         blank=True,
         help_text="Base Title to be used by all stutdies in collection on Prolific.",
     )
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, help_text='Description of the study for the participants to read before starting the study.')
     total_available_places = models.IntegerField(default=0)
     estimated_completion_time = models.IntegerField(
         default=0, help_text="Value in minutes."
@@ -298,7 +298,7 @@ class Study(models.Model):
         ] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
         study_args[
             "external_study_url"
-        ] = f"https://deploy.expfactory.org/prolific/serve{self.battery.id}{query_params}"
+        ] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}{query_params}"
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
 
