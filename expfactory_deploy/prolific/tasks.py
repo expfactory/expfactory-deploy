@@ -186,7 +186,7 @@ def initial_warning(ss_id):
     api.send_message(
         ss.subject.prolific_id,
         ss.study.remote_id,
-        ss.study.study_collection.collection_warning_message,
+        ss.study.study_collection.failure_to_start_warning_message,
     )
     warned_at = datetime.now()
     ss.warned_at = warned_at
