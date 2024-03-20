@@ -250,7 +250,7 @@ class StudyCollection(models.Model):
         }
 
 
-query_params = f"?{settings.PROLIFIC_PARTICIPANT_PARAM}={{{{%PROLIFIC_PID%}}}},{settings.PROLIFIC_STUDY_PARAM}={{{{%STUDY_ID%}}}},{settings.PROLIFIC_SESSION_PARAM}={{{{%SESSION_ID%}}}}"
+query_params = f"?{settings.PROLIFIC_PARTICIPANT_PARAM}={{{{%PROLIFIC_PID%}}}}&{settings.PROLIFIC_STUDY_PARAM}={{{{%STUDY_ID%}}}}&{settings.PROLIFIC_SESSION_PARAM}={{{{%SESSION_ID%}}}}"
 
 
 def part_group_action(pid=""):
