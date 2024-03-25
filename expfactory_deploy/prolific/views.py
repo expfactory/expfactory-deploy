@@ -49,9 +49,24 @@ class ProlificServe(exp_views.Serve):
                 prolific_id=prolific_id
             )[0]
 
+    '''
+        With the addition of StudySubject the question is should we ever need
+        to create an assignment at this step?
+    '''
     def set_assignment(self):
-        study_param = settings.PROLIFIC_STUDY_PARAM
-        study_id = self.request.GET.get(study_param, None)
+        study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
+        session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
+        study_subjects = pm.StudySubject.objects.filter(subject=self.subject)
+        if study_id:
+             study_subjects = study_subjects.filter(study__remote_id=study_id)
+        if session_id:
+             study_subjects = study_subjects.filter(prolific_session_id=study_id)
+        if len(study_subjects) > 1:
+            pass
+        if len(study_subjects):
+            assignment = self.assignment = study_subjects[0].assignment
+
+        '''
         if study_id is None:
             super().set_assignment()
         else:
@@ -71,6 +86,7 @@ class ProlificServe(exp_views.Serve):
                 self.assignment.save()
             else:
                 super().set_assignment()
+        '''
 
     """
     def complete(self, request):

@@ -5,6 +5,7 @@ from django.db.models import Count
 from experiments import models as em
 from prolific import models as pm
 from prolific import outgoing_api as api
+from prolific.utils import add_subjects_to_collection
 
 from django_q.tasks import schedule
 
@@ -23,6 +24,11 @@ on battery completion:
             if not send message and set grace timer
 """
 
+# task friendly wrapper for the utility function
+def add_to_collection(subject_id, collection_id):
+    subject = em.Subject.objects.get(id=subject_id)
+    collection = em.StudyCollection.objects.get(id=collection_id)
+    add_subjects_to_collection([subject], collection)
 
 def on_add_to_collection(scs):
     if scs.ended:
@@ -80,6 +86,15 @@ def on_complete_battery(sc, current_study, subject_id):
         # is there really no next study?
         scs.status = "completed"
         scs.save()
+        if scs.study_collection.screener_for is not None:
+            pass_check = ss.assignemnt.pass_check()
+            if pass_check:
+                schedule(
+                    "prolific.tasks.add_to_collection",
+                    scs.subject.id,
+                    scs.study_collection.screener_for.id,
+                    next_run=datetime.now() + scs.study_collection.inter_study_delay,
+                )
         return
 
 
@@ -132,7 +147,7 @@ def study_warning(scs_id, study_id):
         api.send_message(
             scs.subject.prolific_id,
             study_id,
-            sc.collection_warning_message,
+            sc.study_warning_message,
         )
         study_subject.warned_at = datetime.now()
         study_subject.save()
@@ -155,7 +170,7 @@ def study_end_grace(scs_id, study_id):
     if started:
         return f"{scs.subject} has started {study} taking no action"
 
-    if scs.study_collection.study.kick_on_timeout:
+    if scs.study_collection.kick_on_timeout:
         status = "kicked"
         study.remove_participant(scs.subject.prolific_id)
         message = f"removed ${scs.subject.prolific_id} from ${study} for not starting battery on time"
@@ -196,7 +211,7 @@ def initial_warning(ss_id):
     schedule(
         "initial_end_grace",
         ss_id,
-        next_run=datetime.now() + ss.study.study_collection.collection_grace_interval,
+        next_run=datetime.now() + ss.study.study_collection.initial_study_grace_interval,
     )
 
 

@@ -57,7 +57,13 @@ class StudyCollection(models.Model):
     time_to_start_first_study = models.DurationField(
         null=True,
         blank=True,
-        help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being removed from study",
+        help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being sent a warning message.",
+    )
+    failure_to_strat_grace_interval = models.DurationField(
+        null=True,
+        default=timedelta(0),
+        blank=True,
+        help_text="hh:mm:ss - Time from previous warning to kick from study. If set to 0 nothing is done instead.",
     )
     failure_to_start_message = models.TextField(blank=True)
     failure_to_start_warning_message = models.TextField(blank=True)
@@ -91,6 +97,9 @@ class StudyCollection(models.Model):
         default=False,
         help_text="If True kick participant after the expiration of grace period from having not completed all studies.",
     )
+    screener_for = models.ForeignKey("self", blank=True, null=True, on_delete=models.SET_NULL)
+    screener_rejection_message = models.models.TextField(blank=True)
+
 
     @property
     def study_count(self):
@@ -384,6 +393,7 @@ class StudySubject(models.Model):
     warned_at = models.DateTimeField(default=None, blank=True, null=True)
     STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
     status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
+    prolific_session_id = models.TextField(blank=True, default="")
 
     """
     Maybe we should just set this as a foreign key. If we have a study collection subject and want all the study subjects we do something like:
@@ -419,6 +429,16 @@ class StudySubject(models.Model):
                 # pray on what to do here. Choose one based on timestamp or status?
                 self.assignment = assignments[0]
         super().save(*args, **kwargs)
+
+    def get_prolific_status(self):
+        if not self.prolific_session_id:
+            return None
+        response = api.get_submission(self.prolific_session_id)
+        if hasattr(response, 'status'):
+            return response.status
+        # how do we actually want to handle an error here?
+        return None
+
 
     class Meta:
         constraints = [

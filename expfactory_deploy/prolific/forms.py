@@ -44,6 +44,7 @@ class StudyCollectionForm(ModelForm):
             "time_to_start_first_study",
             "failure_to_start_warning_message",
             "failure_to_start_message",
+            "failure_to_start_grace_interval",
             "study_time_to_warning",
             "study_warning_message",
             "study_grace_interval",
@@ -52,6 +53,8 @@ class StudyCollectionForm(ModelForm):
             "collection_warning_message",
             "collection_grace_interval",
             "collection_kick_on_timeout",
+            "screener_for",
+            "screener_rejection_message",
         ]
         widgets = {
             "name": forms.TextInput(),

@@ -26,7 +26,8 @@ from pyrolific.api.participant_groups import (
     update_participant_group,
 )
 
-from pyrolific.api.submissions import get_submissions, get_submission
+from pyrolific.api.submissions import get_submissions
+from pyrolific.api.submissions import get_submission as _get_submission
 from pyrolific.api.messages import send_message as _send_message
 from pyrolific.api import studies
 
@@ -161,6 +162,10 @@ def list_submissions(sid=None):
     if hasattr(response, "status_code"):
         raise GenericProlificException()
     return response["results"]
+
+def get_submission(session_id):
+    response = make_call(_get_submission, ac=True, id=session_id)
+    return response
 
 def send_message(participant_id, study_id, message):
     body = api_models.send_message.SendMessage.from_dict({'recipient_id': participant_id, 'body': message, 'study_id': study_id})
