@@ -382,12 +382,14 @@ class Assignment(SubjectTaskStatusModel):
                 return False
         return True
 
+    '''
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 name="unique_assignment", fields=["subject", "battery"]
             )
         ]
+    '''
 
 class ExperimentOrderItem(models.Model):
     battery_experiment = models.ForeignKey(
