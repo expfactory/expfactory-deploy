@@ -62,7 +62,7 @@ class StudyCollection(models.Model):
         blank=True,
         help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being sent a warning message.",
     )
-    failure_to_strat_grace_interval = models.DurationField(
+    failure_to_start_grace_interval = models.DurationField(
         null=True,
         default=timedelta(0),
         blank=True,
@@ -103,7 +103,7 @@ class StudyCollection(models.Model):
     screener_for = models.ForeignKey(
         "self", blank=True, null=True, on_delete=models.SET_NULL
     )
-    screener_rejection_message = models.models.TextField(blank=True)
+    screener_rejection_message = models.TextField(blank=True)
 
     @property
     def study_count(self):

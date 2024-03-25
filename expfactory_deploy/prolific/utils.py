@@ -1,5 +1,4 @@
 from prolific import models as models
-from prolific.tasks import on_add_to_collection
 
 """
     Copied from prolific.views.ParticipantFormView.form_valid.
@@ -8,6 +7,7 @@ from prolific.tasks import on_add_to_collection
 
 
 def add_subjects_to_collection(subjects, collection):
+    from prolific.tasks import on_add_to_collection
     first_study = collection.study_set.first()
     for subject in subjects:
         (
