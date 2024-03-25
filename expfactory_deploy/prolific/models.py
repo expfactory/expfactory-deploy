@@ -30,7 +30,10 @@ class StudyCollection(models.Model):
         blank=True,
         help_text="Base Title to be used by all stutdies in collection on Prolific.",
     )
-    description = models.TextField(blank=True, help_text='Description of the study for the participants to read before starting the study.')
+    description = models.TextField(
+        blank=True,
+        help_text="Description of the study for the participants to read before starting the study.",
+    )
     total_available_places = models.IntegerField(default=0)
     estimated_completion_time = models.IntegerField(
         default=0, help_text="Value in minutes."
@@ -97,9 +100,10 @@ class StudyCollection(models.Model):
         default=False,
         help_text="If True kick participant after the expiration of grace period from having not completed all studies.",
     )
-    screener_for = models.ForeignKey("self", blank=True, null=True, on_delete=models.SET_NULL)
+    screener_for = models.ForeignKey(
+        "self", blank=True, null=True, on_delete=models.SET_NULL
+    )
     screener_rejection_message = models.models.TextField(blank=True)
-
 
     @property
     def study_count(self):
@@ -434,11 +438,10 @@ class StudySubject(models.Model):
         if not self.prolific_session_id:
             return None
         response = api.get_submission(self.prolific_session_id)
-        if hasattr(response, 'status'):
+        if hasattr(response, "status"):
             return response.status
         # how do we actually want to handle an error here?
         return None
-
 
     class Meta:
         constraints = [
@@ -478,7 +481,9 @@ class StudyCollectionSubject(models.Model):
         monitor="status", when=["kicked", "failed"], default=None, null=True
     )
     warned_at = models.DateTimeField(default=None, blank=True, null=True)
-    current_study = models.ForeignKey(Study, blank=True, null=True, on_delete=models.SET_NULL, default=None)
+    current_study = models.ForeignKey(
+        Study, blank=True, null=True, on_delete=models.SET_NULL, default=None
+    )
     STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
     status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
     ttfs_warned_at = models.DateTimeField(default=None, blank=True, null=True)
@@ -486,6 +491,7 @@ class StudyCollectionSubject(models.Model):
     ttcc_flagged_at = MonitorField(
         monitor="status", when=["flagged"], default=None, null=True
     )
+
     @property
     def ended(self):
         return self.status in ["failed", "completed", "kicked"] or self.failed_at
@@ -516,11 +522,12 @@ class StudyCollectionSubject(models.Model):
 
     def study_statuses(self):
         stCount = self.study_collection.study_set.count()
-        stSubs = StudySubject.objects.filter(subject=self.subject, study__study_collection=self.study_collection)
+        stSubs = StudySubject.objects.filter(
+            subject=self.subject, study__study_collection=self.study_collection
+        )
         statuses = defaultdict(list)
         [statuses[x.assignment.status].append(x) for x in stSubs]
         return statuses
-
 
     """ If a participant times out, returns, or other fails to complete a study in prolific we
         have no simple way of 'reassigining' that study to them for another attempt.

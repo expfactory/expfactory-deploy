@@ -24,15 +24,19 @@ on battery completion:
             if not send message and set grace timer
 """
 
+
 # task friendly wrapper for the utility function
 def add_to_collection(subject_id, collection_id):
     subject = em.Subject.objects.get(id=subject_id)
     collection = em.StudyCollection.objects.get(id=collection_id)
     add_subjects_to_collection([subject], collection)
 
+
 def on_add_to_collection(scs):
     if scs.ended:
-        print("trying to add {scs.subject.id} to an ended collection {scs.study_collection.id }")
+        print(
+            "trying to add {scs.subject.id} to an ended collection {scs.study_collection.id }"
+        )
         return
     sc = scs.study_collection
     ss = pm.StudySubject.objects.get(subject=scs.subject, study=sc.study_set.first())
@@ -67,7 +71,9 @@ def on_complete_battery(sc, current_study, subject_id):
     delay = sc.inter_study_delay if sc.inter_study_delay != None else timedelta(0)
     ss = pm.StudySubject.objects.get(study=current_study, subject=subject_id)
     if ss.status == "kicked":
-        print(f'subject {sc.subject.id} listed as kicked on collection {current_study.study_collection.id}')
+        print(
+            f"subject {sc.subject.id} listed as kicked on collection {current_study.study_collection.id}"
+        )
         return
     ss.status = "completed"
     ss.save()
@@ -117,9 +123,7 @@ def end_study_delay(study_id, subject_id):
     scs.save()
     study.add_to_allowlist([subject.prolific_id])
 
-    if (
-        sc.study_time_to_warning > timedelta(0)
-    ):
+    if sc.study_time_to_warning > timedelta(0):
         schedule(
             "prolific.tasks.study_warning",
             scs.id,
@@ -211,7 +215,8 @@ def initial_warning(ss_id):
     schedule(
         "initial_end_grace",
         ss_id,
-        next_run=datetime.now() + ss.study.study_collection.initial_study_grace_interval,
+        next_run=datetime.now()
+        + ss.study.study_collection.initial_study_grace_interval,
     )
 
 
@@ -280,8 +285,10 @@ def collection_warning(scs_id):
         scs.warned_at = datetime.now()
         scs.ttcc_warned_at = datetime.now()
         scs.save()
-        return f'warned subject {scs.subject.id} for collection {scs.study_collection.id}'
-    return f'subject {scs.subject.id} completed collection {scs.study_collection.id} - not warned'
+        return (
+            f"warned subject {scs.subject.id} for collection {scs.study_collection.id}"
+        )
+    return f"subject {scs.subject.id} completed collection {scs.study_collection.id} - not warned"
 
 
 def collection_end_grace(scs_id):
@@ -307,6 +314,6 @@ def collection_end_grace(scs_id):
             scs.status = "flagged"
             scs.status_reason = "collection-timer"
         scs.save()
-        return f'subject {scs.subject.id} set to {scs.status} for study collection {scs.study_collection.id}'
+        return f"subject {scs.subject.id} set to {scs.status} for study collection {scs.study_collection.id}"
     else:
-        return f'subject {scs.subject.id} completed batteries of study collection {scs.study_collection.id}'
+        return f"subject {scs.subject.id} completed batteries of study collection {scs.study_collection.id}"
