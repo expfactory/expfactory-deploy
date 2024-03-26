@@ -39,6 +39,8 @@ Inter-Study Delay:
   <article class="card">
     <header><h4>Initial Timers</h4></header>
     Time to Start First Study: <br>{{ collection.time_to_start_first_study }}<br>
+    Failure to Start Warning Message: <br>{{ collection.failure_to_Start_warning_message }}</br>
+    Grace Interval: <br>{{ collection.failure_to_start_grace_interval }}<br>
     Failure to Start Message: <br>{{ collection.failure_to_start_message }}<br>
   </article>
 </div>
@@ -60,7 +62,7 @@ Inter-Study Delay:
     {% for scs in study_collection_subjects %}
     <tr>
       <td>
-        <a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a>
+        <a href="{% url 'prolific:collection-subject-detail' scs.id %}">{{ scs.subject.prolific_id }}</a>
       </td>
       <td>
         {{ scs.group_index }}

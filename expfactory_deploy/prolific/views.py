@@ -57,37 +57,23 @@ class ProlificServe(exp_views.Serve):
     def set_assignment(self):
         study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
         session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
-        study_subjects = pm.StudySubject.objects.filter(subject=self.subject)
+        study_subjects = models.StudySubject.objects.filter(subject=self.subject)
         if study_id:
             study_subjects = study_subjects.filter(study__remote_id=study_id)
         if session_id:
-            study_subjects = study_subjects.filter(prolific_session_id=study_id)
+            session_ss = study_subjects.filter(prolific_session_id=study_id)
+            if len(session_ss):
+                study_subjects = session_ss
+
         if len(study_subjects) > 1:
             pass
-        if len(study_subjects):
-            assignment = self.assignment = study_subjects[0].assignment
 
-        """
-        if study_id is None:
-            super().set_assignment()
-        else:
-            assignments = exp_models.Assignment.objects.filter(
-                subject=self.subject, battery=self.battery
-            )
-            assign_alt_id = assignments.filter(alt_id=study_id)
-            if len(assign_alt_id) > 0:
-                self.assignment = assign_alt_id[0]
-                return
-            active_assignments = assignments.filter(
-                Q(status="started") | Q(status="not-started")
-            )
-            if len(active_assignments) > 0:
-                self.assignment = active_assignments[0]
-                self.assignment.alt_id = study_id
+        if len(study_subjects):
+            self.assignment = study_subjects[0].assignment
+            if self.assignment.session_id == None:
+                self.assignment.session_id = session_id
                 self.assignment.save()
-            else:
-                super().set_assignment()
-        """
+
 
     """
     def complete(self, request):
@@ -743,27 +729,19 @@ def study_collection_subject_detail(
             study_collection__id=collection_id,
             subject__prolific_id=prolific_id,
         )
-
-    studies = scs.study_collection.study_set.all().order_by("rank")
     status = []
-    for study in studies:
-        # we have to get all submissions and then filter on subject id?
-        api_results = outgoing_api.list_submissions(study.remote_id)
-        prolific_status = None
-        for result in api_results:
-            if result.get("participant_id", None) == prolific_id:
-                prolific_status = result
-                break
-
-        battery_status = exp_models.Assignment.objects.filter(
-            subject=scs.subject, battery=study.battery
-        )
-        status.append((study, battery_status, prolific_status))
-
+    study_subjects = models.StudySubject.objects.filter(subject=scs.subject, study__study_collection=scs.study_collection).order_by('study__rank')
+    for ss in study_subjects:
+        if not ss.prolific_session_id:
+            prolific_status = "No Session ID"
+        else:
+            prolific_status = x.get_prolific_status()
+        status.append((ss, prolific_status))
     context = {
         "scs": scs,
         "status": status,
     }
+
     return render(request, "prolific/study_collection_subject_detail.html", context)
 
 
@@ -796,6 +774,12 @@ def delete_study_subject_relations(request, collection_id, subject_id):
     )
 
 
+@login_required
+def toggle_active_study_collection_subject(request, scs_id):
+    scs = get_object_or_404(models.StudyCollectionSubject, id=scs_id)
+    scs.active = not scs.active
+    return redirect(reverse('prolific:collection-subject-detail', kwargs={'scs_id': scs.id}))
+
 class BlockedParticipantList(LoginRequiredMixin, ListView):
     model = models.BlockedParticipant
 
@@ -810,3 +794,5 @@ class BlockedParticipantCreate(LoginRequiredMixin, CreateView):
     model = models.BlockedParticipant
     fields = ["prolific_id", "active", "note"]
     success_url = reverse_lazy("prolific:blocked-participant-list")
+
+

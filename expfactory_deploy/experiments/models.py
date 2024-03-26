@@ -214,7 +214,7 @@ class Battery(TimeStampedModel, StatusField):
     inter_task_break = models.DurationField(default=datetime.timedelta())
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True)
-    pass_check = models.BooleanField(default=False)
+    # pass_check = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.title} - ID: {self.id}'
@@ -324,6 +324,7 @@ class Assignment(SubjectTaskStatusModel):
         return status
 
     def save(self, *args, **kwargs):
+        study_subjects = []
         if self.pk == None and self.battery.random_order:
             self.ordering = ExperimentOrder.objects.create(battery=self.battery)
             self.ordering.generate_order_items()
@@ -331,13 +332,15 @@ class Assignment(SubjectTaskStatusModel):
             old = Assignment.objects.get(id=self.pk)
             if old.status != self.status:
                 study_subjects = self.studysubject_set.all()
-                if len(study_subjects):
-                    from prolific.tasks import on_complete_battery
-                    study = study_subjects[0].study
-                    sc = study.study_collection
-                    on_complete_battery(sc, study.id, self.subject.id)
 
         super().save(*args, **kwargs)
+
+        if len(study_subjects):
+            from prolific.tasks import on_complete_battery
+            study = study_subjects[0].study
+            sc = study.study_collection
+            on_complete_battery(sc, study.id, self.subject.id)
+
 
     def get_next_experiment(self):
         if self.ordering == None:
@@ -379,7 +382,7 @@ class Assignment(SubjectTaskStatusModel):
                 return False
             if include is None:
                 # maybe we want to continue in this case?
-                return False
+                pass
         return True
 
     '''

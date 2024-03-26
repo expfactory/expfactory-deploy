@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Single Participant Status for Subject Collection</h2>
+<h2>Single Participant Status for Study Collection</h2>
 <h3>Participant</h3>
 <a href="{% url 'experiments:subject-detail' scs.subject.id %}">{{ scs.subject.prolific_id }}</a> - Group index {{ scs.group_index }}
 <h3>Study Collection</h3>
@@ -18,25 +18,44 @@
 <br>
 
 <h3>Status</h3>
+
+<a class="btn-sm btn-primary" href="{% url 'prolific:collection-subject-toggle-active' scs.id %}">
+{% if scs.active %}
+    Deactivate
+{% else %}
+    Activate
+  {% endif %}
+</a>
 <table class="table">
   <thead>
     <th>Study</th>
     <th>Prolific Submission</th>
     <th>Data Submission</th>
+    <th>Failed Timers</th>
   </thead>
   <tbody>
     {% for entry in status %}
     <tr>
       <td>
-      {{ entry.0 }}
+      {{ entry.0.study }}<br>
+      status: {{ entry.0.status }} - part group: {{ entry.0.study.participant_group }}
       </td>
       <td>
-      {{ entry.2 }}
+      {{ entry.1 }}
       </td>
       <td>
-        {% for assignment in entry.1 %}
-          {{ assignment.status}}
-        {% endfor %}
+      {{ entry.0.assignment.status }}<br>
+        {% if entry.0.assignment.completed_at %}
+          {{ entry.0.assignment.completed_at }}
+        {% endif %}
+      </td>
+      <td>
+        {% if entry.0.warned_at %}
+          Warned at: {{entry.warned_at}}
+        {% endif %}
+        {% if entry.0.failed_at %}
+          Failed at: {{entry.failed_at}}
+        {% endif %}
       </td>
     </tr>
     {% endfor %}

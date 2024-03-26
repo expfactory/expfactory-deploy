@@ -98,6 +98,11 @@ urlpatterns = [
         views.reissue_incomplete_study_collection,
         name="collection-subject-reissue-incomplete",
     ),
+    path(
+        "collection/subject/<int:scs_id>/toggle",
+        views.toggle_active_study_collection_subject,
+        name="collection-subject-toggle-active",
+    ),
     path("remote/studies/", views.remote_studies_list, name="remote-studies-list"),
     path(
         "remote/studies/<str:collection_id>",

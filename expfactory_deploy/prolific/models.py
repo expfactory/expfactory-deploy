@@ -295,6 +295,10 @@ class Study(models.Model):
     def part_group_name(self):
         return f"collection: {self.study_collection.id}, study: {self.id}, rank: {self.rank}, battery: {self.battery.title} (pg)"
 
+
+    def __str__(self):
+        return f'{self.battery.title} - prolific:{self.remote_id}'
+
     def set_group_name(self):
         if self.remote_id and self.participant_group:
             api.update_part_group(self.participant_group, self.part_group_name)
@@ -398,6 +402,7 @@ class StudySubject(models.Model):
     STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
     status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
     prolific_session_id = models.TextField(blank=True, default="")
+    added_to_study = models.DateTimeField(default=None, blank=True, null=True)
 
     """
     Maybe we should just set this as a foreign key. If we have a study collection subject and want all the study subjects we do something like:
@@ -491,10 +496,11 @@ class StudyCollectionSubject(models.Model):
     ttcc_flagged_at = MonitorField(
         monitor="status", when=["flagged"], default=None, null=True
     )
+    active = models.BooleanField(default=True, help_text="Used to manually prevent subject from progressing in study.")
 
     @property
     def ended(self):
-        return self.status in ["failed", "completed", "kicked"] or self.failed_at
+        return self.status in ["failed", "completed", "kicked"] or self.failed_at or not self.active
 
     """ Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
         to not give same number multiple times? Current use case is in a loop, should be fine.
@@ -612,4 +618,3 @@ class BlockedParticipant(TimeStampedModel):
     note = models.TextField(blank=True)
 
 
-# def onComplete(subject, battery, study_collection)

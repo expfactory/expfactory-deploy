@@ -446,7 +446,7 @@ class Serve(View):
     def complete(self, request):
         studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=self.subject)
         if self.assignment.alt_id:
-            studies = studies.filter(remote_id=self.assignemnt.alt_id)
+            studies = studies.filter(remote_id=self.assignment.alt_id)
         completion_codes = [(x.remote_id, x.completion_code) for x in studies if x.completion_code]
 
         '''

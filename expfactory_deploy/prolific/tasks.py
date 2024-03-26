@@ -28,7 +28,7 @@ on battery completion:
 # task friendly wrapper for the utility function
 def add_to_collection(subject_id, collection_id):
     subject = em.Subject.objects.get(id=subject_id)
-    collection = em.StudyCollection.objects.get(id=collection_id)
+    collection = pm.StudyCollection.objects.get(id=collection_id)
     add_subjects_to_collection([subject], collection)
 
 
@@ -78,10 +78,8 @@ def on_complete_battery(sc, current_study, subject_id):
     ss.status = "completed"
     ss.save()
     scs = ss.study_collection_subject
-    if scs.ended:
-        return
 
-    if study:
+    if study and not scs.ended:
         schedule(
             "prolific.tasks.end_study_delay",
             study.id,
@@ -93,15 +91,17 @@ def on_complete_battery(sc, current_study, subject_id):
         scs.status = "completed"
         scs.save()
         if scs.study_collection.screener_for is not None:
-            pass_check = ss.assignemnt.pass_check()
+            pass_check = ss.assignment.pass_check()
+            print(ss.id)
+            print(ss.assignment.id)
+            print(f"pass_check {pass_check}")
             if pass_check:
                 schedule(
                     "prolific.tasks.add_to_collection",
                     scs.subject.id,
                     scs.study_collection.screener_for.id,
-                    next_run=datetime.now() + scs.study_collection.inter_study_delay,
+                    next_run=datetime.now() + scs.study_collection.screener_for.inter_study_delay,
                 )
-        return
 
 
 """
@@ -216,7 +216,7 @@ def initial_warning(ss_id):
         "initial_end_grace",
         ss_id,
         next_run=datetime.now()
-        + ss.study.study_collection.initial_study_grace_interval,
+        + ss.study.study_collection.failure_to_start_grace_interval,
     )
 
 
