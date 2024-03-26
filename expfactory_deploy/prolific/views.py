@@ -49,28 +49,31 @@ class ProlificServe(exp_views.Serve):
                 prolific_id=prolific_id
             )[0]
 
+    """
+        With the addition of StudySubject the question is should we ever need
+        to create an assignment at this step?
+    """
+
     def set_assignment(self):
-        study_param = settings.PROLIFIC_STUDY_PARAM
-        study_id = self.request.GET.get(study_param, None)
-        if study_id is None:
-            super().set_assignment()
-        else:
-            assignments = exp_models.Assignment.objects.filter(
-                subject=self.subject, battery=self.battery
-            )
-            assign_alt_id = assignments.filter(alt_id=study_id)
-            if len(assign_alt_id) > 0:
-                self.assignment = assign_alt_id[0]
-                return
-            active_assignments = assignments.filter(
-                Q(status="started") | Q(status="not-started")
-            )
-            if len(active_assignments) > 0:
-                self.assignment = active_assignments[0]
-                self.assignment.alt_id = study_id
+        study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
+        session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
+        study_subjects = models.StudySubject.objects.filter(subject=self.subject)
+        if study_id:
+            study_subjects = study_subjects.filter(study__remote_id=study_id)
+        if session_id:
+            session_ss = study_subjects.filter(prolific_session_id=study_id)
+            if len(session_ss):
+                study_subjects = session_ss
+
+        if len(study_subjects) > 1:
+            pass
+
+        if len(study_subjects):
+            self.assignment = study_subjects[0].assignment
+            if self.assignment.session_id == None:
+                self.assignment.session_id = session_id
                 self.assignment.save()
-            else:
-                super().set_assignment()
+
 
     """
     def complete(self, request):
@@ -247,9 +250,7 @@ def remote_studies_list(request, collection_id=None):
         )
     )
     sc_study_count = len(studies_in_db)
-    tracked_remote_ids = [
-        study.remote_id for study in studies_in_db if study.remote_id
-    ]
+    tracked_remote_ids = [study.remote_id for study in studies_in_db if study.remote_id]
 
     studies_by_status = defaultdict(list)
 
@@ -503,7 +504,9 @@ def collection_progress_by_prolific_submissions(request, collection_id):
         for result in api_results:
             if not subject_study_status.get(result["participant_id"], None):
                 subject_study_status[result["participant_id"]] = {}
-            subject_study_status[result["participant_id"]][study.remote_id] = result["status"]
+            subject_study_status[result["participant_id"]][study.remote_id] = result[
+                "status"
+            ]
 
     no_api_result_subjects = [
         x.subject.prolific_id
@@ -613,6 +616,8 @@ def collection_recently_completed(request, collection_id, days, by):
     A variant of this could live in experiments app. Only put here since we ignore any
     one without a prolific id and can filter on study_collections.
 """
+
+
 @login_required
 def recent_participants(request):
     collection_id = request.GET.get("collection_id", None)
@@ -664,7 +669,9 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
 
         subjects = []
         for id in ids:
-            subject, sub_created = exp_models.Subject.objects.get_or_create(prolific_id=id)
+            subject, sub_created = exp_models.Subject.objects.get_or_create(
+                prolific_id=id
+            )
             subjects.append(subject)
 
         first_study = collection.study_set.first()
@@ -676,17 +683,19 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
                 study_collection=collection, subject=subject
             )
             if first_study:
-                study_subject, created = models.StudySubject.objects.get_or_create(study=first_study, subject=subject)
-            print(f'first study: {first_study}, ss.study: {study_subject.study}')
+                study_subject, created = models.StudySubject.objects.get_or_create(
+                    study=first_study, subject=subject
+                )
+            print(f"first study: {first_study}, ss.study: {study_subject.study}")
             if created:
                 on_add_to_collection(subject_collection)
             if first_study and created:
                 subject_collection.current_study = first_study
 
         if first_study:
-            print(f'calling add to allow on {first_study.id} with pids: {ids}')
+            print(f"calling add to allow on {first_study.id} with pids: {ids}")
             first_study.add_to_allowlist(ids)
-        '''
+        """
         pids_to_add = defaultdict(list)
         studies = models.Study.objects.filter(study_collection=collection).order_by(
             "rank"
@@ -704,7 +713,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
 
         for study in studies:
             study.add_to_allowlist(pids_to_add[study.remote_id])
-        '''
+        """
 
         return super().form_valid(form)
 
@@ -763,45 +772,56 @@ def study_collection_subject_detail(
             study_collection__id=collection_id,
             subject__prolific_id=prolific_id,
         )
-
-    studies = scs.study_collection.study_set.all().order_by("rank")
     status = []
-    for study in studies:
-        # we have to get all submissions and then filter on subject id?
-        api_results = outgoing_api.list_submissions(study.remote_id)
-        prolific_status = None
-        for result in api_results:
-            if result.get("participant_id", None) == prolific_id:
-                prolific_status = result
-                break
-
-        battery_status = exp_models.Assignment.objects.filter(
-            subject=scs.subject, battery=study.battery
-        )
-        status.append((study, battery_status, prolific_status))
-
+    study_subjects = models.StudySubject.objects.filter(subject=scs.subject, study__study_collection=scs.study_collection).order_by('study__rank')
+    for ss in study_subjects:
+        if not ss.prolific_session_id:
+            prolific_status = "No Session ID"
+        else:
+            prolific_status = x.get_prolific_status()
+        status.append((ss, prolific_status))
     context = {
         "scs": scs,
         "status": status,
     }
+
     return render(request, "prolific/study_collection_subject_detail.html", context)
+
 
 @login_required
 def study_subject_by_collection(request, collection_id):
-    study_subjects = models.StudySubject.objects.get(collection__id=collection_id).select_related()
-    context = {'study_subjects': study_subjects}
+    study_subjects = models.StudySubject.objects.get(
+        collection__id=collection_id
+    ).select_related()
+    context = {"study_subjects": study_subjects}
     return render(request, "prolific/study_subjects_by_collection.html", context)
+
 
 @login_required
 def delete_study_subject_relations(request, collection_id, subject_id):
-    stSubs = models.StudySubject.objects.filter(study__study_collection__id=collection_id, subject__prolific_id=subject_id)
+    stSubs = models.StudySubject.objects.filter(
+        study__study_collection__id=collection_id, subject__prolific_id=subject_id
+    )
     print(stSubs)
     if stSubs:
         [x.assignment.delete() for x in stSubs]
-    scs = models.StudyCollectionSubject.objects.filter(study_collection__id=collection_id, subject__prolific_id=subject_id)
+    scs = models.StudyCollectionSubject.objects.filter(
+        study_collection__id=collection_id, subject__prolific_id=subject_id
+    )
     print(scs)
     [x.delete() for x in scs]
-    return HttpResponseRedirect(reverse_lazy("prolific:collection-subject-list", kwargs={"collection_id": collection_id}))
+    return HttpResponseRedirect(
+        reverse_lazy(
+            "prolific:collection-subject-list", kwargs={"collection_id": collection_id}
+        )
+    )
+
+
+@login_required
+def toggle_active_study_collection_subject(request, scs_id):
+    scs = get_object_or_404(models.StudyCollectionSubject, id=scs_id)
+    scs.active = not scs.active
+    return redirect(reverse('prolific:collection-subject-detail', kwargs={'scs_id': scs.id}))
 
 class BlockedParticipantList(LoginRequiredMixin, ListView):
     model = models.BlockedParticipant
@@ -817,3 +837,5 @@ class BlockedParticipantCreate(LoginRequiredMixin, CreateView):
     model = models.BlockedParticipant
     fields = ["prolific_id", "active", "note"]
     success_url = reverse_lazy("prolific:blocked-participant-list")
+
+

@@ -26,7 +26,8 @@ from pyrolific.api.participant_groups import (
     update_participant_group,
 )
 
-from pyrolific.api.submissions import get_submissions, get_submission
+from pyrolific.api.submissions import get_submissions
+from pyrolific.api.submissions import get_submission as _get_submission
 from pyrolific.api.messages import send_message as _send_message
 from pyrolific.api import studies
 
@@ -101,10 +102,13 @@ def create_draft(study_details):
     response = make_call(create_study, json_body=to_create)
     return response
 
-'''
+
+"""
     Feb 2024 prolfici api update changed part groups from being project based to being workspace based.
     For the time being we'll pull this from the env, but it should be added as an option to the DB
-'''
+"""
+
+
 def create_part_group(pid, name):
     workspace_id = settings.PROLIFIC_DEFAULT_WORKSPACE
     to_create = api_models.CreateParticipantGroupJsonBody.from_dict(
@@ -162,7 +166,15 @@ def list_submissions(sid=None):
         raise GenericProlificException(f"response has status_code {response}")
     return response["results"]
 
+
+def get_submission(session_id):
+    response = make_call(_get_submission, ac=True, id=session_id)
+    return response
+
+
 def send_message(participant_id, study_id, message):
-    body = api_models.send_message.SendMessage.from_dict({'recipient_id': participant_id, 'body': message, 'study_id': study_id})
+    body = api_models.send_message.SendMessage.from_dict(
+        {"recipient_id": participant_id, "body": message, "study_id": study_id}
+    )
     response = make_call(_send_message, json_body=body)
     return response

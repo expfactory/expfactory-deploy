@@ -98,6 +98,11 @@ urlpatterns = [
         views.reissue_incomplete_study_collection,
         name="collection-subject-reissue-incomplete",
     ),
+    path(
+        "collection/subject/<int:scs_id>/toggle",
+        views.toggle_active_study_collection_subject,
+        name="collection-subject-toggle-active",
+    ),
     path("remote/studies/", views.remote_studies_list, name="remote-studies-list"),
     path(
         "remote/studies/<str:collection_id>",
@@ -123,5 +128,9 @@ urlpatterns = [
         name="blocked-participant-update",
     ),
     path("recent/participants", views.recent_participants, name="recent-participants"),
-    path("delete/<int:collection_id>/<str:subject_id>", views.delete_study_subject_relations, name="delete-study-subject-relations"),
+    path(
+        "delete/<int:collection_id>/<str:subject_id>",
+        views.delete_study_subject_relations,
+        name="delete-study-subject-relations",
+    ),
 ]

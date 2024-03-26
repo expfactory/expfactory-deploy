@@ -5,6 +5,7 @@ from django.db.models import Count
 from experiments import models as em
 from prolific import models as pm
 from prolific import outgoing_api as api
+from prolific.utils import add_subjects_to_collection
 
 from django_q.tasks import schedule
 
@@ -24,9 +25,18 @@ on battery completion:
 """
 
 
+# task friendly wrapper for the utility function
+def add_to_collection(subject_id, collection_id):
+    subject = em.Subject.objects.get(id=subject_id)
+    collection = pm.StudyCollection.objects.get(id=collection_id)
+    add_subjects_to_collection([subject], collection)
+
+
 def on_add_to_collection(scs):
     if scs.ended:
-        print("trying to add {scs.subject.id} to an ended collection {scs.study_collection.id }")
+        print(
+            "trying to add {scs.subject.id} to an ended collection {scs.study_collection.id }"
+        )
         return
     sc = scs.study_collection
     ss = pm.StudySubject.objects.get(subject=scs.subject, study=sc.study_set.first())
@@ -61,15 +71,15 @@ def on_complete_battery(sc, current_study, subject_id):
     delay = sc.inter_study_delay if sc.inter_study_delay != None else timedelta(0)
     ss = pm.StudySubject.objects.get(study=current_study, subject=subject_id)
     if ss.status == "kicked":
-        print(f'subject {sc.subject.id} listed as kicked on collection {current_study.study_collection.id}')
+        print(
+            f"subject {sc.subject.id} listed as kicked on collection {current_study.study_collection.id}"
+        )
         return
     ss.status = "completed"
     ss.save()
     scs = ss.study_collection_subject
-    if scs.ended:
-        return
 
-    if study:
+    if study and not scs.ended:
         schedule(
             "prolific.tasks.end_study_delay",
             study.id,
@@ -80,7 +90,18 @@ def on_complete_battery(sc, current_study, subject_id):
         # is there really no next study?
         scs.status = "completed"
         scs.save()
-        return
+        if scs.study_collection.screener_for is not None:
+            pass_check = ss.assignment.pass_check()
+            print(ss.id)
+            print(ss.assignment.id)
+            print(f"pass_check {pass_check}")
+            if pass_check:
+                schedule(
+                    "prolific.tasks.add_to_collection",
+                    scs.subject.id,
+                    scs.study_collection.screener_for.id,
+                    next_run=datetime.now() + scs.study_collection.screener_for.inter_study_delay,
+                )
 
 
 """
@@ -102,9 +123,7 @@ def end_study_delay(study_id, subject_id):
     scs.save()
     study.add_to_allowlist([subject.prolific_id])
 
-    if (
-        sc.study_time_to_warning > timedelta(0)
-    ):
+    if sc.study_time_to_warning > timedelta(0):
         schedule(
             "prolific.tasks.study_warning",
             scs.id,
@@ -132,7 +151,7 @@ def study_warning(scs_id, study_id):
         api.send_message(
             scs.subject.prolific_id,
             study_id,
-            sc.collection_warning_message,
+            sc.study_warning_message,
         )
         study_subject.warned_at = datetime.now()
         study_subject.save()
@@ -155,7 +174,7 @@ def study_end_grace(scs_id, study_id):
     if started:
         return f"{scs.subject} has started {study} taking no action"
 
-    if scs.study_collection.study.kick_on_timeout:
+    if scs.study_collection.kick_on_timeout:
         status = "kicked"
         study.remove_participant(scs.subject.prolific_id)
         message = f"removed ${scs.subject.prolific_id} from ${study} for not starting battery on time"
@@ -196,7 +215,8 @@ def initial_warning(ss_id):
     schedule(
         "initial_end_grace",
         ss_id,
-        next_run=datetime.now() + ss.study.study_collection.collection_grace_interval,
+        next_run=datetime.now()
+        + ss.study.study_collection.failure_to_start_grace_interval,
     )
 
 
@@ -265,8 +285,10 @@ def collection_warning(scs_id):
         scs.warned_at = datetime.now()
         scs.ttcc_warned_at = datetime.now()
         scs.save()
-        return f'warned subject {scs.subject.id} for collection {scs.study_collection.id}'
-    return f'subject {scs.subject.id} completed collection {scs.study_collection.id} - not warned'
+        return (
+            f"warned subject {scs.subject.id} for collection {scs.study_collection.id}"
+        )
+    return f"subject {scs.subject.id} completed collection {scs.study_collection.id} - not warned"
 
 
 def collection_end_grace(scs_id):
@@ -292,6 +314,6 @@ def collection_end_grace(scs_id):
             scs.status = "flagged"
             scs.status_reason = "collection-timer"
         scs.save()
-        return f'subject {scs.subject.id} set to {scs.status} for study collection {scs.study_collection.id}'
+        return f"subject {scs.subject.id} set to {scs.status} for study collection {scs.study_collection.id}"
     else:
-        return f'subject {scs.subject.id} completed batteries of study collection {scs.study_collection.id}'
+        return f"subject {scs.subject.id} completed batteries of study collection {scs.study_collection.id}"

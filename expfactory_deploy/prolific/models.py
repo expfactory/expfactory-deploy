@@ -30,7 +30,10 @@ class StudyCollection(models.Model):
         blank=True,
         help_text="Base Title to be used by all stutdies in collection on Prolific.",
     )
-    description = models.TextField(blank=True, help_text='Description of the study for the participants to read before starting the study.')
+    description = models.TextField(
+        blank=True,
+        help_text="Description of the study for the participants to read before starting the study.",
+    )
     total_available_places = models.IntegerField(default=0)
     estimated_completion_time = models.IntegerField(
         default=0, help_text="Value in minutes."
@@ -57,7 +60,13 @@ class StudyCollection(models.Model):
     time_to_start_first_study = models.DurationField(
         null=True,
         blank=True,
-        help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being removed from study",
+        help_text="hh:mm:ss - Upon adding participant to a study collection, they have this long to start the first study before being sent a warning message.",
+    )
+    failure_to_start_grace_interval = models.DurationField(
+        null=True,
+        default=timedelta(0),
+        blank=True,
+        help_text="hh:mm:ss - Time from previous warning to kick from study. If set to 0 nothing is done instead.",
     )
     failure_to_start_message = models.TextField(blank=True)
     failure_to_start_warning_message = models.TextField(blank=True)
@@ -91,6 +100,10 @@ class StudyCollection(models.Model):
         default=False,
         help_text="If True kick participant after the expiration of grace period from having not completed all studies.",
     )
+    screener_for = models.ForeignKey(
+        "self", blank=True, null=True, on_delete=models.SET_NULL
+    )
+    screener_rejection_message = models.TextField(blank=True)
 
     @property
     def study_count(self):
@@ -285,6 +298,10 @@ class Study(models.Model):
     def part_group_name(self):
         return f"collection: {self.study_collection.id}, study: {self.id}, rank: {self.rank}, battery: {self.battery.title} (pg)"
 
+
+    def __str__(self):
+        return f'{self.battery.title} - prolific:{self.remote_id}'
+
     def set_group_name(self):
         if self.remote_id and self.participant_group:
             api.update_part_group(self.participant_group, self.part_group_name)
@@ -387,6 +404,8 @@ class StudySubject(models.Model):
     warned_at = models.DateTimeField(default=None, blank=True, null=True)
     STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
     status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
+    prolific_session_id = models.TextField(blank=True, default="")
+    added_to_study = models.DateTimeField(default=None, blank=True, null=True)
 
     """
     Maybe we should just set this as a foreign key. If we have a study collection subject and want all the study subjects we do something like:
@@ -422,6 +441,15 @@ class StudySubject(models.Model):
                 # pray on what to do here. Choose one based on timestamp or status?
                 self.assignment = assignments[0]
         super().save(*args, **kwargs)
+
+    def get_prolific_status(self):
+        if not self.prolific_session_id:
+            return None
+        response = api.get_submission(self.prolific_session_id)
+        if hasattr(response, "status"):
+            return response.status
+        # how do we actually want to handle an error here?
+        return None
 
     class Meta:
         constraints = [
@@ -461,7 +489,9 @@ class StudyCollectionSubject(models.Model):
         monitor="status", when=["kicked", "failed"], default=None, null=True
     )
     warned_at = models.DateTimeField(default=None, blank=True, null=True)
-    current_study = models.ForeignKey(Study, blank=True, null=True, on_delete=models.SET_NULL, default=None)
+    current_study = models.ForeignKey(
+        Study, blank=True, null=True, on_delete=models.SET_NULL, default=None
+    )
     STATUS_REASON = Choices("n/a", "study-timer", "initial-timer", "collection-timer")
     status_reason = StatusField(choices_name="STATUS_REASON", default="n/a")
     ttfs_warned_at = models.DateTimeField(default=None, blank=True, null=True)
@@ -469,9 +499,11 @@ class StudyCollectionSubject(models.Model):
     ttcc_flagged_at = MonitorField(
         monitor="status", when=["flagged"], default=None, null=True
     )
+    active = models.BooleanField(default=True, help_text="Used to manually prevent subject from progressing in study.")
+
     @property
     def ended(self):
-        return self.status in ["failed", "completed", "kicked"] or self.failed_at
+        return self.status in ["failed", "completed", "kicked"] or self.failed_at or not self.active
 
     """ Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
         to not give same number multiple times? Current use case is in a loop, should be fine.
@@ -499,11 +531,12 @@ class StudyCollectionSubject(models.Model):
 
     def study_statuses(self):
         stCount = self.study_collection.study_set.count()
-        stSubs = StudySubject.objects.filter(subject=self.subject, study__study_collection=self.study_collection)
+        stSubs = StudySubject.objects.filter(
+            subject=self.subject, study__study_collection=self.study_collection
+        )
         statuses = defaultdict(list)
         [statuses[x.assignment.status].append(x) for x in stSubs]
         return statuses
-
 
     """ If a participant times out, returns, or other fails to complete a study in prolific we
         have no simple way of 'reassigining' that study to them for another attempt.
@@ -588,4 +621,3 @@ class BlockedParticipant(TimeStampedModel):
     note = models.TextField(blank=True)
 
 
-# def onComplete(subject, battery, study_collection)
