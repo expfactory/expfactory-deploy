@@ -71,7 +71,7 @@ class ProlificServe(exp_views.Serve):
         if len(study_subjects):
             ss = study_subjects[0]
             self.assignment = ss.assignment
-            if ss.proilific_session_id == None:
+            if ss.prolific_session_id == None:
                 ss.prolific_session_id = session_id
                 ss.save()
 
