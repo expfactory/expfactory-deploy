@@ -100,7 +100,7 @@ def on_complete_battery(sc, current_study, subject_id):
                     "prolific.tasks.add_to_collection",
                     scs.subject.id,
                     scs.study_collection.screener_for.id,
-                    next_run=datetime.now() + scs.study_collection.screener_for.inter_study_delay,
+                    next_run=datetime.now() + scs.study_collection.inter_study_delay,
                 )
 
 
