@@ -69,10 +69,11 @@ class ProlificServe(exp_views.Serve):
             pass
 
         if len(study_subjects):
-            self.assignment = study_subjects[0].assignment
-            if self.assignment.session_id == None:
-                self.assignment.session_id = session_id
-                self.assignment.save()
+            ss = study_subjects[0]
+            self.assignment = ss.assignment
+            if ss.proilific_session_id == None:
+                ss.prolific_session_id = session_id
+                ss.save()
 
 
     """
