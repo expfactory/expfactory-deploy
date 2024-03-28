@@ -47,7 +47,7 @@ def on_add_to_collection(scs):
         print(f"subject {scs.subject.id} has current study. Not creating new timers")
         return
     if (
-        sc.time_to_start_first_study != None
+        sc.time_to_start_first_study is not None
         and sc.time_to_start_first_study > timedelta(0)
     ):
         schedule(
@@ -56,7 +56,7 @@ def on_add_to_collection(scs):
             next_run=datetime.now() + sc.time_to_start_first_study,
         )
     if (
-        sc.collection_time_to_warning != None
+        sc.collection_time_to_warning is not None
         and sc.collection_time_to_warning > timedelta(0)
     ):
         schedule(
@@ -68,7 +68,7 @@ def on_add_to_collection(scs):
 
 def on_complete_battery(sc, current_study, subject_id):
     study = sc.next_study(current_study)
-    delay = sc.inter_study_delay if sc.inter_study_delay != None else timedelta(0)
+    delay = sc.inter_study_delay if sc.inter_study_delay is not None else timedelta(0)
     ss = pm.StudySubject.objects.get(study=current_study, subject=subject_id)
     if ss.status == "kicked":
         print(
@@ -148,6 +148,8 @@ def end_study_delay(study_id, subject_id):
 
 def study_warning(scs_id, study_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
+    if scs.ended:
+        return f"study collection subject {scs.id} listed as ended. Bailing on task"
     sc = scs.study_collection
     study = pm.Study.objects.get(id=study_id)
     started = (
@@ -164,19 +166,21 @@ def study_warning(scs_id, study_id):
         )
         study_subject.warned_at = datetime.now()
         study_subject.save()
-        if sc.study_grace_interval != None and sc.study_grace_interval > timedelta(0):
+        if sc.study_grace_interval is not None and sc.study_grace_interval > timedelta(0):
             schedule(
                 "prolific.tasks.study_end_grace",
                 scs_id,
                 study_id,
                 next_run=datetime.now() + sc.study_grace_interval,
             )
+        return f"study collection subject {scs_id} not started"
+    return f"study collection subject {scs_id} has started, no warnings issued"
 
 
 def study_end_grace(scs_id, study_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
     if scs.ended:
-        return
+        return f"study collection subject {scs.id} listed as ended. Bailing on task"
     study = pm.Study.objects.get(id=study_id)
     ss = pm.StudySubject.objects.get(subject=scs.subject, study__id=study_id)
     started = ss.assignment.status != "not-started"
@@ -195,8 +199,9 @@ def study_end_grace(scs_id, study_id):
     ss.status_reason = "study-timer"
     scs.status = status
     scs.status_reason = "study-timer"
-    study_subject.save()
+    ss.save()
     scs.save()
+    return message
 
 
 """
@@ -211,37 +216,44 @@ def initial_warning(ss_id):
         return f"{ss.subject} listed as having failed collection {ss.study_collection_subject.id}"
     if ss.assignment.status != "not-started":
         return f"{ss.subject} started {ss.study} before time to first study"
-    api.send_message(
-        ss.subject.prolific_id,
-        ss.study.remote_id,
-        ss.study.study_collection.failure_to_start_warning_message,
-    )
-    warned_at = datetime.now()
-    ss.warned_at = warned_at
-    ss.save()
-    scs.ttfs_warned_at = warned_at
-    scs.save()
-    schedule(
-        "initial_end_grace",
-        ss_id,
-        next_run=datetime.now()
-        + ss.study.study_collection.failure_to_start_grace_interval,
-    )
+
+    if ss.study.study_collection.failure_to_start_warning_message:
+        api.send_message(
+            ss.subject.prolific_id,
+            ss.study.remote_id,
+            ss.study.study_collection.failure_to_start_warning_message,
+        )
+        warned_at = datetime.now()
+        ss.warned_at = warned_at
+        ss.save()
+        scs.ttfs_warned_at = warned_at
+        scs.save()
+
+    if ss.study.study_collection.failure_to_start_grace_interval > timedelta(0):
+        schedule(
+            "initial_end_grace",
+            ss_id,
+            next_run=datetime.now()
+            + ss.study.study_collection.failure_to_start_grace_interval,
+        )
+    return f"{ss.subject} has not started {ss.study} before time to first study"
 
 
 def initial_end_grace(ss_id):
     ss = pm.StudySubject.objects.get(id=ss_id)
     scs = ss.study_collection_subject
     if scs.ended:
-        return
+        return f"study collection subject {scs.id} listed as ended. Bailing on task"
 
     if ss.assignment.status != "not-started":
         return f"{ss.subject} started {ss.study} before time to first study grace ended"
-    api.send_message(
-        scs.subject.prolific_id,
-        ss.study.remote_id,
-        scs.study_collection.failure_to_start_message,
-    )
+
+    if scs.study_collection.failure_to_start_message:
+        api.send_message(
+            scs.subject.prolific_id,
+            ss.study.remote_id,
+            scs.study_collection.failure_to_start_message,
+        )
     ss.study.remove_participant(ss.subject.prolific_id)
     ss.status = "kicked"
     ss.status_reason = "initial-timer"
@@ -260,11 +272,11 @@ def initial_end_grace(ss_id):
 def collection_warning(scs_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
     if scs.ended:
-        return
+        return f"study collection subject {scs.id} listed as ended. Bailing on task"
     batteries = em.Battery.objects.filter(
         study__study_collection__id=scs.study_collection.id
     )
-    battery_pks = batteries.values("pk").annotate(count=Count("id"))
+    # battery_pks = batteries.values("pk").annotate(count=Count("id"))
     studies = scs.study_collection.study_set.all().order_by("rank")
     assignments = em.Assignment.objects.filter(
         subject=scs.subject, battery__in=batteries
@@ -272,7 +284,7 @@ def collection_warning(scs_id):
     completed = assignments.filter(status="completed").count() == batteries.count()
     if not completed:
         if (
-            scs.study_collection.collection_grace_interval != None
+            scs.study_collection.collection_grace_interval is not None
             and scs.study_collection.collection_grace_interval > timedelta(0)
         ):
             schedule(
@@ -286,11 +298,13 @@ def collection_warning(scs_id):
             study = scs.current_study
         else:
             study = scs.study_collection.study_set.first()
-        api.send_message(
-            scs.subject.prolific_id,
-            study.remote_id,
-            scs.study_collection.collection_warning_message,
-        )
+
+        if scs.study_collection.collection_warning_message:
+            api.send_message(
+                scs.subject.prolific_id,
+                study.remote_id,
+                scs.study_collection.collection_warning_message,
+            )
         scs.warned_at = datetime.now()
         scs.ttcc_warned_at = datetime.now()
         scs.save()
@@ -303,7 +317,7 @@ def collection_warning(scs_id):
 def collection_end_grace(scs_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
     if scs.ended:
-        return
+        return f"study collection subject {scs.id} listed as ended. Bailing on task"
     batteries = em.Battery.objects.filter(
         study__study_collection__id=scs.study_collection.id
     )
@@ -324,5 +338,4 @@ def collection_end_grace(scs_id):
             scs.status_reason = "collection-timer"
         scs.save()
         return f"subject {scs.subject.id} set to {scs.status} for study collection {scs.study_collection.id}"
-    else:
-        return f"subject {scs.subject.id} completed batteries of study collection {scs.study_collection.id}"
+    return f"subject {scs.subject.id} completed batteries of study collection {scs.study_collection.id}"
