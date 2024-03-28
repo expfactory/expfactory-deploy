@@ -102,6 +102,15 @@ def on_complete_battery(sc, current_study, subject_id):
                     scs.study_collection.screener_for.id,
                     next_run=datetime.now() + scs.study_collection.inter_study_delay,
                 )
+            else:
+                screener_rejection_message = scs.study_collection.screener_rejection_message
+                if screener_rejection_message:
+                    api.send_message(
+                        scs.subject.prolific_id,
+                        study.id,
+                        screener_rejection_message,
+                    )
+
 
 
 """
@@ -230,7 +239,7 @@ def initial_end_grace(ss_id):
         return f"{ss.subject} started {ss.study} before time to first study grace ended"
     api.send_message(
         scs.subject.prolific_id,
-        first_study.remote_id,
+        ss.study.remote_id,
         scs.study_collection.failure_to_start_message,
     )
     ss.study.remove_participant(ss.subject.prolific_id)
