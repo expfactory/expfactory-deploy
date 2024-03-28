@@ -298,7 +298,7 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
     def set_include(self):
         include_raw = None
         data = ast.literal_eval(self.data)
-        if 'trial_data' in data:
+        if 'trialdata' in data:
             trial_data = data['trialdata']
             if type(data['trialdata']) is str:
                 trial_data = json.loads(data['trialdata'])
@@ -307,6 +307,7 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
                     continue
                 include_raw = entry['include_subject']
                 break
+        print(include_raw)
         if include_raw is None:
             self.include = "n/a"
         elif bool(include_raw):
