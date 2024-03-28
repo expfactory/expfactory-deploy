@@ -296,7 +296,7 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
     include = StatusField(default="not-set")
 
     def set_include(self):
-        data = ast.literal_eval(self.result.data)
+        data = ast.literal_eval(self.data)
         trial_data = json.loads(data['trialdata'])
         include_raw = None
         for entry in trial_data:
