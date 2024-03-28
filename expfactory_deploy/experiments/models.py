@@ -1,5 +1,6 @@
 import ast
 import datetime
+import json
 import os
 import random
 import uuid
@@ -291,6 +292,25 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
     # in case we want to collect results without an assignment
     subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True)
     data = models.TextField(blank=True)
+    INCLUDE = Choices("not-set", "n/a", "include", "reject", "parse-failed")
+    include = StatusField(default="not-set")
+
+    def set_include(self):
+        data = ast.literal_eval(self.result.data)
+        trial_data = json.loads(data['trialdata'])
+        include_raw = None
+        for entry in trial_data:
+            if 'include_subject' not in entry:
+                continue
+            include_raw = trial_data['include_subject']
+            break
+        if include_raw is None:
+            self.include = "n/a"
+        elif bool(include_raw):
+            self.include = "include"
+        elif not bool(include_raw):
+            self.include = "reject"
+        self.save()
 
 
 class Assignment(SubjectTaskStatusModel):
@@ -325,7 +345,7 @@ class Assignment(SubjectTaskStatusModel):
 
     def save(self, *args, **kwargs):
         study_subjects = []
-        if self.pk == None and self.battery.random_order:
+        if self.pk is None and self.battery.random_order:
             self.ordering = ExperimentOrder.objects.create(battery=self.battery)
             self.ordering.generate_order_items()
         if self.pk and self.status == 'completed':
@@ -343,7 +363,7 @@ class Assignment(SubjectTaskStatusModel):
 
 
     def get_next_experiment(self):
-        if self.ordering == None:
+        if self.ordering is None:
             order = "?" if self.battery.random_order else "order"
             batt_exps = (
                 BatteryExperiments.objects.filter(battery=self.battery)
@@ -365,25 +385,22 @@ class Assignment(SubjectTaskStatusModel):
                 self.status = "started"
                 self.save()
             return unfinished[0].experiment_instance, len(unfinished)
-        else:
-            self.status = "completed"
-            self.save()
-            return None, 0
+        self.status = "completed"
+        self.save()
+        return None, 0
 
     def pass_check(self):
         if self.status != "completed":
             return False
         results = self.result_set.all()
+        include = True
         for result in results:
-            trial_data = ast.literal_eval(result.data)
-            # In an ideal world this field would be configurable per experiment.
-            include = trial_data.get("include_subject", None)
-            if include == False:
-                return False
-            if include is None:
-                # maybe we want to continue in this case?
-                pass
-        return True
+            if result.include == 'not-set':
+                result.set_include()
+            if result.include == 'reject':
+                include = False
+        return include
+
 
     '''
     class Meta:
