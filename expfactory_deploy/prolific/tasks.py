@@ -73,7 +73,7 @@ def on_complete_battery(sc, current_study, subject_id):
                 if screener_rejection_message:
                     api.send_message(
                         scs.subject.prolific_id,
-                        study.id,
+                        current_study,
                         screener_rejection_message,
                     )
 
