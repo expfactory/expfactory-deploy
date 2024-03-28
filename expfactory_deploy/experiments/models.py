@@ -296,14 +296,17 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
     include = StatusField(default="not-set")
 
     def set_include(self):
-        data = ast.literal_eval(self.data)
-        trial_data = json.loads(data['trialdata'])
         include_raw = None
-        for entry in trial_data:
-            if 'include_subject' not in entry:
-                continue
-            include_raw = entry['include_subject']
-            break
+        data = ast.literal_eval(self.data)
+        if 'trial_data' in data:
+            trial_data = data['trialdata']
+            if type(data['trialdata']) is str:
+                trial_data = json.loads(data['trialdata'])
+            for entry in trial_data:
+                if 'include_subject' not in entry:
+                    continue
+                include_raw = entry['include_subject']
+                break
         if include_raw is None:
             self.include = "n/a"
         elif bool(include_raw):
