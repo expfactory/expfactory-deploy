@@ -302,7 +302,7 @@ class Result(TimeStampedModel, SubjectTaskStatusModel):
         for entry in trial_data:
             if 'include_subject' not in entry:
                 continue
-            include_raw = trial_data['include_subject']
+            include_raw = entry['include_subject']
             break
         if include_raw is None:
             self.include = "n/a"
