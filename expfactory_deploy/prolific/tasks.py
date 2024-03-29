@@ -36,14 +36,14 @@ def on_complete_battery(sc, current_study, subject_id):
     study = sc.next_study(current_study)
     delay = sc.inter_study_delay if sc.inter_study_delay is not None else timedelta(0)
     ss = pm.StudySubject.objects.get(study=current_study, subject=subject_id)
-    if ss.status == "kicked":
+    scs = ss.study_collection_subject
+    if ss.status == "kicked" or scs.status == "kicked":
         print(
-            f"subject {sc.subject.id} listed as kicked on collection {current_study.study_collection.id}"
+            f"subject {ss.subject.id} listed as kicked on collection {current_study.study_collection.id}"
         )
         return
     ss.status = "completed"
     ss.save()
-    scs = ss.study_collection_subject
 
     if study and not scs.ended:
         schedule(
