@@ -778,6 +778,7 @@ def delete_study_subject_relations(request, collection_id, subject_id):
 def toggle_active_study_collection_subject(request, scs_id):
     scs = get_object_or_404(models.StudyCollectionSubject, id=scs_id)
     scs.active = not scs.active
+    scs.save()
     return redirect(reverse('prolific:collection-subject-detail', kwargs={'scs_id': scs.id}))
 
 class BlockedParticipantList(LoginRequiredMixin, ListView):
