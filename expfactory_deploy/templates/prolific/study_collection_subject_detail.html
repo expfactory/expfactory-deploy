@@ -17,21 +17,25 @@
 
 <br>
 
-<h3>Status</h3>
-
-<a class="btn-sm btn-primary" href="{% url 'prolific:collection-subject-toggle-active' scs.id %}">
-{% if scs.active %}
-    Deactivate
-{% else %}
-    Activate
-  {% endif %}
-</a>
+<div class="h3">
+    Status
+    <div class="battery-actions">
+      <a class="btn-sm btn-primary" href="{% url 'prolific:collection-subject-toggle-active' scs.id %}">
+      {% if scs.active %}
+          Suspend Subject
+      {% else %}
+          Unsuspend Subject
+        {% endif %}
+      </a>
+    </div>
+</div>
 <table class="table">
   <thead>
     <th>Study</th>
     <th>Prolific Submission</th>
     <th>Data Submission</th>
     <th>Failed Timers</th>
+    <th>Include</th>
   </thead>
   <tbody>
     {% for entry in status %}
@@ -51,11 +55,16 @@
       </td>
       <td>
         {% if entry.0.warned_at %}
-          Warned at: {{entry.0.warned_at}}
+          Warned at: {{entry.0.warned_at}}<br>
         {% endif %}
         {% if entry.0.failed_at %}
-          Failed at: {{entry.0.failed_at}}
+          Failed at: {{entry.0.failed_at}}<br>
         {% endif %}
+      </td>
+      <td>
+        {% for include in entry.2 %}
+          {{ include.0 }} - {{ include.1 }}<br>
+        {% endfor %}
       </td>
     </tr>
     {% endfor %}

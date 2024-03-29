@@ -780,7 +780,8 @@ def study_collection_subject_detail(
             prolific_status = "No Session ID"
         else:
             prolific_status = x.get_prolific_status()
-        status.append((ss, prolific_status))
+        includes = ss.assignment.result_set.all().values_list('battery_experiment__experiment_instance__experiment_repo_id__name', 'include')
+        status.append((ss, prolific_status, includes))
     context = {
         "scs": scs,
         "status": status,
@@ -803,13 +804,11 @@ def delete_study_subject_relations(request, collection_id, subject_id):
     stSubs = models.StudySubject.objects.filter(
         study__study_collection__id=collection_id, subject__prolific_id=subject_id
     )
-    print(stSubs)
     if stSubs:
         [x.assignment.delete() for x in stSubs]
     scs = models.StudyCollectionSubject.objects.filter(
         study_collection__id=collection_id, subject__prolific_id=subject_id
     )
-    print(scs)
     [x.delete() for x in scs]
     return HttpResponseRedirect(
         reverse_lazy(
