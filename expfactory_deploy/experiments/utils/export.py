@@ -4,6 +4,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from django.conf import settings
+from django.db.models import F
 
 from experiments import models as models
 
@@ -31,6 +32,33 @@ def export_results(results):
         data = task_data(result.data)
         res_by_task[name].append({'subject': result.subject.__str__(), 'data': data})
     return res_by_task
+
+'''
+    This is being done in api_views. Keeping this here in case we want to centralize
+    this queryset logic for use by other export methods (to file)
+
+def export_sc(sc_id=None, battery_id=None, subject_id=None):
+    qs = em.Result.objects
+    if scs_id:
+        qs = qs.filter(assignment__battery__study__study_collection__id=sc_id)
+    if battery_id:
+        qs = qs.filter(assignment__battery__id=battery_id)
+    if subject_id:
+        qs = qs.filter(assignment__subject__id=subject_id)
+    if not (sc_id or battery_id or subject_id):
+        qs.all()
+
+    qs.values(id, data).annotate(
+        study_collection_id=F("assignment__battery__study__study_collection__id"),
+        study_collection_name=F("assignment__battery__study__study_collection__name"),
+        battery_name=F("assignment__battery__title"),
+        battery_id=F("assignment__battery__id"),
+        exp_name=F("battery_experiment__experiment_instance__experiment_repo_id__name"),
+        prolific_id=F("assignment__subject__prolific_id"),
+    )
+    columns = ["id", "study_collection_id", "study_collection_name", "battery_name", "battery_id", "exp_name", "prolific_id", "data"]
+'''
+
 
 '''
 playing around with a bidsish export
