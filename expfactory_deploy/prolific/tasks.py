@@ -194,7 +194,7 @@ def initial_end_grace(ss_id):
     ss.save()
     scs.status = "kicked"
     scs.status_reason = "initial-timer"
-    ss.save()
+    scs.save()
     return f"removed {scs.subject.prolific_id} from {scs.study_collection}. Failed to start first battery on time"
 
 
