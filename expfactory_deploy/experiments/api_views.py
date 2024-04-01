@@ -20,7 +20,8 @@ def get_result(pk):
     return JsonResponse({'data': data, 'subject': result.subject.id})
 
 filter_lookup = {
-    'subject_id': 'subject_id',
+    'subject_id': 'assignment__subject__id',
+    'prolific_id': 'assignment__subject__prolific_id',
     'battery_id': 'assignment__battery_id',
     'sc_id': 'assignment__battery__study__study_collection__id'
 }
@@ -80,6 +81,7 @@ def get_results_view(request, **kwargs):
     # why dont we just pass **Request.GET to get_results?
     query_args = {
         'subject_id': request.GET.get('subject_id'),
+        'prolific_id': request.GET.get('prolific_id'),
         'battery_id': request.GET.get('battery_id'),
         'sc_id': request.GET.get('sc_id'),
     }
@@ -87,3 +89,14 @@ def get_results_view(request, **kwargs):
     result_page = paginator.paginate_queryset(results, request)
     serializer = ResultSerializer(result_page, many=True)
     return paginator.get_paginated_response(serializer.data)
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def list_subjects(request):
+    paginator = LimitOffsetPagination()
+    query_args = {
+        'subject_id': request.GET.get('subject_id'),
+        'battery_id': request.GET.get('battery_id'),
+        'sc_id': request.GET.get('sc_id'),
+    }
