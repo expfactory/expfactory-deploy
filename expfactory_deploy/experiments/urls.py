@@ -184,6 +184,7 @@ urlpatterns = [
     path("serve/preview/<int:battery_id>/consent", views.PreviewConsent.as_view(), name="preview-consent"),
     path("api/results/battery/<int:battery_id>/", api_views.get_results_view, name="api-results-by-battery"),
     path("api/results/subject/<int:subject_id>/", api_views.get_results_view, name="api-results-by-subject"),
+    path("api/results/", api_views.get_results_view, name="api-results-by-param"),
 ]
 
 app_name = "experiments"
