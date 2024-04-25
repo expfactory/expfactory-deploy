@@ -66,7 +66,32 @@ class ProlificServe(exp_views.Serve):
                 study_subjects = session_ss
 
         if len(study_subjects) > 1:
+            # what does it mean if we find multiple study_subjects?
             pass
+
+        if len(study_subjects) == 0:
+            study = models.Study.objects.filter(remote_id=study_id)
+            collection = study.study_collection
+            # create study_subject
+            first_study = collection.study_set.first()
+            (
+                subject_collection,
+                created,
+            ) = models.StudyCollectionSubject.objects.get_or_create(
+                study_collection=collection, subject=subject
+            )
+            study_subject, created = models.StudySubject.objects.get_or_create(
+                study=first_study, subject=subject
+            )
+            if created:
+                on_add_to_collection(subject_collection)
+            if first_study and created:
+                subject_collection.current_study = first_study
+
+            if first_study:
+                print(f"calling add to allow on {first_study.id} with pids: {ids}")
+                first_study.add_to_allowlist(ids)
+            study_subjects = [study_subject]
 
         if len(study_subjects):
             ss = study_subjects[0]
