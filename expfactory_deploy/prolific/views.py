@@ -31,6 +31,7 @@ from prolific import forms
 from prolific import outgoing_api
 
 from prolific.tasks import on_add_to_collection
+from prolific.utils import add_subjects_to_collection
 
 """
     subclass of experiments app serve class view to handle query params from prolific.
@@ -70,28 +71,10 @@ class ProlificServe(exp_views.Serve):
             pass
 
         if len(study_subjects) == 0:
-            study = models.Study.objects.filter(remote_id=study_id)
+            study = get_object_or_404(models.Study, remote_id=study_id)
             collection = study.study_collection
-            # create study_subject
-            first_study = collection.study_set.first()
-            (
-                subject_collection,
-                created,
-            ) = models.StudyCollectionSubject.objects.get_or_create(
-                study_collection=collection, subject=subject
-            )
-            study_subject, created = models.StudySubject.objects.get_or_create(
-                study=first_study, subject=subject
-            )
-            if created:
-                on_add_to_collection(subject_collection)
-            if first_study and created:
-                subject_collection.current_study = first_study
-
-            if first_study:
-                print(f"calling add to allow on {first_study.id} with pids: {ids}")
-                first_study.add_to_allowlist(ids)
-            study_subjects = [study_subject]
+            add_subjects_to_collection([self.subject], collection)
+            study_subjects = models.StudySubject.objects.filter(subject=self.subject, study__remote_id=study_id)
 
         if len(study_subjects):
             ss = study_subjects[0]
