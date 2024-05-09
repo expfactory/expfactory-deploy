@@ -31,6 +31,7 @@ from prolific import forms
 from prolific import outgoing_api
 
 from prolific.tasks import on_add_to_collection
+from prolific.utils import add_subjects_to_collection
 
 """
     subclass of experiments app serve class view to handle query params from prolific.
@@ -66,7 +67,14 @@ class ProlificServe(exp_views.Serve):
                 study_subjects = session_ss
 
         if len(study_subjects) > 1:
+            # what does it mean if we find multiple study_subjects?
             pass
+
+        if len(study_subjects) == 0:
+            study = get_object_or_404(models.Study, remote_id=study_id)
+            collection = study.study_collection
+            add_subjects_to_collection([self.subject], collection)
+            study_subjects = models.StudySubject.objects.filter(subject=self.subject, study__remote_id=study_id)
 
         if len(study_subjects):
             ss = study_subjects[0]
