@@ -194,14 +194,10 @@ def check_n_back_responses(df):
 
 def check_go_nogo_responses(df):
     test_trials = df[df["trial_id"] == "test_trial"]
-    value_counts = test_trials["response"].value_counts()
+    space_bar_responses = test_trials[test_trials["response"] == " "]
+    prop_resp_go = len(space_bar_responses) / len(test_trials)
 
-    proportions = value_counts / test_trials["response"].count()
-    mismatch_correct_response = df[
-        (df["correct_trial"] == 1) & (df["condition"] == "go")
-    ]["response"].unique()[0]
-
-    return proportions[mismatch_correct_response]
+    return prop_resp_go
 
 
 def get_stopping(df):
