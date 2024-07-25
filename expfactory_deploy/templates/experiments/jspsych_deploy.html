@@ -78,6 +78,8 @@
 
           let postData = generatePostData()
           document.body.insertAdjacentHTML('beforeend', finished_message)
+
+          /* if post_url is 'local' we should save the data as a file */
           $.ajax({
             type: "POST",
             contentType: "application/json",

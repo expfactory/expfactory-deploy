@@ -466,6 +466,8 @@ def collection_progress_by_prolific_submissions(request, collection_id):
 
     subject_study_status = {}
     for study in studies:
+        if (not study.remote_id):
+            continue
         api_results = outgoing_api.list_submissions(study.remote_id)
         for result in api_results:
             if not subject_study_status.get(result["participant_id"], None):
