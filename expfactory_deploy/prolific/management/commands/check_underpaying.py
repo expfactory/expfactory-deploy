@@ -21,7 +21,7 @@ class Command(BaseCommand):
             active = [x for x in studies if x['status'] == 'ACTIVE']
             underpaying = [x for x in active if x['is_underpaying'] == True]
             if underpaying:
-                funderpaying = json.dumps(underpaying, indent=4)
+                funderpaying = json.dumps(underpaying, indent=4, default=str)
                 message = EmailMessage(
                     "Underpaying study warning",
                     f"Following studies were found to be underpaying:\n{funderpaying}",
