@@ -88,6 +88,13 @@ def list_studies(pid=None):
     else:
         response = make_call(get_studies)
     if hasattr(response, "status_code"):
+        raise GenericProlificException(response)
+    return [x for x in response.get("results", [])]
+
+def list_active_studies(state="ACTIVE"):
+    state = api_models.GetStudiesState(state)
+    response = make_call(get_studies, state=state)
+    if hasattr(response, "status_code"):
         return []
     return [x for x in response.get("results", [])]
 
