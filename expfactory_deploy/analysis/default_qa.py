@@ -23,6 +23,7 @@ thresholds = {
     "stop_signal_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "stroop_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "visual_search_rdoc": {"accuracy": 0.6, "rt": 1500, "omissions": 0.2},
+    "post_battery_feedback_rdoc": {"rt": 30_000, "feedback": ""}
 }
 
 
@@ -38,7 +39,7 @@ def apply_qa_funcs(task_name, task_df):
             metrics["accuracy"] = get_accuracy(task_df)
 
         span_tasks = ["simple_span_rdoc", "operation_span_rdoc", "span_rdoc__behavioral"]
-        
+
         if task_name in span_tasks:
             average_rt, average_accuracy = get_span_processing(task_df)
             metrics["rt"] = average_rt
@@ -48,6 +49,10 @@ def apply_qa_funcs(task_name, task_df):
         elif task_name == "stop_signal_rdoc":
             metrics.update(**get_stopping(task_df))
             metrics['accuracy'] = metrics['go_accuracy']
+        elif task_name == "post_battery_feedback_rdoc":
+            feedback, rt = get_post_battery_feedback(task_df)
+            metrics["rt"] = rt
+            metrics['feedback'] = feedback
         else:
             metrics["rt"] = get_average_rt(task_df)
             metrics["omissions"] = get_omissions(task_df)
@@ -79,6 +84,15 @@ def feedback_generator(
     feedbacks = []
     threshold = thresholds[task_name]
 
+    if task_name == "post_battery_feedback_rdoc":
+        if rt > threshold["rt"]:
+            feedback = f"Overall rt of {rt} is high for {task_name}."
+            feedbacks.append(feedback)
+        if kwargs['feedback'] != threshold['feedback']:
+            feedback = f"Subject gave post-battery feedback."
+            feedbacks.append(feedback)
+        return feedbacks
+
     if attention_check_accuracy < 0.6:
         feedback = f"Overall attention check accuracy of {attention_check_accuracy*100:.2f}% is low for {task_name}."
         feedbacks.append(feedback)
@@ -99,7 +113,6 @@ def feedback_generator(
         if check_response > threshold["check_response"]:
             feedback = f"Single response proportion of {check_response} is high for {task_name}."
             feedbacks.append(feedback)
-
 
     if task_name == 'stop_signal_rdoc':
         stop_accuracy = kwargs['stop_accuracy']
@@ -122,6 +135,13 @@ def get_attention_check_accuracy(df):
     attention_checks = df[(df["trial_id"] == "test_attention_check")]
     attention_check_accuracy = attention_checks["correct_trial"].mean()
     return attention_check_accuracy
+
+
+def get_post_battery_feedback(df):
+    df = df[df["trial_id"] == "post_battery_feedback"]
+    feedback = df["response"].dropna().iloc[0]
+    rt = df["rt"].dropna().iloc[0]
+    return feedback, rt
 
 
 def get_span_processing(df):
