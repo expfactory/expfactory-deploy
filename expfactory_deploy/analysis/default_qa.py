@@ -23,7 +23,9 @@ thresholds = {
     "stop_signal_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "stroop_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "visual_search_rdoc": {"accuracy": 0.6, "rt": 1500, "omissions": 0.2},
-    "post_battery_feedback_rdoc": {"rt": 30_000, "feedback": ""}
+    "post_battery_feedback_rdoc": {"rt": 30_000, "feedback": ""},
+    "race_ethnicity_RMR_survey_rdoc": {"rt": 120000, "omissions": 1}
+    
 }
 
 
@@ -53,6 +55,10 @@ def apply_qa_funcs(task_name, task_df):
             feedback, rt = get_post_battery_feedback(task_df)
             metrics["rt"] = rt
             metrics['feedback'] = feedback
+        elif task_name == "race_ethnicity_RMR_survey_rdoc":
+            average_rt, omissions = get_race_ethnicity_rmr_survey(task_df)
+            metrics["rt"] = average_rt
+            metrics["omissions"] = omissions
         else:
             metrics["rt"] = get_average_rt(task_df)
             metrics["omissions"] = get_omissions(task_df)
@@ -90,6 +96,15 @@ def feedback_generator(
             feedbacks.append(feedback)
         if kwargs['feedback'] != threshold['feedback']:
             feedback = f"Subject gave post-battery feedback."
+            feedbacks.append(feedback)
+        return feedbacks
+
+    if task_name == "race_ethnicity_RMR_survey_rdoc":
+        if rt > threshold["rt"]:
+            feedback = f"Overall rt of {rt} is high for {task_name}."
+            feedbacks.append(feedback)
+        if kwargs["omissions"] > threshold["omissions"]:
+            feedback = f"Subject did not answer all required questions."
             feedbacks.append(feedback)
         return feedbacks
 
@@ -143,6 +158,17 @@ def get_post_battery_feedback(df):
     rt = df["rt"].dropna().iloc[0]
     return feedback, rt
 
+def get_race_ethnicity_rmr_survey(df):
+    df = df[df["trial_type"] == "survey"]
+    average_rt = df["rt"].mean()
+    total_omissions = 0
+    for response in df["response"]:
+        omissions = 3  
+        for key, value in response.items():
+            if value != "":
+                omissions -= 1
+        total_omissions += omissions
+    return average_rt, total_omissions
 
 def get_span_processing(df):
     test_trials = df[df["trial_id"] == "test_inter-stimulus"]
