@@ -24,10 +24,25 @@ thresholds = {
     "stroop_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "visual_search_rdoc": {"accuracy": 0.6, "rt": 1500, "omissions": 0.2},
     "post_battery_feedback_rdoc": {"rt": 30_000, "feedback": ""},
-    "race_ethnicity_RMR_survey_rdoc": {"rt": 120000, "omissions": 1}
-    
+    "race_ethnicity_RMR_survey_rdoc": {"rt": 120000, "omissions": 1},
+    "demographics_survey_rdoc": {"rt": 600000, "omissions": 4},
+    "dospert_rt_survey_rdoc": {"rt": 120000, "omissions": 0},
+    "risq_survey_rdoc": {"rt": 600000, "omissions": 82},
+    "dospert_eb_survey_rdoc": {"rt": 600000, "omissions": 0},
+    "k6_survey_rdoc": {"rt": 600000, "omissions": 7},
+    "childhood_trauma_survey_rdoc": {"rt": 600000, "omissions": 0},
+    "dass21_survey_rdoc": {"rt": 600000, "omissions": 0},
+    "fagerstrom_test_survey_rdoc": {"rt": 600000, "omissions": 0},
+    "brief_self_control_survey_rdoc": {"rt": 600000, "omissions": 0},
+    "dsm5_crosscutting_stanford_baseline_rdoc": {"rt": 600000, "omissions": 0},
+    "three_factor_eating_questionnaire_r18__stanford_baseline_rdoc": {"rt": 600000, "omissions": 0},
+    "psqi_survey_rdoc": {"rt": 600000, "omissions": 4},
+    "upps_impulsivity_survey_rdoc": {"rt": 600000, "omissions": 0},
+    "panas_last_two_weeks_survey_rdoc": {"rt": 600000, "omissions": 0},
+    "dospert_rp_survey_rdoc": {"rt": 600000, "omissions": 0},
+    "mcarthur_social_status_survey_rdoc": {'rt': 200000, 'omissions': 0},
+    "l_cat_survey_rdoc": {"rt": 200000, "omissions": 0}
 }
-
 
 def apply_qa_funcs(task_name, task_df):
     metrics = {}
@@ -35,9 +50,11 @@ def apply_qa_funcs(task_name, task_df):
     feedback = ""
 
     try:
-        metrics["attention_check_accuracy"] = get_attention_check_accuracy(task_df)
 
-        if task_name != "stop_signal_rdoc":
+        if "survey" not in task_name:
+            metrics["attention_check_accuracy"] = get_attention_check_accuracy(task_df)
+
+        if task_name != "stop_signal_rdoc" and "survey" not in task_name:
             metrics["accuracy"] = get_accuracy(task_df)
 
         span_tasks = ["simple_span_rdoc", "operation_span_rdoc", "span_rdoc__behavioral"]
@@ -55,10 +72,11 @@ def apply_qa_funcs(task_name, task_df):
             feedback, rt = get_post_battery_feedback(task_df)
             metrics["rt"] = rt
             metrics['feedback'] = feedback
-        elif task_name == "race_ethnicity_RMR_survey_rdoc":
-            average_rt, omissions = get_race_ethnicity_rmr_survey(task_df)
+        elif "survey" in task_name:
+            average_rt, omissions, all_values_same = get_survey_metrics(task_df)
             metrics["rt"] = average_rt
             metrics["omissions"] = omissions
+            metrics["all_values_same"] = all_values_same
         else:
             metrics["rt"] = get_average_rt(task_df)
             metrics["omissions"] = get_omissions(task_df)
@@ -80,11 +98,12 @@ def apply_qa_funcs(task_name, task_df):
 
 def feedback_generator(
     task_name,
-    attention_check_accuracy,
-    accuracy,
-    rt,
-    omissions,
+    attention_check_accuracy=None,
+    accuracy=None,
+    rt=None,
+    omissions=None,
     check_response=None,
+    all_values_same=None,
     **kwargs,
 ):
     feedbacks = []
@@ -99,12 +118,15 @@ def feedback_generator(
             feedbacks.append(feedback)
         return feedbacks
 
-    if task_name == "race_ethnicity_RMR_survey_rdoc":
+    if "survey" in task_name:
         if rt > threshold["rt"]:
             feedback = f"Overall rt of {rt} is high for {task_name}."
             feedbacks.append(feedback)
-        if kwargs["omissions"] > threshold["omissions"]:
+        if omissions > threshold["omissions"]:
             feedback = f"Subject did not answer all required questions."
+            feedbacks.append(feedback)
+        if all_values_same:
+            feedback = f"Subject gave the same response for all questions."
             feedbacks.append(feedback)
         return feedbacks
 
@@ -158,17 +180,19 @@ def get_post_battery_feedback(df):
     rt = df["rt"].dropna().iloc[0]
     return feedback, rt
 
-def get_race_ethnicity_rmr_survey(df):
+def get_survey_metrics(df):
     df = df[df["trial_type"] == "survey"]
     average_rt = df["rt"].mean()
     total_omissions = 0
+    all_values_same = True
     for response in df["response"]:
-        omissions = 3  
+        values = list(response.values())
+        if not all(value == values[0] for value in values):
+            all_values_same = False
         for key, value in response.items():
-            if value != "":
-                omissions -= 1
-        total_omissions += omissions
-    return average_rt, total_omissions
+            if value == "":
+                total_omissions += 1
+    return average_rt, total_omissions, all_values_same
 
 def get_span_processing(df):
     test_trials = df[df["trial_id"] == "test_inter-stimulus"]
