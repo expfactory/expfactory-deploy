@@ -24,7 +24,7 @@ thresholds = {
     "stroop_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "visual_search_rdoc": {"accuracy": 0.6, "rt": 1500, "omissions": 0.2},
     "post_battery_feedback_rdoc": {"rt": 30_000, "feedback": ""},
-    "race_ethnicity_RMR_survey_rdoc": {"rt": 2000, "omissions": 1}
+    "race_ethnicity_RMR_survey_rdoc": {"rt": 120000, "omissions": 1}
     
 }
 
@@ -100,7 +100,7 @@ def feedback_generator(
         return feedbacks
 
     if task_name == "race_ethnicity_RMR_survey_rdoc":
-        if rt > threshold["rt"]
+        if rt > threshold["rt"]:
             feedback = f"Overall rt of {rt} is high for {task_name}."
             feedbacks.append(feedback)
         if kwargs["omissions"] > threshold["omissions"]:
@@ -159,14 +159,16 @@ def get_post_battery_feedback(df):
     return feedback, rt
 
 def get_race_ethnicity_rmr_survey(df):
-    df = df[df["trial_id"] == "race_ethnicity_RMR_survey_rdoc"]
+    df = df[df["trial_type"] == "survey"]
     average_rt = df["rt"].mean()
-    omissions = 3
+    total_omissions = 0
     for response in df["response"]:
-        if (response != ""):
-            omissions = omissions - 1
-    return average_rt, omissions
-
+        omissions = 3  
+        for key, value in response.items():
+            if value != "":
+                omissions -= 1
+        total_omissions += omissions
+    return average_rt, total_omissions
 
 def get_span_processing(df):
     test_trials = df[df["trial_id"] == "test_inter-stimulus"]
