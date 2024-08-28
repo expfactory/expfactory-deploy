@@ -72,7 +72,7 @@ def apply_qa_funcs(task_name, task_df):
             feedback, rt = get_post_battery_feedback(task_df)
             metrics["rt"] = rt
             metrics['feedback'] = feedback
-        elif "survey" in task_name:
+        elif "survey" in task_name or "questionnaire" in task_name or "dsm5" in task_name:
             average_rt, omissions, all_values_same = get_survey_metrics(task_df)
             metrics["rt"] = average_rt
             metrics["omissions"] = omissions
@@ -118,7 +118,7 @@ def feedback_generator(
             feedbacks.append(feedback)
         return feedbacks
 
-    if "survey" in task_name:
+    if "survey" in task_name or "questionnaire" in task_name or "dsm5" in task_name:
         if rt > threshold["rt"]:
             feedback = f"Overall rt of {rt} is high for {task_name}."
             feedbacks.append(feedback)
@@ -187,7 +187,7 @@ def get_survey_metrics(df):
     all_values_same = True
     for response in df["response"]:
         values = list(response.values())
-        if not all(value == values[0] for value in values):
+        if len(values) <= 1 or not all(value == values[0] for value in values):
             all_values_same = False
         for key, value in response.items():
             if value == "":
