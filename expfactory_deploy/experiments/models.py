@@ -150,13 +150,12 @@ class ExperimentRepo(models.Model):
     @property
     def url(self):
         base_path = self.origin.path
-        exp_location = self.location
+        origin_url = self.origin.url
         if "git@github.com:" in self.origin.url:
             origin_url = self.origin.url.replace("git@github.com:", "https://github.com/")
             origin_url = origin_url.replace(".git", "")
-            exp_location = self.location.replace(base_path, f"/tree/{self.branch}")
-        else:
-            origin_url = self.origin.url
+
+        exp_location = self.location.replace(base_path, f"/tree/{self.branch}")
         return f"{origin_url}{exp_location}"
 
     def __str__(self):
