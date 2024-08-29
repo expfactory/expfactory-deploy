@@ -23,25 +23,25 @@ thresholds = {
     "stop_signal_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "stroop_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "visual_search_rdoc": {"accuracy": 0.6, "rt": 1500, "omissions": 0.2},
-    "post_battery_feedback_rdoc": {"rt": 30_000, "feedback": ""},
-    "race_ethnicity_RMR_survey_rdoc": {"rt": 120000, "omissions": 1},
-    "demographics_survey_rdoc": {"rt": 600000, "omissions": 4},
-    "dospert_rt_survey_rdoc": {"rt": 120000, "omissions": 0},
-    "risq_survey_rdoc": {"rt": 600000, "omissions": 82},
-    "dospert_eb_survey_rdoc": {"rt": 600000, "omissions": 0},
-    "k6_survey_rdoc": {"rt": 600000, "omissions": 7},
-    "childhood_trauma_survey_rdoc": {"rt": 600000, "omissions": 0},
-    "dass21_survey_rdoc": {"rt": 600000, "omissions": 0},
-    "fagerstrom_test_survey_rdoc": {"rt": 600000, "omissions": 0},
-    "brief_self_control_survey_rdoc": {"rt": 600000, "omissions": 0},
-    "dsm5_crosscutting_stanford_baseline_rdoc": {"rt": 600000, "omissions": 0},
-    "three_factor_eating_questionnaire_r18__stanford_baseline_rdoc": {"rt": 600000, "omissions": 0},
-    "psqi_survey_rdoc": {"rt": 600000, "omissions": 4},
-    "upps_impulsivity_survey_rdoc": {"rt": 600000, "omissions": 0},
-    "panas_last_two_weeks_survey_rdoc": {"rt": 600000, "omissions": 0},
-    "dospert_rp_survey_rdoc": {"rt": 600000, "omissions": 0},
-    "mcarthur_social_status_survey_rdoc": {'rt': 200000, 'omissions': 0},
-    "l_cat_survey_rdoc": {"rt": 200000, "omissions": 0}
+    "post_battery_feedback_rdoc": {"rt": 900000, "feedback": ""},
+    "race_ethnicity_RMR_survey_rdoc": {"rt": 900000, "omissions": 1},
+    "demographics_survey_rdoc": {"rt": 900000, "omissions": 4},
+    "dospert_rt_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "risq_survey_rdoc": {"rt": 900000, "omissions": 82},
+    "dospert_eb_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "k6_survey_rdoc": {"rt": 900000, "omissions": 7},
+    "childhood_trauma_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "dass21_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "fagerstrom_test_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "brief_self_control_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "dsm5_crosscutting_stanford_baseline_rdoc": {"rt": 900000, "omissions": 0},
+    "three_factor_eating_questionnaire_r18__stanford_baseline_rdoc": {"rt": 900000, "omissions": 0},
+    "psqi_survey_rdoc": {"rt": 900000, "omissions": 4},
+    "upps_impulsivity_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "panas_last_two_weeks_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "dospert_rp_survey_rdoc": {"rt": 900000, "omissions": 0},
+    "mcarthur_social_status_survey_rdoc": {'rt': 900000, 'omissions': 0},
+    "l_cat_survey_rdoc": {"rt": 900000, "omissions": 0}
 }
 
 def apply_qa_funcs(task_name, task_df):
@@ -182,7 +182,7 @@ def get_post_battery_feedback(df):
 def get_survey_metrics(df, task_name):
     total_omissions = 0
     all_values_same = True
-    if "fagerstrom" not in task_name:
+    if "fagerstrom" not in task_name and "mcarthur" not in task_name:
         df = df[df["trial_type"] == "survey"]
         average_rt = df["rt"].mean()
         for response in df["response"]:
