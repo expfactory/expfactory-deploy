@@ -58,7 +58,10 @@ def run_qa(results, rerun=False):
         if metrics != None:
             for key in metrics:
                 if type(metrics[key]) is str:
-                    metrics[key] = json.loads(metrics[key])
+                    try:
+                        metrics[key] = json.loads(metrics[key])
+                    except json.decoder.JSONDecodeError:
+                        continue
                 if metrics[key] is None:
                     continue
                 try:
