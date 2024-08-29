@@ -50,11 +50,10 @@ def apply_qa_funcs(task_name, task_df):
     feedback = ""
 
     try:
-
-        if "survey" not in task_name:
+        if "survey" not in task_name and "questionnaire" not in task_name and "dsm5" not in task_name and "feedback" not in task_name:
             metrics["attention_check_accuracy"] = get_attention_check_accuracy(task_df)
 
-        if task_name != "stop_signal_rdoc" and "survey" not in task_name:
+        if task_name != "stop_signal_rdoc" and "survey" not in task_name and "questionnaire" not in task_name and "dsm5" not in task_name and "feedback" not in task_name:
             metrics["accuracy"] = get_accuracy(task_df)
 
         span_tasks = ["simple_span_rdoc", "operation_span_rdoc", "span_rdoc__behavioral"]
@@ -73,7 +72,7 @@ def apply_qa_funcs(task_name, task_df):
             metrics["rt"] = rt
             metrics['feedback'] = feedback
         elif "survey" in task_name or "questionnaire" in task_name or "dsm5" in task_name:
-            average_rt, omissions, all_values_same = get_survey_metrics(task_df)
+            average_rt, omissions, all_values_same = get_survey_metrics(task_df, task_name)
             metrics["rt"] = average_rt
             metrics["omissions"] = omissions
             metrics["all_values_same"] = all_values_same
@@ -180,18 +179,27 @@ def get_post_battery_feedback(df):
     rt = df["rt"].dropna().iloc[0]
     return feedback, rt
 
-def get_survey_metrics(df):
-    df = df[df["trial_type"] == "survey"]
-    average_rt = df["rt"].mean()
+def get_survey_metrics(df, task_name):
     total_omissions = 0
     all_values_same = True
-    for response in df["response"]:
-        values = list(response.values())
-        if len(values) <= 1 or not all(value == values[0] for value in values):
-            all_values_same = False
-        for key, value in response.items():
-            if value == "":
+    if "fagerstrom" not in task_name:
+        df = df[df["trial_type"] == "survey"]
+        average_rt = df["rt"].mean()
+        for response in df["response"]:
+            values = list(response.values())
+            if len(values) <= 1 or not all(value == values[0] for value in values):
+                all_values_same = False
+            for value in values:
+                if value == "":
+                    total_omissions += 1
+    else:
+        average_rt = df["rt"].mean()
+        for response in df["response"]:
+            if df["response"].nunique() > 1:
+                all_values_same = False
+            if response == "":
                 total_omissions += 1
+
     return average_rt, total_omissions, all_values_same
 
 def get_span_processing(df):
