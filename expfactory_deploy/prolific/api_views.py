@@ -78,10 +78,10 @@ def prolific_kicks(request):
         results[ss.study.study_collection.id][ss.subject.prolific_id][
             ss.study.remote_id
         ] = {
-            "battery": ss_warn.study.battery.title,
-            "study_rank": ss_warn.study.rank,
-            "status": ss_warn.status,
-            "status_reason": ss_warn.status_reason,
+            "battery": ss.study.battery.title,
+            "study_rank": ss.study.rank,
+            "status": ss.status,
+            "status_reason": ss.status_reason,
             "failed_at": ss.failed_at,
         }
     return Response(results)
@@ -89,7 +89,7 @@ def prolific_kicks(request):
 @api_view(["GET"])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def prolific_suspentions(request):
+def prolific_suspensions(request):
     scs_suspended = models.StudyCollectionSubject.objects.filter(
         study_collection__active=True, active=False
     )
@@ -99,7 +99,7 @@ def prolific_suspentions(request):
             'study_collection_id': scs.study_collection.id,
             'subject_id': scs.subject.prolific_id,
             'status': scs.status,
-            'status_reason': ss_warn.status_reason,
+            'status_reason': scs.status_reason,
         })
     return Response(results)
 
