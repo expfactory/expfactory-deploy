@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from prolific import models
 
+
 @api_view(["GET"])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -20,10 +21,14 @@ def prolific_warnings(request):
         study__study_collection__active=True, warned_at__isnull=False
     )
 
-    ttfs_warned_at = models.StudyCollectionSubject.objects.filter(
+    active_scs = models.StudyCollectionSubject.objects.filter(
+        study_collection__active=True,
+    )
+
+    ttfs_warned_at = active_scs.filter(
         ttfs_warned_at__isnull=False
     )
-    ttcc_warned_at = models.StudyCollectionSubject.objects.filter(
+    ttcc_warned_at = active_scs.filter(
         ttcc_warned_at__isnull=False
     )
     scs_warnings = ttfs_warned_at | ttcc_warned_at
@@ -44,8 +49,58 @@ def prolific_warnings(request):
             "battery": ss_warn.study.battery.title,
             "study_rank": ss_warn.study.rank,
             "warned_at": ss_warn.warned_at,
-            "current_status": ss_warn.status,
+            "status": ss_warn.status,
             "status_reason": ss_warn.status_reason,
         }
 
     return Response(results)
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def prolific_kicks(request):
+    ss_kicks = models.StudySubject.objects.filter(
+        study__study_collection__active=True, status="kicked"
+    )
+
+    scs_kicks = models.StudyCollectionSubject.objects.filter(
+        study_collection__active=True, status="kicked"
+    )
+
+    results = defaultdict(lambda: defaultdict(dict))
+    for scs in scs_kicks:
+        results[scs.study_collection.id][scs.subject.prolific_id] = {
+            "status": scs.status,
+            "status_reason": scs.status_reason,
+            "failed_at": scs.failed_at,
+        }
+    for ss in ss_kicks:
+        results[ss.study.study_collection.id][ss.subject.prolific_id][
+            ss.study.remote_id
+        ] = {
+            "battery": ss_warn.study.battery.title,
+            "study_rank": ss_warn.study.rank,
+            "status": ss_warn.status,
+            "status_reason": ss_warn.status_reason,
+            "failed_at": ss.failed_at,
+        }
+    return Response(results)
+
+@api_view(["GET"])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def prolific_suspentions(request):
+    scs_suspended = models.StudyCollectionSubject.objects.filter(
+        study_collection__active=True, active=False
+    )
+    results = []
+    for scs in scs_suspended:
+        results.append({
+            'study_collection_id': scs.study_collection.id,
+            'subject_id': scs.subject.prolific_id,
+            'status': scs.status,
+            'status_reason': ss_warn.status_reason,
+        })
+    return Response(results)
+
+
