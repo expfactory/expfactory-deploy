@@ -25,12 +25,8 @@ def prolific_warnings(request):
         study_collection__active=True,
     )
 
-    ttfs_warned_at = active_scs.filter(
-        ttfs_warned_at__isnull=False
-    )
-    ttcc_warned_at = active_scs.filter(
-        ttcc_warned_at__isnull=False
-    )
+    ttfs_warned_at = active_scs.filter(ttfs_warned_at__isnull=False)
+    ttcc_warned_at = active_scs.filter(ttcc_warned_at__isnull=False)
     scs_warnings = ttfs_warned_at | ttcc_warned_at
 
     results = defaultdict(lambda: defaultdict(dict))
@@ -40,20 +36,25 @@ def prolific_warnings(request):
             entry["ttfs_warned_at"] = scs_warn.ttfs_warned_at
         if scs_warn.ttcc_warned_at:
             entry["ttcc_warned_at"] = scs_warn.ttcc_warned_at
+        entry["studies"] = []
         results[scs_warn.study_collection.name][scs_warn.subject.prolific_id] = entry
 
     for ss_warn in ss_warnings:
         results[ss_warn.study.study_collection.name][ss_warn.subject.prolific_id][
-            ss_warn.study.remote_id
-        ] = {
-            "battery": ss_warn.study.battery.title,
-            "study_rank": ss_warn.study.rank,
-            "warned_at": ss_warn.warned_at,
-            "status": ss_warn.status,
-            "status_reason": ss_warn.status_reason,
-        }
+            "studies"
+        ].append(
+            {
+                "study_id": ss_warn.study.remote_id,
+                "battery": ss_warn.study.battery.title,
+                "study_rank": ss_warn.study.rank,
+                "warned_at": ss_warn.warned_at,
+                "status": ss_warn.status,
+                "status_reason": ss_warn.status_reason,
+            }
+        )
 
     return Response(results)
+
 
 @api_view(["GET"])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
@@ -73,18 +74,21 @@ def prolific_kicks(request):
             "status": scs.status,
             "status_reason": scs.status_reason,
             "failed_at": scs.failed_at,
+            "studies": [],
         }
     for ss in ss_kicks:
-        results[ss.study.study_collection.id][ss.subject.prolific_id][
-            ss.study.remote_id
-        ] = {
-            "battery": ss.study.battery.title,
-            "study_rank": ss.study.rank,
-            "status": ss.status,
-            "status_reason": ss.status_reason,
-            "failed_at": ss.failed_at,
-        }
+        results[ss.study.study_collection.id][ss.subject.prolific_id]["studies"].append(
+            {
+                "study_id": ss.study.remote_id,
+                "battery": ss.study.battery.title,
+                "study_rank": ss.study.rank,
+                "status": ss.status,
+                "status_reason": ss.status_reason,
+                "failed_at": ss.failed_at,
+            }
+        )
     return Response(results)
+
 
 @api_view(["GET"])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
@@ -95,12 +99,12 @@ def prolific_suspensions(request):
     )
     results = []
     for scs in scs_suspended:
-        results.append({
-            'study_collection_id': scs.study_collection.id,
-            'subject_id': scs.subject.prolific_id,
-            'status': scs.status,
-            'status_reason': scs.status_reason,
-        })
+        results.append(
+            {
+                "study_collection_id": scs.study_collection.id,
+                "subject_id": scs.subject.prolific_id,
+                "status": scs.status,
+                "status_reason": ss_warn.status_reason,
+            }
+        )
     return Response(results)
-
-
