@@ -6,4 +6,6 @@ app_name = "prolific_api"
 
 urlpatterns = [
     path("api/warnings", api_views.prolific_warnings, name="prolific-warnings"),
+    path("api/kicks", api_views.prolific_kicks, name="prolific-kicks"),
+    path("api/suspentions", api_views.prolific_suspentions, name="prolific-suspentions"),
 ]
