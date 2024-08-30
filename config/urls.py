@@ -18,6 +18,7 @@ urlpatterns = [
     path("accounts/", include("django.contrib.auth.urls")),
     path('tinymce/', include('tinymce.urls')),
     path("", include("expfactory_deploy.experiments.urls", namespace="experiments")),
+    path("", include("expfactory_deploy.prolific.api_urls", namespace="prolific_api")),
     path("prolific/", include("expfactory_deploy.prolific.urls", namespace="prolific")),
     path("analysis/", include("expfactory_deploy.analysis.urls", namespace="analysis")),
     path("", include("expfactory_deploy.mturk.urls", namespace="mturk")),
