@@ -104,7 +104,7 @@ def prolific_suspensions(request):
                 "study_collection_id": scs.study_collection.id,
                 "subject_id": scs.subject.prolific_id,
                 "status": scs.status,
-                "status_reason": ss_warn.status_reason,
+                "status_reason": scs.status_reason,
             }
         )
     return Response(results)
