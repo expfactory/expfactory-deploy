@@ -611,7 +611,7 @@ class ProlificAPIResult(models.Model):
     request = models.TextField(blank=True)
     response = models.JSONField()
     collection = models.ForeignKey(
-        StudyCollection, on_delete=models.CASCADE, blank=True
+        StudyCollection, on_delete=models.CASCADE, blank=True, null=True
     )
 
 

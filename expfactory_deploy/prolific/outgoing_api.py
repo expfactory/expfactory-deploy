@@ -1,8 +1,10 @@
 import json
 import os
 from functools import wraps
+from time import sleep
 
 from django.conf import settings
+
 
 from pyrolific import Client, AuthenticatedClient
 from pyrolific import models as api_models
@@ -30,6 +32,8 @@ from pyrolific.api.submissions import get_submissions
 from pyrolific.api.submissions import get_submission as _get_submission
 from pyrolific.api.messages import send_message as _send_message
 from pyrolific.api import studies
+
+import sentry_sdk
 
 token = settings.PROLIFIC_KEY
 
@@ -66,14 +70,29 @@ def api_client(f):
 
 
 def make_call(api_func, ac=False, **kwargs):
-    if ac:
-        response = api_func.sync_detailed(client=auth_client, **kwargs)
-    else:
-        response = api_func.sync_detailed(**kwargs, **client_kwargs)
+    retry = 0
+    while retry < 3:
+        sleep(retry * 3)
+        if ac:
+            response = api_func.sync_detailed(client=auth_client, **kwargs)
+        else:
+            response = api_func.sync_detailed(**kwargs, **client_kwargs)
+        if response.status_code.value > 499:
+            retry += 1
+        else:
+            break
+
     if response.status_code.value > 399:
+        from prolific.models import ProlificAPIResult
         print(response)
+        sentry_sdk.capture_exception(GenericProlificException({
+            'api_func': api_func,
+            'kwargs': kwargs,
+            'response': response
+        }))
+        ProlificAPIResult.objects.create(request=f"{api_func} {kwargs}", response={"response": response.__str__()})
         return response
-        # raise GenericProlificException(response.status)
+
     if response.status_code == 204:
         return True
     response = response.parsed.to_dict()

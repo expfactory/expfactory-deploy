@@ -37,3 +37,4 @@ sphinx-autobuild==2021.3.14
 watchfiles==0.19.0
 
 pywatchman
+sentry-sdk==1.40.0
