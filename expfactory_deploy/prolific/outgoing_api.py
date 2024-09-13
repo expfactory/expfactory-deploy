@@ -3,7 +3,9 @@ import os
 from functools import wraps
 from time import sleep
 
+from django.core.mail import EmailMessage, mail_managers
 from django.conf import settings
+
 
 
 from pyrolific import Client, AuthenticatedClient
@@ -90,7 +92,17 @@ def make_call(api_func, ac=False, **kwargs):
             'kwargs': kwargs,
             'response': response
         }))
-        ProlificAPIResult.objects.create(request=f"{api_func} {kwargs}", response={"response": response.__str__()})
+
+        response_str = json.dumps(response, indent=4, default=str)
+        ProlificAPIResult.objects.create(request=f"{api_func} {kwargs}", response={"response": response_str})
+        message = EmailMessage(
+            f"Prolific API response error {response.status_code.value}",
+            f"Fucntion Call\n{api_func}\n\nkwargs:\n{kwargs}\n\nResponse:\n{response_str}",
+            settings.SERVER_EMAIL,
+            [a[1] for a in settings.MANAGERS]
+        )
+        message.send()
+
         return response
 
     if response.status_code == 204:
