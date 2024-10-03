@@ -23,32 +23,32 @@ thresholds = {
     "stop_signal_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "stroop_rdoc": {"accuracy": 0.6, "rt": 1000, "omissions": 0.2},
     "visual_search_rdoc": {"accuracy": 0.6, "rt": 1500, "omissions": 0.2},
-    "post_battery_feedback_rdoc": {"rt": 900000, "feedback": ""},
-    "race_ethnicity_RMR_survey_rdoc": {"rt": 900000, "omissions": 1},
-    "demographics_survey_rdoc": {"rt": 900000, "omissions": 4},
-    "dospert_rt_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "risq_survey_rdoc": {"rt": 900000, "omissions": 82},
-    "dospert_eb_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "k6_survey_rdoc": {"rt": 900000, "omissions": 7},
-    "childhood_trauma_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "dass21_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "fagerstrom_test_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "brief_self_control_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "dsm5_crosscutting_stanford_baseline_rdoc": {"rt": 900000, "omissions": 0},
-    "three_factor_eating_questionnaire_r18__stanford_baseline_rdoc": {"rt": 900000, "omissions": 0},
-    "psqi_survey_rdoc": {"rt": 900000, "omissions": 4},
-    "upps_impulsivity_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "panas_last_two_weeks_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "dospert_rp_survey_rdoc": {"rt": 900000, "omissions": 0},
-    "mcarthur_social_status_survey_rdoc": {'rt': 900000, 'omissions': 0},
-    "l_cat_survey_rdoc": {"rt": 900000, "omissions": 0}
+    "post_battery_feedback_rdoc": {"time_elapsed": 74844, "feedback": ""},
+    "race_ethnicity_RMR_survey_rdoc": {"time_elapsed": 192918, "omissions": 1},
+    "demographics_survey_rdoc": {"time_elapsed": 506090, "omissions": 4},
+    "dospert_rt_survey_rdoc": {"time_elapsed": 331463, "omissions": 0},
+    "risq_survey_rdoc": {"time_elapsed": 1379988, "omissions": 82},
+    "dospert_eb_survey_rdoc": {"time_elapsed": 353005, "omissions": 0},
+    "k6_survey_rdoc": {"time_elapsed": 273284, "omissions": 7},
+    "childhood_trauma_survey_rdoc": {"time_elapsed": 142827, "omissions": 0},
+    "dass21_survey_rdoc": {"time_elapsed": 217424, "omissions": 0},
+    "fagerstrom_test_survey_rdoc": {"time_elapsed": 52764, "omissions": 0},
+    "brief_self_control_survey_rdoc": {"time_elapsed": 192697, "omissions": 0},
+    "dsm5_crosscutting_stanford_baseline_rdoc": {"time_elapsed": 333250, "omissions": 0},
+    "three_factor_eating_questionnaire_r18__stanford_baseline_rdoc": {"time_elapsed": 189457, "omissions": 0},
+    "psqi_survey_rdoc": {"time_elapsed": 299117, "omissions": 4},
+    "upps_impulsivity_survey_rdoc": {"time_elapsed": 574974, "omissions": 0},
+    "panas_last_two_weeks_survey_rdoc": {"time_elapsed": 248486, "omissions": 0},
+    "dospert_rp_survey_rdoc": {"time_elapsed": 312248, "omissions": 0},
+    "mcarthur_social_status_survey_rdoc": {'time_elapsed': 434304, 'omissions': 0},
+    "l_cat_survey_rdoc": {"time_elapsed": 133431, "omissions": 0}
 }
 
 def apply_qa_funcs(task_name, task_df):
     metrics = {}
     error = None
     feedback = ""
-
+  
     try:
         if "survey" not in task_name and "questionnaire" not in task_name and "dsm5" not in task_name and "feedback" not in task_name:
             metrics["attention_check_accuracy"] = get_attention_check_accuracy(task_df)
@@ -68,12 +68,12 @@ def apply_qa_funcs(task_name, task_df):
             metrics.update(**get_stopping(task_df))
             metrics['accuracy'] = metrics['go_accuracy']
         elif task_name == "post_battery_feedback_rdoc":
-            feedback, rt = get_post_battery_feedback(task_df)
-            metrics["rt"] = rt
+            feedback, time_elapsed = get_post_battery_feedback(task_df)
+            metrics["time_elapsed"] = time_elapsed
             metrics['feedback'] = feedback
         elif "survey" in task_name or "questionnaire" in task_name or "dsm5" in task_name:
-            average_rt, omissions, all_values_same = get_survey_metrics(task_df, task_name)
-            metrics["rt"] = average_rt
+            average_time_elapsed, omissions, all_values_same = get_survey_metrics(task_df, task_name)
+            metrics["time_elapsed"] = average_time_elapsed
             metrics["omissions"] = omissions
             metrics["all_values_same"] = all_values_same
         else:
@@ -103,14 +103,15 @@ def feedback_generator(
     omissions=None,
     check_response=None,
     all_values_same=None,
+    time_elapsed=None,
     **kwargs,
 ):
     feedbacks = []
     threshold = thresholds[task_name]
 
     if task_name == "post_battery_feedback_rdoc":
-        if rt > threshold["rt"]:
-            feedback = f"Overall rt of {rt} is high for {task_name}."
+        if time_elapsed > threshold["time_elapsed"]:
+            feedback = f"Overall time_elapsed of {time_elapsed} is high for {task_name}."
             feedbacks.append(feedback)
         if kwargs['feedback'] != threshold['feedback']:
             feedback = f"Subject gave post-battery feedback."
@@ -118,8 +119,8 @@ def feedback_generator(
         return feedbacks
 
     if "survey" in task_name or "questionnaire" in task_name or "dsm5" in task_name:
-        if rt > threshold["rt"]:
-            feedback = f"Overall rt of {rt} is high for {task_name}."
+        if time_elapsed > threshold["time_elapsed"]:
+            feedback = f"Overall time_elapsed of {time_elapsed} is high for {task_name}."
             feedbacks.append(feedback)
         if omissions > threshold["omissions"]:
             feedback = f"Subject did not answer all required questions."
@@ -176,31 +177,32 @@ def get_attention_check_accuracy(df):
 def get_post_battery_feedback(df):
     df = df[df["trial_id"] == "post_battery_feedback"]
     feedback = df["response"].dropna().iloc[0]
-    rt = df["rt"].dropna().iloc[0]
-    return feedback, rt
+    print(df["time_elapsed"])
+    time_elapsed = df["time_elapsed"].dropna().iloc[0]
+    return feedback, time_elapsed
 
 def get_survey_metrics(df, task_name):
     total_omissions = 0
     all_values_same = True
     if "fagerstrom" not in task_name and "mcarthur" not in task_name:
         df = df[df["trial_type"] == "survey"]
-        average_rt = df["rt"].mean()
+        average_time_elapsed = df["time_elapsed"].mean()
         for response in df["response"]:
             values = list(response.values())
-            if len(values) <= 1 or not all(value == values[0] for value in values):
+            if len(values) <= 2 or not all(value == values[0] for value in values):
                 all_values_same = False
             for value in values:
                 if value == "":
                     total_omissions += 1
     else:
-        average_rt = df["rt"].mean()
+        average_time_elapsed = df["time_elapsed"].mean()
         for response in df["response"]:
             if df["response"].nunique() > 1:
                 all_values_same = False
             if response == "":
                 total_omissions += 1
 
-    return average_rt, total_omissions, all_values_same
+    return average_time_elapsed, total_omissions, all_values_same
 
 def get_span_processing(df):
     test_trials = df[df["trial_id"] == "test_inter-stimulus"]
