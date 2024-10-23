@@ -23,3 +23,17 @@ class ModedScheduleAdmin(q_admin.ScheduleAdmin):
         "get_last_run",
         "get_success",
     )
+
+admin.site.unregister([q_models.Success])
+@admin.register(q_models.Success)
+class ModedSuccessAdmin(q_admin.TaskAdmin):
+    list_display = (
+        "name",
+        "group",
+        "func",
+        "args",
+        "cluster",
+        "started",
+        "stopped",
+        "time_taken",
+    )
