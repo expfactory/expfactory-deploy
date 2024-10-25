@@ -35,11 +35,12 @@ def add_to_collection(subject_id, collection_id):
 def on_complete_battery(sc, current_study, subject_id):
     study = sc.next_study(current_study)
     delay = sc.inter_study_delay if sc.inter_study_delay is not None else timedelta(0)
-    ss = pm.StudySubject.objects.get(study=current_study, subject=subject_id)
+    subject = em.Subject.objects.get(id=subject_id)
+    ss = pm.StudySubject.objects.get(study=current_study, subject=subject)
     scs = ss.study_collection_subject
     if ss.status == "kicked" or scs.status == "kicked":
         print(
-            f"subject {ss.subject.id} listed as kicked on collection {current_study.study_collection.id}"
+            f"subject {ss.subject.id} listed as kicked on collection {scs.study_collection.id}"
         )
         return
     ss.status = "completed"
@@ -98,7 +99,7 @@ def end_study_delay(study_id, subject_id):
     scs.save()
     study.add_to_allowlist([subject.prolific_id])
 
-    if sc.study_time_to_warning > timedelta(0):
+    if sc.study_time_to_warning and sc.study_time_to_warning > timedelta(0):
         schedule(
             "prolific.tasks.study_warning",
             scs.id,
@@ -288,7 +289,7 @@ def collection_warning(scs_id):
         if scs.current_study:
             study = scs.current_study
         else:
-            study = scs.study_collection.study_set.first()
+            study = scs.study_collection.study_set.order_by("rank").first()
 
         if scs.study_collection.collection_warning_message:
             api.send_message(
@@ -313,7 +314,7 @@ def on_add_to_collection(scs):
         )
         return
     sc = scs.study_collection
-    ss = pm.StudySubject.objects.get(subject=scs.subject, study=sc.study_set.first())
+    ss = pm.StudySubject.objects.get(subject=scs.subject, study=sc.study_set.order_by("rank").first())
     if not scs.current_study:
         scs.current_study = ss.study
         scs.save()

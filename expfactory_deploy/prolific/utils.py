@@ -8,7 +8,7 @@ from prolific import models as models
 
 def add_subjects_to_collection(subjects, collection):
     from prolific.tasks import on_add_to_collection
-    first_study = collection.study_set.first()
+    first_study = collection.study_set.order_by("rank").first()
     for subject in subjects:
         (
             subject_collection,

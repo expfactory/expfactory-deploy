@@ -74,7 +74,8 @@ class ProlificServe(exp_views.Serve):
             study = get_object_or_404(models.Study, remote_id=study_id)
             collection = study.study_collection
             add_subjects_to_collection([self.subject], collection)
-            study_subjects = models.StudySubject.objects.filter(subject=self.subject, study__remote_id=study_id)
+            new_ss, created = models.StudySubject.objects.get_or_create(subject=self.subject, study=study)
+            study_subjects = [new_ss]
 
         if len(study_subjects):
             ss = study_subjects[0]
@@ -151,7 +152,7 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
         initial = []
         if self.collection:
             initial = list(
-                models.Study.objects.filter(study_collection=self.collection).values(
+                models.Study.objects.filter(study_collection=self.collection).order_by("rank").values(
                     "battery", "rank"
                 )
             )
@@ -685,7 +686,7 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
             )
             subjects.append(subject)
 
-        first_study = collection.study_set.first()
+        first_study = collection.study_set.order_by("rank").first()
         for subject in subjects:
             (
                 subject_collection,
