@@ -34,6 +34,7 @@ def study_collection_qa(id, rerun=False):
 
 
 def run_qa(results, rerun=False):
+    import numpy as np
     if rerun is False:
         results = results.filter(
             ~Exists(ResultQA.objects.filter(exp_result=OuterRef("pk")))
@@ -67,6 +68,10 @@ def run_qa(results, rerun=False):
                 try:
                     if math.isnan(metrics[key]):
                         metrics[key] = None
+                    elif isinstance(metrics[key], np.integer):
+                        metrics[key] = int(metrics[key])
+                    elif isinstance(metrics[key], np.float_):
+                        metrics[key] = float(metrics[key])
                 except TypeError:
                     continue
 
