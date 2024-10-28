@@ -17,6 +17,8 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileRe
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView, TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
 from taggit.models import Tag
@@ -537,6 +539,8 @@ class Serve(View):
         context = {**exp_context}
         return render(request, "experiments/jspsych_deploy.html", context)
 
+
+@method_decorator(csrf_exempt, name='dispatch')
 class ServeConsent(View):
     preview = False
     battery = None
@@ -601,6 +605,7 @@ class PreviewConsent(ServeConsent):
 '''
 View for participants to push data to.
 '''
+@method_decorator(csrf_exempt, name='dispatch')
 class Results(View):
     # If more frameworks are added this would dispatch to their respective
     # versions of this function.
