@@ -2,6 +2,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlencode
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Field, Layout, Submit
@@ -438,8 +439,24 @@ class Serve(View):
         )
 
     def set_assignment(self):
-        # When might we want to error out instead of just create assignment?
-        self.assignment = models.Assignment.objects.get_or_create(subject=self.subject, battery=self.battery)[0]
+        assignments = models.Assignment.objects.filter(subject=self.subject, battery=self.battery)
+        if len(assignments) == 0:
+            self.assignment = models.Assignment.objects.create(subject=self.subject, battery=self.battery)
+            return
+
+        if len(assignments) == 1:
+            self.assignment = assignments[0]
+            return
+
+        active = assignments.filter(status='started')
+        if len(active):
+            self.assignment = active[0]
+            return
+        not_started = assignments.filter(status='not-started')
+        if len(not_started):
+            self.assignment = not_started[0]
+            return
+        self.assignment = assignments[0]
 
     ''' Ideally this prolific logic would live in the prolific view. Currently its too easy for users to end up in
         the experiments url space while trying to complete a prolific study. One issue is consent redirect isn't aware
@@ -588,6 +605,14 @@ class ServeConsent(View):
                 assignment.status = 'started'
             assignment.save()
             if assignment.consent_accepted:
+                if assignment.alt_id:
+                    serve_url = reverse('prolific:serve-battery', kwargs={'battery_id': assignment.battery.id})
+                    query_params = {
+                        settings.PROLIFIC_PARTICIPANT_PARAM: assignment.subject.prolific_id,
+                        settings.PROLIFIC_STUDY_PARAM: assignment.alt_id
+                    }
+                    redirect_url = f'{serve_url}?{urlencode(query_params)}'
+                    return redirect(redirect_url)
                 return redirect(reverse(
                     'experiments:serve-battery',
                     kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
