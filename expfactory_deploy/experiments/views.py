@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.serializers import serialize
 from django.db.models import F, Q
@@ -679,7 +680,7 @@ class SubjectDetail(LoginRequiredMixin, DetailView):
 
 class SubjectList(LoginRequiredMixin, ListView):
     model = models.Subject
-    queryset = models.Subject.objects.filter(active=True).prefetch_related("assignment_set")
+    queryset = models.Subject.objects.filter(active=True).prefetch_related("assignment_set__battery")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

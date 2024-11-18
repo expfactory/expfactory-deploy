@@ -16,4 +16,9 @@ urlpatterns = [
         {"rerun": True},
         name="trigger-qa-by-sc-rerun",
     ),
+    path(
+        "trigger_qa_by_sc_chunked/<int:id>/",
+        views.trigger_qa_by_sc_chunked,
+        name="trigger-qa-by-sc-rerun_chunked",
+    ),
 ]

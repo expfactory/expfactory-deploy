@@ -4,6 +4,8 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileRe
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
 
+from django_q.tasks import schedule
+
 from analysis import models
 from analysis.management.commands.run_qa import study_collection_qa
 from prolific import models as pro_models
@@ -39,3 +41,9 @@ def qa_by_sc(request, id):
 def trigger_qa_by_sc(request, id, rerun):
     study_collection_qa(id, rerun)
     return redirect(reverse("analysis:qa-by-sc", kwargs={"id": id}))
+
+@login_required
+def trigger_qa_by_sc_chunked(request, id):
+    sched = schedule("analysis.tasks.run_qa_chunk", id, 0, 100, 60)
+    return redirect(reverse('admin:django_q_schedule_change', kwargs={'object_id': sched.id}))
+
