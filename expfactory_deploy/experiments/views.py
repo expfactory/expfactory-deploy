@@ -516,7 +516,7 @@ class Serve(View):
     '''
     def get_js_vars(self):
         js_vars = {}
-        scs = list(self.subject.studycollectionsubject_set.filter(study_collection__study__battery__assignment=self.assignment).distinct())
+        scs = list(self.subject.studycollectionsubject_set.filter(study_collection__study__studysubject__assignment=self.assignment).distinct())
         if len(scs) == 1:
             js_vars['group_index'] = scs[0].group_index
         if len(scs) > 1:
