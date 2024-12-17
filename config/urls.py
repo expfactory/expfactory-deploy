@@ -21,7 +21,6 @@ urlpatterns = [
     path("", include("expfactory_deploy.prolific.api_urls", namespace="prolific_api")),
     path("prolific/", include("expfactory_deploy.prolific.urls", namespace="prolific")),
     path("analysis/", include("expfactory_deploy.analysis.urls", namespace="analysis")),
-    path("", include("expfactory_deploy.mturk.urls", namespace="mturk")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development

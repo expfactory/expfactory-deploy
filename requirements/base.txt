@@ -1,12 +1,12 @@
 GitPython==3.1.29
-Pillow==9.3.0
+Pillow==11.0.0
 argon2-cffi==21.3.0
 boto3==1.26.21
 celery==5.2.7
 debugpy==1.6.4
 pyrolific==1.4.6
 django-tinymce==3.6.1
-pandas==2.1.2
+pandas==2.2.3
 
 # Django
 # ------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ django-q2
 djangorestframework==3.14.0
 flower==1.2.0
 giturlparse
-hiredis==2.0.0
+hiredis==3.0.0
 jsonschema
 python-slugify==7.0.0
 pytz==2022.6

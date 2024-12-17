@@ -22,7 +22,7 @@ services:
     env_file:
       - ./.envs/.production/.django
       - ./.envs/.production/.postgres
-    command: /start
+    command: /usr/local/bin/gunicorn config.asgi --bind 0.0.0.0:5000 --chdir=/app -w 1 --max-requests 2000 -t 60 --graceful-timeout 60 -k uvicorn.workers.UvicornWorker
 
   postgres:
     build:

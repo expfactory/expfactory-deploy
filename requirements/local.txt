@@ -26,8 +26,8 @@ pre-commit==2.20.0
 psycopg2==2.9.5
 pylint-celery==0.3
 pylint-django==2.5.3
-pytest==7.2.0
-pytest-django==4.5.2
+pytest==8.3.3
+pytest-django==4.8.0
 pytest-sugar==0.9.6
 
 # Documentation
