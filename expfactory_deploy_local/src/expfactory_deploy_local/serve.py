@@ -2,6 +2,7 @@ import argparse
 import datetime
 import json
 import os
+import shutil
 import sys
 import urllib
 from pathlib import Path
@@ -40,6 +41,11 @@ parser.add_argument(
     '-gi',
     '--group_index',
     help="Inject a group_index variable into the experiment context."
+)
+parser.add_argument(
+    '--export',
+    help="Export experiments as html instead of running webserver.",
+    type=Path
 )
 
 experiments = []
@@ -87,6 +93,11 @@ def run(args=None):
     web.config.update({'experiments': experiments})
     if (args.group_index is not None):
         web.config.update({'group_index': args.group_index})
+
+    if (args.export):
+        [export_experiment(x, args.export) for x in experiments]
+        sys.exit()
+
     # I think a directory starting with a period in the dirname of
     # sys.argv[0] threw webpy run func for a loop.
     # We don't need argv anymore so can clear it.
@@ -99,6 +110,21 @@ def serve_experiment(experiment):
     if (web.config.get('group_index', None)):
         context['group_index'] = web.config.group_index
     return render.deploy_template(**context)
+
+def export_experiment(experiment, export_path):
+    exp_name = experiment.stem
+    context = generate_experiment_context(Path(experiments_dir, exp_name), "/", f"/static/experiments/{exp_name}")
+    if (web.config.get('group_index', None)):
+        context['group_index'] = web.config.group_index
+
+    output = render.deploy_template(**context)
+    output_dir = os.path.join(export_path, experiment.stem)
+    os.makedirs(output_dir, exist_ok=True)
+    with open(os.path.join(output_dir, 'index.html'), 'w') as fp:
+        fp.write(output)
+    shutil.copytree(static_dir, os.path.join(output_dir, static_dir.stem), dirs_exist_ok=True)
+    return
+
 
 class reset:
     def GET(self):

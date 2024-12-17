@@ -5,11 +5,12 @@
     <meta charset="utf-8" />
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
-    {% if group_index %}
     <script>
-        window.efVars = { 'group_index': {{ group_index }} }
+      window.efVars = {{ js_vars }}
+      {% if group_index %}
+        window.efVars['group_index'] = {{ group_index }} }
+      {% endif %}
     </script>
-    {% endif %}
     {{ experiment_load | safe }}
   </head>
   <body>
@@ -111,8 +112,15 @@
               });
               } catch {
                 jsPsych = initJsPsych({on_finish: onFinish})
-                {{ exp_id }}_init()
+                if (window.efVars && window.efVars._survey) {
+                  var {{ exp_id }}_experiment = survey_convert(window.efVars._survey)
+                  console.log({{ exp_id }}_experiment)
+                }
+                if (window.hasOwnProperty("{{ exp_id }}_init")) {
+                  {{ exp_id }}_init()
+                }
                 jsPsych.run({{ exp_id }}_experiment)
+
              }
           });
 
