@@ -2,6 +2,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+import sentry_sdk
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.conf import settings
@@ -13,12 +15,6 @@ from pyrolific import models as api_models
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 from model_utils.fields import StatusField, MonitorField
-
-"""
-Due to how prolific tracks time for payment we much chunk large batteries into
-multiple batteries that can be done in single sittings.
-"""
-
 
 class StudyCollection(models.Model):
     name = models.TextField(blank=True, help_text="Name internal to expfactory.")
@@ -438,7 +434,7 @@ class StudySubject(models.Model):
             elif len(assignments) == 1:
                 self.assignment = assignments[0]
             else:
-                # pray on what to do here. Choose one based on timestamp or status?
+                sentry_sdk.capture_message(f"Multiple assignments found for sub {self.subject.pk} and study {self.study.pk}")
                 self.assignment = assignments[0]
         super().save(*args, **kwargs)
 

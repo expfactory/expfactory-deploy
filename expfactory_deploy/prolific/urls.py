@@ -4,12 +4,9 @@ from expfactory_deploy.prolific import views
 
 app_name = "prolific"
 urlpatterns = [
+    path("serve/<int:battery_id>/instructions", views.ProlificInstructions.as_view(), name="instructions"),
+    path("serve/<int:battery_id>/consent", views.ProlificConsent.as_view(), name="consent"),
     path("serve/<int:battery_id>", views.ProlificServe.as_view(), name="serve-battery"),
-    path(
-        "complete/<int:assignment_id>",
-        views.ProlificComplete.as_view(),
-        name="complete",
-    ),
     path(
         "simplecc/update/<int:battery_id>",
         views.SimpleCCUpdate.as_view(),

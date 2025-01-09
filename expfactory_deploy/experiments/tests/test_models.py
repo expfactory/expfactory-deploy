@@ -17,7 +17,6 @@ from experiments.models import (
 from users.models import Group
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def all_models():
     # Create a user and group
@@ -29,7 +28,7 @@ def all_models():
 
     # Create a RepoOrigin
     repo_origin = RepoOrigin.objects.create(
-        url="https://github.com/test/repo.git", path="/path/to/repo", name="test_repo"
+        url="https://github.com/rwblair/efd-test-repo.git" , path="/app/expfactory_deploy/experiments/tests/data/efd-test-repo", name="test_repo"
     )
 
     # Create an ExperimentRepo
@@ -37,13 +36,13 @@ def all_models():
         name="test_experiment_repo",
         origin=repo_origin,
         branch="main",
-        location="/path/to/experiment",
+        location="/app/expfactory_deploy/experiments/tests/data/efd-test-repo/ax_cpt_rdoc",
         framework=framework,
     )
 
     # Create an ExperimentInstance
     experiment_instance = ExperimentInstance.objects.create(
-        note="test note", commit="abc123", experiment_repo_id=experiment_repo
+        note="test note", commit="91bf802e722f3cd49d4c5902291623d94e3033a6", experiment_repo_id=experiment_repo
     )
 
     # Create a Battery
@@ -61,7 +60,7 @@ def all_models():
     )
 
     # Create a Subject
-    subject = Subject.objects.create(handle="test_subject")
+    subject = Subject.objects.create(handle="test_subject", prolific_id='part_id')
 
     # Create an Assignment
     assignment = Assignment.objects.create(subject=subject, battery=battery)

@@ -25,6 +25,7 @@ from django.views.generic.edit import CreateView, FormView, UpdateView
 
 from experiments import views as exp_views
 from experiments import models as exp_models
+from experiments import forms as exp_forms
 
 from prolific import models
 from prolific import forms
@@ -35,75 +36,166 @@ from prolific.utils import add_subjects_to_collection
 
 """
     subclass of experiments app serve class view to handle query params from prolific.
-    One issue here is that the query param keys are hard coded here and in prolific.models query_params.
 """
 
-
-class ProlificServe(exp_views.Serve):
-    def set_subject(self):
-        part_param = settings.PROLIFIC_PARTICIPANT_PARAM
-        prolific_id = self.request.GET.get(part_param, None)
-        if prolific_id is None:
-            self.subject = None
-        else:
-            self.subject = exp_models.Subject.objects.get_or_create(
-                prolific_id=prolific_id
-            )[0]
-
-    """
-        With the addition of StudySubject the question is should we ever need
-        to create an assignment at this step?
-    """
-
-    def set_assignment(self):
-        study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
-        session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
-        study_subjects = models.StudySubject.objects.filter(subject=self.subject)
+def assignment_from_query_params(subject, study_id, session_id):
+        study_subjects = models.StudySubject.objects.filter(subject=subject)
         if study_id:
             study_subjects = study_subjects.filter(study__remote_id=study_id)
         if session_id:
-            session_ss = study_subjects.filter(prolific_session_id=study_id)
+            session_ss = study_subjects.filter(prolific_session_id=session_id)
             if len(session_ss):
                 study_subjects = session_ss
 
         if len(study_subjects) > 1:
-            # what does it mean if we find multiple study_subjects?
-            pass
+            raise Exception(f'Found multiple study subjects while setting assignment for subject {subject.id}')
 
         if len(study_subjects) == 0:
+            studies = models.Study.objects.filter(remote_id=study_id)
             study = get_object_or_404(models.Study, remote_id=study_id)
             collection = study.study_collection
-            add_subjects_to_collection([self.subject], collection)
-            new_ss, created = models.StudySubject.objects.get_or_create(subject=self.subject, study=study)
+            add_subjects_to_collection([subject], collection)
+            new_ss, created = models.StudySubject.objects.get_or_create(subject=subject, study=study)
             study_subjects = [new_ss]
 
-        if len(study_subjects):
-            ss = study_subjects[0]
-            self.assignment = ss.assignment
-            if ss.prolific_session_id == None:
-                ss.prolific_session_id = session_id
-                ss.save()
+        ss = study_subjects[0]
+        if ss.prolific_session_id == None:
+            ss.prolific_session_id = session_id
+            ss.save()
+        return ss.assignment
+
+def subject_from_query_params(request):
+    part_param = settings.PROLIFIC_PARTICIPANT_PARAM
+    prolific_id = request.GET.get(part_param, None)
+    if prolific_id is None:
+        return None
+    else:
+        return exp_models.Subject.objects.get_or_create(
+            prolific_id=prolific_id
+        )[0]
 
 
-    """
+class ProlificServe(exp_views.Serve):
+    def set_subject(self):
+        self.subject = subject_from_query_params(self.request)
+
+    def set_assignment(self):
+        study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
+        session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
+        self.assignment = assignment_from_query_params(self.subject, study_id, session_id)
+
     def complete(self, request):
-        return redirect(reverse('prolific:complete', kwargs={'assignment_id': self.assignment.id}))
-    """
+        studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=self.subject)
+        if self.assignment.alt_id:
+            studies = studies.filter(remote_id=self.assignment.alt_id)
+        completion_codes = [(x.remote_id, x.completion_code) for x in studies if x.completion_code]
 
-
-class ProlificComplete(View):
-    def get(self, request, *args, **kwargs):
-        assignment = get_object_or_404(
-            models.Assignment, id=self.kwargs.get("assignment_id")
-        )
-        cc_url = None
+        if len(completion_codes):
+            return render(request, "prolific/complete.html", {'completion_codes': completion_codes})
         try:
-            cc = models.SimpleCC.objects.get(battery=assignment.battery)
-            cc_url = cc.completion_url
+            cc = SimpleCC.objects.get(battery=self.battery)
+            return render(request, "prolific/complete.html", {'completion_url': cc.completion_url})
         except ObjectDoesNotExist:
-            pass
+            # todo sentry log if this happens
+            return super().complete()
 
-        return render(request, "prolific/complete.html", {"completion_url": cc_url})
+    def get_js_vars(self, **kwargs):
+        scs = list(self.subject.studycollectionsubject_set.filter(study_collection__study__studysubject__assignment=self.assignment).distinct())
+        if len(scs) != 1:
+            raise Exception(f'assignment {self.assignment.id} produced {len(scs)} SCS objects in get_js_vars')
+        return super().get_js_vars(group_index = scs[0].group_index)
+
+    def get_consent_url(self):
+        base_url = reverse('prolific:consent', kwargs={'battery_id': self.assignment.battery.id})
+        redirect_url = f'{base_url}?{self.request.GET.urlencode()}'
+        return redirect_url
+
+'''
+Every method is being overridden, todo deduplicate if possible.
+'''
+class ProlificConsent(exp_views.ServeConsent):
+    def consent_accepted_redirect(self, assignment, request):
+        if assignment.battery.instructions:
+            serve = 'instructions'
+        else:
+            serve = 'serve-battery'
+        serve_url = reverse(f'prolific:{serve}', kwargs={'battery_id': assignment.battery.id})
+        redirect_url = f'{serve_url}?{request.GET.urlencode()}'
+        return redirect(redirect_url)
+
+    def get(self, request, *args, **kwargs):
+        subject = subject_from_query_params(self.request)
+        study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
+        session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
+        assignment = assignment_from_query_params(subject, study_id, session_id)
+
+        if assignment.consent_accepted:
+            return self.consent_accepted_redirect(assignment, request)
+
+        battery = assignment.battery
+        serve_url = reverse('prolific:consent', kwargs={'battery_id': assignment.battery.id})
+        next_url = f'{serve_url}?{request.GET.urlencode()}'
+        context = {
+            'consent': battery.consent,
+            'next_url': next_url,
+            'consent_form': exp_forms.ConsentForm()
+        }
+
+        return render(request, "experiments/instructions.html", context)
+
+    def post(self, request, *args, **kwargs):
+        subject = subject_from_query_params(self.request)
+        study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
+        session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
+
+        assignment = assignment_from_query_params(subject, study_id, session_id)
+
+        consent_form = exp_forms.ConsentForm(request.POST)
+        if consent_form.is_valid():
+            assignment.consent_accepted = consent_form.cleaned_data['accept']
+            if assignment.consent_accepted and assignment.status == 'not-started':
+                assignment.status = 'started'
+            assignment.save()
+            if assignment.consent_accepted:
+                return self.consent_accepted_redirect(assignment, request)
+            elif assignment.consent_accepted is False:
+                assignment.status = 'failed'
+                assignment.save()
+                return redirect(reverse('experiments:decline'))
+        else:
+            return self.get(request, *args, **kwargs)
+
+
+
+
+class ProlificInstructions(View):
+    def get(self, request, *args, **kwargs):
+        subject = subject_from_query_params(self.request)
+        study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
+        session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
+        if subject is None:
+            raise Http404("Missing Participant ID")
+
+        assignment = assignment_from_query_params(subject, study_id, session_id)
+
+        if assignment.consent_accepted is not True and assignment.battery.consent:
+            base_url = reverse('prolific:consent', kwargs={'battery_id': assignment.battery.id})
+            redirect_url = f'{base_url}?{request.GET.urlencode()}'
+            return redirect(redirect_url)
+
+        serve_url = reverse(
+            'prolific:serve-battery',
+            kwargs={'battery_id': assignment.battery.id}
+        )
+
+        if not assignment.battery.instructions:
+            return redirect(f'{serve_url}?{request.GET.urlencode()}')
+
+        context = {
+            'serve_url': serve_url,
+            'instructions': assignment.battery.instructions
+        }
+        return render(request, "experiments/instructions.html", context)
 
 
 class SimpleCCUpdate(LoginRequiredMixin, UpdateView):
@@ -666,8 +758,6 @@ def recent_participants(request):
         - StudyCollectionSubject, permenatly links collection and pid.
         - Create a StudySubject and by association for first study.
 """
-
-
 class ParticipantFormView(LoginRequiredMixin, FormView):
     template_name = "prolific/participant_form.html"
     form_class = forms.ParticipantIdForm
@@ -707,25 +797,6 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
         if first_study:
             print(f"calling add to allow on {first_study.id} with pids: {ids}")
             first_study.add_to_allowlist(ids)
-        """
-        pids_to_add = defaultdict(list)
-        studies = models.Study.objects.filter(study_collection=collection).order_by(
-            "rank"
-        )
-
-        # Only works with study in inner for loop, we only want to add each subject at most once to an allowlist in this call.
-        for subject in subjects:
-            for study in studies:
-                completed = exp_models.Assignment.objects.filter(
-                    status="completed", subject=subject, battery=study.battery
-                )
-                if len(completed) == 0:
-                    pids_to_add[study.remote_id].append(subject.prolific_id)
-                    break
-
-        for study in studies:
-            study.add_to_allowlist(pids_to_add[study.remote_id])
-        """
 
         return super().form_valid(form)
 

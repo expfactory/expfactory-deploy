@@ -33,7 +33,17 @@ def test_serve_consent(client, all_models):
     )
     assert response.status_code == 200
     assert assignment.battery.consent in response.content.decode("utf-8")
+    assert assignment.battery.instructions not in response.content.decode("utf-8")
+    assignment.consent_accepted = True
+    assignment.save()
 
+    response = client.get(
+        reverse("experiments:consent", kwargs={"assignment_id": assignment.pk}),
+        follow=True
+    )
+    assert response.status_code == 200
+    assert assignment.battery.consent not in response.content.decode("utf-8")
+    assert assignment.battery.instructions in response.content.decode("utf-8")
 
 @pytest.mark.django_db
 def test_serve_battery(client, all_models):
@@ -47,7 +57,6 @@ def test_serve_battery(client, all_models):
     )
     assert response.status_code == 200
     assert assignment.battery.consent in response.content.decode("utf-8")
-    assert assignment.battery.instructions in response.content.decode("utf-8")
 
     assignment.consent_accepted = True
     assignment.save()
@@ -57,9 +66,4 @@ def test_serve_battery(client, all_models):
         follow=True
     )
     assert response.status_code == 200
-    assert assignment.battery.consent in response.content.decode("utf-8")
-    assert assignment.battery.instructions in response.content.decode("utf-8")
-
-
-
-
+    assert not(assignment.battery.consent in response.content.decode("utf-8"))
