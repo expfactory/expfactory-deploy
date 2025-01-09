@@ -10,8 +10,8 @@ class UserChangeForm(admin_forms.UserChangeForm):
         model = User
 
 
-class UserCreationForm(admin_forms.UserCreationForm):
-    class Meta(admin_forms.UserCreationForm.Meta):
+class UserCreationForm(admin_forms.AdminUserCreationForm):
+    class Meta(admin_forms.AdminUserCreationForm.Meta):
         model = User
 
         error_messages = {

@@ -1,0 +1,39 @@
+GitPython==3.1.29
+Pillow==11.0.0
+argon2-cffi==21.3.0
+boto3==1.26.21
+celery==5.2.7
+debugpy==1.6.4
+pyrolific==1.4.6
+django-tinymce==3.6.1
+pandas==2.2.3
+
+# Django
+# ------------------------------------------------------------------------------
+django
+django-allauth
+django-celery-beat
+django-compressor
+django-cors-headers
+django-crispy-forms
+crispy-bootstrap4
+django-environ
+django-guardian
+django-model-utils
+django-redis
+django-reversion
+django-reversion-compare
+django-taggit
+django-q2
+# Django REST Framework
+djangorestframework
+flower
+giturlparse
+hiredis
+jsonschema
+python-slugify
+pytz
+rcssmin
+redis
+uvicorn
+factory_boy

@@ -1,0 +1,40 @@
+-r base.txt
+
+Werkzeug
+black
+coverage
+django-coverage-plugin
+
+django-debug-toolbar
+django-extensions
+django-stubs
+
+# Django
+# ------------------------------------------------------------------------------
+factory-boy
+
+# Code quality
+# ------------------------------------------------------------------------------
+flake8
+flake8-isort
+ipdb
+
+# Testing
+# ------------------------------------------------------------------------------
+mypy
+pre-commit
+psycopg2
+pylint-celery
+pylint-django
+pytest
+pytest-django
+pytest-sugar
+
+# Documentation
+# ------------------------------------------------------------------------------
+sphinx
+sphinx-autobuild
+watchfiles
+
+pywatchman
+sentry-sdk
