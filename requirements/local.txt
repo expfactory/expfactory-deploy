@@ -388,7 +388,7 @@ pylint-plugin-utils==0.8.2
     # via
     #   pylint-celery
     #   pylint-django
-pyrolific==1.4.6
+pyrolific @ git+https://github.com/rwblair/pyrolific/@1.4.x
     # via -r base.txt
 pytest==8.3.4
     # via

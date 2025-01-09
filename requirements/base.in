@@ -4,7 +4,7 @@ argon2-cffi==21.3.0
 boto3==1.26.21
 celery==5.2.7
 debugpy==1.6.4
-pyrolific==1.4.6
+git+https://github.com/rwblair/pyrolific/@1.4.x
 django-tinymce==3.6.1
 pandas==2.2.3
 

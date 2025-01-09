@@ -262,7 +262,7 @@ pygments==2.19.1
     # via
     #   -r base.txt
     #   rich
-pyrolific==1.4.6
+pyrolific @ git+https://github.com/rwblair/pyrolific/@1.4.x
     # via -r base.txt
 python-crontab==3.2.0
     # via
