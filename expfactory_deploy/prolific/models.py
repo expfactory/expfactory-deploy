@@ -315,7 +315,7 @@ class Study(models.Model):
         ] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
         study_args[
             "external_study_url"
-        ] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}{query_params}"
+        ] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}/consent{query_params}"
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
 
