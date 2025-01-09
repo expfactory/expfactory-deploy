@@ -52,17 +52,21 @@ def dump_battery(battery):
         add_to_manifest.append([str(assignment.id), datetime.now().isoformat()])
 
     with open(os.path.join(output_dir, battery_id, manifest_fname), 'a') as fp:
-        fp.write('\n'.join(','.join([x for x in add_to_manifest])))
+        fp.write('\n'.join([','.join(x) for x in add_to_manifest]))
 
 def dump_assignment(assignment, target_dir=None, force=False):
     result_fname = 'sub-{sub}_{batt}_order-{order}_task-{exp_name}_asgn-{aid}_data.json'
     sub = assignment.subject.prolific_id or assignment.subject.id
-    results = list(assignment.result_set.all().order_by('completed_at'))
+    results = list(
+        assignment.result_set.all()
+            .select_related('battery_experiment')
+            .order_by('completed_at')
+            .select_related('battery_experiment__experiment_instance__experiment_repo_id')
+    )
     if not results:
         return
     padding = math.floor(math.log(len(results), 10)) + 1
     for i, result in enumerate(results):
-        # innefficent, any way to annotate or lookup in pregenerated list? or just pull from task data...
         exp_name = "none"
         try:
             exp_name = result.battery_experiment.experiment_instance.experiment_repo_id.name
