@@ -64,6 +64,7 @@ DJANGO_APPS = [
 ]
 THIRD_PARTY_APPS = [
     "crispy_forms",
+    "crispy_bootstrap4",
     "django_celery_beat",
     "rest_framework",
     "rest_framework.authtoken",
@@ -72,13 +73,12 @@ THIRD_PARTY_APPS = [
     "reversion_compare",
     "taggit",
     "tinymce",
-    "django_q"
+    "django_q",
 ]
 
 LOCAL_APPS = [
     "expfactory_deploy.users.apps.UsersConfig",
     "expfactory_deploy.experiments.apps.ExperimentsConfig",
-    "expfactory_deploy.mturk.apps.MturkConfig",
     "expfactory_deploy.prolific.apps.ProlificConfig",
     "expfactory_deploy.analysis.apps.AnalysisConfig",
 ]

@@ -1,0 +1,3 @@
+[submodule "expfactory_deploy/experiments/tests/data/efd-test-repo"]
+	path = expfactory_deploy/experiments/tests/data/efd-test-repo
+	url = https://github.com/rwblair/efd-test-repo.git

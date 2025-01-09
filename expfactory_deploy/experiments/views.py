@@ -31,8 +31,6 @@ from experiments.utils.repo import find_new_experiments, get_latest_commit
 from experiments.utils.assignments import batch_assignments
 from experiments.utils.export import export_battery, export_subject, export_single_result
 
-from prolific.models import SimpleCC, Study, StudyCollectionSubject
-
 sys.path.append(str(Path(settings.ROOT_DIR, "expfactory_deploy_local/src/")))
 
 from expfactory_deploy_local.utils import generate_experiment_context
@@ -425,7 +423,6 @@ class Serve(View):
 
     def set_subject(self):
         subject_id = self.kwargs.get("subject_id")
-        """ we might accept the uuid assocaited with the subject instead of its id """
         if subject_id is not None:
             self.subject = get_object_or_404(
                 models.Subject, id=subject_id
@@ -459,44 +456,8 @@ class Serve(View):
             return
         self.assignment = assignments[0]
 
-    ''' Ideally this prolific logic would live in the prolific view. Currently its too easy for users to end up in
-        the experiments url space while trying to complete a prolific study. One issue is consent redirect isn't aware
-        of prolific url space.
-    '''
     def complete(self, request):
-        studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=self.subject)
-        if self.assignment.alt_id:
-            studies = studies.filter(remote_id=self.assignment.alt_id)
-        completion_codes = [(x.remote_id, x.completion_code) for x in studies if x.completion_code]
-
-        '''
-        if self.assignment.alt_id:
-            from prolific.tasks import on_complete_battery
-            study = Study.objects.filter(remote_id=self.assignment.alt_id)
-            scs = StudyCollectionSubject.objects.filter(subject=self.subject, study_collection=study.study_collection)
-            if len(study) and len(scs):
-                on_complete_battery(scs, study)
-        '''
-
-
-        if len(completion_codes):
-            return render(request, "prolific/complete.html", {'completion_codes': completion_codes})
-        try:
-            cc = SimpleCC.objects.get(battery=self.battery)
-            return render(request, "prolific/complete.html", {'completion_url': cc.completion_url})
-        except ObjectDoesNotExist:
-            return redirect(reverse('experiments:complete'))
-
-    '''
-        This sets expperiment as a BatteryExperiment while assignment.next_experiment returns a ExperimentInstance. Are we currently using this?
-    '''
-    def set_experiment(self):
-        experiment_id = self.kwargs.get("experiment_id")
-        if experiment_id is not None:
-            self.experiment = get_object_or_404(
-                models.BatteryExperiment,
-                id=experiment_id
-            )
+        return redirect(reverse(f'experiments:complete'))
 
     def set_last_load(self, request):
         if self.subject:
@@ -510,34 +471,19 @@ class Serve(View):
                 print(e)
                 return
 
-    ''' Another type of function that would be best to overwrite in prolific class, but fallback to experiments urls make dangerous.
-        StudyCollectionSubject reverse relation via battery/assignment is not necessarily unique at the moment. Finding multiples should
-        fail louder maybe.
-    '''
-    def get_js_vars(self):
-        js_vars = {}
-        scs = list(self.subject.studycollectionsubject_set.filter(study_collection__study__studysubject__assignment=self.assignment).distinct())
-        if len(scs) == 1:
-            js_vars['group_index'] = scs[0].group_index
-        if len(scs) > 1:
-            print(f'multiple studycollectionsubjects found for sub {self.subject.id} and assignment {self.assignment.id}')
-        return js_vars
+    def get_js_vars(self, **kwargs):
+        return {**kwargs}
+
+    def get_consent_url(self):
+        return reverse(f"experiments:consent", kwargs={'assignment_id': self.assignment.id})
 
     def get(self, request, *args, **kwargs):
         self.set_subject()
         self.set_battery()
         self.set_assignment()
-        self.set_experiment()
 
         if self.assignment.consent_accepted is not True and self.battery.consent:
-            return redirect(reverse("experiments:consent", kwargs={'assignment_id': self.assignment.id}))
-            '''
-            context = {
-                'consent': self.battery.consent,
-                'instructions': self.battery.instructions
-            }
-            return render(request, "experiments/instructions.html", context)
-            '''
+            return redirect(self.get_consent_url())
 
         self.experiment, num_left = self.assignment.get_next_experiment()
         self.set_last_load(request)
@@ -547,8 +493,6 @@ class Serve(View):
 
         exp_context = jspsych_context(self.experiment)
         exp_context["post_url"] = reverse_lazy("experiments:push-results", args=[self.assignment.id, self.experiment.id])
-        # No longer in use. We just location.reload for experiments.
-        # exp_context["next_page"] = reverse_lazy("experiments:serve-battery", args=[self.subject.id, self.battery.id])
 
         # We could insert this into finish message
         # exp_context["num_left"] = num_left
@@ -560,39 +504,37 @@ class Serve(View):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ServeConsent(View):
-    preview = False
     battery = None
 
-    def get_context_data(self, **kwargs):
-        if (self.preview):
-            self.battery = get_object_or_404(
-                models.Battery,
-                id=self.kwargs.get('battery_id')
-            )
-            next_url = reverse('experiments:battery-detail', kwargs={'pk': self.battery.id})
-        else:
-            assignment = get_object_or_404(
+    def get(self, request, *args, **kwargs):
+        assignment = get_object_or_404(
                 models.Assignment,
                 id=self.kwargs.get('assignment_id')
-            )
-            self.battery = assignment.battery
-            next_url = reverse('experiments:consent', kwargs={'assignment_id': assignment.id})
+        )
+        if assignment.consent_accepted:
+            return self.consent_accepted_redirect(assignment, request)
 
-        return {
-            'consent': self.battery.consent,
-            'instructions': self.battery.instructions,
-            'next_url': next_url
+        battery = assignment.battery
+        next_url = reverse('experiments:consent', kwargs={'assignment_id': assignment.id})
+        context = {
+            'consent': battery.consent,
+            'next_url': next_url,
+            'consent_form': forms.ConsentForm()
         }
 
-    def get(self, request, *args, **kwargs):
-        context = self.get_context_data()
-        form = forms.ConsentForm()
-        if (self.preview):
-            form.helper.form_action = reverse('experiments:battery-detail', kwargs={'pk': self.battery.id})
-            form.helper.form_method = 'post'
-        context['consent_form'] = form
-
         return render(request, "experiments/instructions.html", context)
+
+    def consent_accepted_redirect(self, assignment, request):
+        if assignment.battery.instructions:
+            return redirect(reverse(
+                'experiments:instructions',
+                kwargs={'assignment_id': assignment.id }
+            ))
+
+        return redirect(reverse(
+            'experiments:serve-battery',
+            kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
+        ))
 
     def post(self, request, *args, **kwargs):
         assignment = get_object_or_404(
@@ -606,18 +548,7 @@ class ServeConsent(View):
                 assignment.status = 'started'
             assignment.save()
             if assignment.consent_accepted:
-                if assignment.alt_id:
-                    serve_url = reverse('prolific:serve-battery', kwargs={'battery_id': assignment.battery.id})
-                    query_params = {
-                        settings.PROLIFIC_PARTICIPANT_PARAM: assignment.subject.prolific_id,
-                        settings.PROLIFIC_STUDY_PARAM: assignment.alt_id
-                    }
-                    redirect_url = f'{serve_url}?{urlencode(query_params)}'
-                    return redirect(redirect_url)
-                return redirect(reverse(
-                    'experiments:serve-battery',
-                    kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
-                ))
+                return consent_accepted_redirect(assignment, request)
             elif assignment.consent_accepted is False:
                 assignment.status = 'failed'
                 assignment.save()
@@ -625,8 +556,58 @@ class ServeConsent(View):
         else:
             return self.get(request, *args, **kwargs)
 
-class PreviewConsent(ServeConsent):
-    preview = True
+class PreviewConsent(View):
+    def get(self, request, *args, **kwargs):
+        self.battery = get_object_or_404(
+            models.Battery,
+            id=self.kwargs.get('battery_id')
+        )
+        next_url = reverse('experiments:battery-detail', kwargs={'pk': self.battery.id})
+        context = {
+            'consent': self.battery.consent,
+            'next_url': next_url
+        }
+        form = forms.ConsentForm()
+        context['consent_form'] = form
+        form.helper.form_action = reverse('experiments:battery-detail', kwargs={'pk': self.battery.id})
+        form.helper.form_method = 'post'
+        return render(request, "experiments/instructions.html", context)
+
+
+class ServeInstructions(View):
+    def get(self, request, *args, **kwargs):
+        assignment = get_object_or_404(
+            models.Assignment,
+            id=self.kwargs.get('assignment_id')
+        )
+        if assignment.consent_accepted is not True and assignment.battery.consent:
+            return redirect(reverse('experiments:consent', kwargs={'assignment_id': assignment.id}))
+
+        serve_url = reverse(
+            'experiments:serve-battery',
+            kwargs={'subject_id': assignment.subject.id, 'battery_id': assignment.battery.id}
+        )
+
+        if not assignment.battery.instructions:
+            return redirect(serve_url)
+
+        context = {
+            'serve_url': serve_url,
+            'instructions': assignment.battery.instructions
+        }
+        return render(request, "experiments/instructions.html", context)
+
+class PreviewInstructions(View):
+    def get(self, request, *args, **kwargs):
+        battery = get_object_or_404(
+            models.Battery,
+            id=self.kwargs.get('battery_id')
+        )
+        context = {
+            'serve_url': reverse('experiments:battery-detail', kwargs={'pk': self.battery.id}),
+            'instructions': battery.instructions
+        }
+        return render(request, "experiments/instructions.html", context)
 
 '''
 View for participants to push data to.
