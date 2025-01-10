@@ -26,7 +26,7 @@ on battery completion:
 
 
 # task friendly wrapper for the utility function
-def add_to_collection(subject_id, collection_id):
+def add_to_collection(subject_id, collection_id, group_index=None):
     subject = em.Subject.objects.get(id=subject_id)
     collection = pm.StudyCollection.objects.get(id=collection_id)
     add_subjects_to_collection([subject], collection)
@@ -63,21 +63,30 @@ def on_complete_battery(sc, current_study, subject_id):
             print(ss.assignment.id)
             print(f"pass_check {pass_check}")
             if pass_check:
+                group_index = None
+                if (
+                    scs.study_collection.number_of_groups > 0
+                    and scs.study_collection.number_of_groups
+                    == scs.study_collection.screener_for.number_of_groups
+                ):
+                    group_index = scs.group_index
                 schedule(
                     "prolific.tasks.add_to_collection",
                     scs.subject.id,
                     scs.study_collection.screener_for.id,
+                    group_index,
                     next_run=datetime.now() + scs.study_collection.inter_study_delay,
                 )
             else:
-                screener_rejection_message = scs.study_collection.screener_rejection_message
+                screener_rejection_message = (
+                    scs.study_collection.screener_rejection_message
+                )
                 if screener_rejection_message:
                     api.send_message(
                         scs.subject.prolific_id,
                         current_study,
                         screener_rejection_message,
                     )
-
 
 
 """
@@ -133,7 +142,9 @@ def study_warning(scs_id, study_id):
         )
         study_subject.warned_at = datetime.now()
         study_subject.save()
-        if sc.study_grace_interval is not None and sc.study_grace_interval > timedelta(0):
+        if sc.study_grace_interval is not None and sc.study_grace_interval > timedelta(
+            0
+        ):
             schedule(
                 "prolific.tasks.study_end_grace",
                 scs_id,
@@ -174,6 +185,8 @@ def study_end_grace(scs_id, study_id):
 """
     These are special for the first study a participant must start.
 """
+
+
 def initial_end_grace(ss_id):
     ss = pm.StudySubject.objects.get(id=ss_id)
     scs = ss.study_collection_subject
@@ -197,7 +210,6 @@ def initial_end_grace(ss_id):
     scs.status_reason = "initial-timer"
     scs.save()
     return f"removed {scs.subject.prolific_id} from {scs.study_collection}. Failed to start first battery on time"
-
 
 
 def initial_warning(ss_id):
@@ -230,10 +242,10 @@ def initial_warning(ss_id):
     return f"{ss.subject} has not started {ss.study} before time to first study"
 
 
-
 """
     There is an absolute max amount of time a subject can take to complete all studies.
 """
+
 
 def collection_end_grace(scs_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
@@ -260,6 +272,7 @@ def collection_end_grace(scs_id):
         scs.save()
         return f"subject {scs.subject.id} set to {scs.status} for study collection {scs.study_collection.id}"
     return f"subject {scs.subject.id} completed batteries of study collection {scs.study_collection.id}"
+
 
 def collection_warning(scs_id):
     scs = pm.StudyCollectionSubject.objects.get(id=scs_id)
@@ -306,7 +319,6 @@ def collection_warning(scs_id):
     return f"subject {scs.subject.id} completed collection {scs.study_collection.id} - not warned"
 
 
-
 def on_add_to_collection(scs):
     if scs.ended:
         print(
@@ -314,7 +326,9 @@ def on_add_to_collection(scs):
         )
         return
     sc = scs.study_collection
-    ss = pm.StudySubject.objects.get(subject=scs.subject, study=sc.study_set.order_by("rank").first())
+    ss = pm.StudySubject.objects.get(
+        subject=scs.subject, study=sc.study_set.order_by("rank").first()
+    )
     if not scs.current_study:
         scs.current_study = ss.study
         scs.save()
@@ -339,5 +353,3 @@ def on_add_to_collection(scs):
             scs.id,
             next_run=datetime.now() + sc.collection_time_to_warning,
         )
-
-

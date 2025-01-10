@@ -26,7 +26,7 @@
   <tbody>
     {% for subject, groups in subject_groups.items %}
       <tr>
-        <td><a href="{% url 'experiments:subject-detail' subject.id %}">{{ subject.prolific_id }}</a></td>
+g       <td><a href="{% url 'experiments:subject-detail' subject.id %}">{{ subject.prolific_id }}</a></td>
       {% for bid, group in groups.items %}
         <td> {{ group.completed }} - {{ group.completed|yesno:"Results,No Results"}}</td>
       {% endfor %}
