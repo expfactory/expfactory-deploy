@@ -130,4 +130,14 @@ urlpatterns = [
         views.delete_study_subject_relations,
         name="delete-study-subject-relations",
     ),
+    path(
+        "screener/progress",
+        views.ScreenerProgressList.as_view(),
+        name="screener-progress-list"
+    ),
+    path(
+        "screener/progressalt",
+        views.ScreenerProgressListAlt.as_view(),
+        name="screener-progress-list-alt"
+    ),
 ]

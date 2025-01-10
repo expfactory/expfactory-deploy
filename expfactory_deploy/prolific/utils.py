@@ -6,7 +6,7 @@ from prolific import models as models
 """
 
 
-def add_subjects_to_collection(subjects, collection):
+def add_subjects_to_collection(subjects, collection, group_index=None):
     from prolific.tasks import on_add_to_collection
     first_study = collection.study_set.order_by("rank").first()
     for subject in subjects:
@@ -22,6 +22,9 @@ def add_subjects_to_collection(subjects, collection):
             )
         print(f"first study: {first_study}, ss.study: {study_subject.study}")
         if created:
+            if group_index:
+                subject_collection.group_index = group_index
+                subject_collection.save()
             on_add_to_collection(subject_collection)
         if first_study and created:
             subject_collection.current_study = first_study

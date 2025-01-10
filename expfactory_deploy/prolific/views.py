@@ -38,31 +38,37 @@ from prolific.utils import add_subjects_to_collection
     subclass of experiments app serve class view to handle query params from prolific.
 """
 
+
 def assignment_from_query_params(subject, study_id, session_id):
-        study_subjects = models.StudySubject.objects.filter(subject=subject)
-        if study_id:
-            study_subjects = study_subjects.filter(study__remote_id=study_id)
-        if session_id:
-            session_ss = study_subjects.filter(prolific_session_id=session_id)
-            if len(session_ss):
-                study_subjects = session_ss
+    study_subjects = models.StudySubject.objects.filter(subject=subject)
+    if study_id:
+        study_subjects = study_subjects.filter(study__remote_id=study_id)
+    if session_id:
+        session_ss = study_subjects.filter(prolific_session_id=session_id)
+        if len(session_ss):
+            study_subjects = session_ss
 
-        if len(study_subjects) > 1:
-            raise Exception(f'Found multiple study subjects while setting assignment for subject {subject.id}')
+    if len(study_subjects) > 1:
+        raise Exception(
+            f"Found multiple study subjects while setting assignment for subject {subject.id}"
+        )
 
-        if len(study_subjects) == 0:
-            studies = models.Study.objects.filter(remote_id=study_id)
-            study = get_object_or_404(models.Study, remote_id=study_id)
-            collection = study.study_collection
-            add_subjects_to_collection([subject], collection)
-            new_ss, created = models.StudySubject.objects.get_or_create(subject=subject, study=study)
-            study_subjects = [new_ss]
+    if len(study_subjects) == 0:
+        studies = models.Study.objects.filter(remote_id=study_id)
+        study = get_object_or_404(models.Study, remote_id=study_id)
+        collection = study.study_collection
+        add_subjects_to_collection([subject], collection)
+        new_ss, created = models.StudySubject.objects.get_or_create(
+            subject=subject, study=study
+        )
+        study_subjects = [new_ss]
 
-        ss = study_subjects[0]
-        if ss.prolific_session_id == None:
-            ss.prolific_session_id = session_id
-            ss.save()
-        return ss.assignment
+    ss = study_subjects[0]
+    if ss.prolific_session_id == None:
+        ss.prolific_session_id = session_id
+        ss.save()
+    return ss.assignment
+
 
 def subject_from_query_params(request):
     part_param = settings.PROLIFIC_PARTICIPANT_PARAM
@@ -70,9 +76,7 @@ def subject_from_query_params(request):
     if prolific_id is None:
         return None
     else:
-        return exp_models.Subject.objects.get_or_create(
-            prolific_id=prolific_id
-        )[0]
+        return exp_models.Subject.objects.get_or_create(prolific_id=prolific_id)[0]
 
 
 class ProlificServe(exp_views.Serve):
@@ -82,45 +86,71 @@ class ProlificServe(exp_views.Serve):
     def set_assignment(self):
         study_id = self.request.GET.get(settings.PROLIFIC_STUDY_PARAM, None)
         session_id = self.request.GET.get(settings.PROLIFIC_SESSION_PARAM, None)
-        self.assignment = assignment_from_query_params(self.subject, study_id, session_id)
+        self.assignment = assignment_from_query_params(
+            self.subject, study_id, session_id
+        )
 
     def complete(self, request):
-        studies = Study.objects.filter(battery=self.battery, study_collection__studycollectionsubject__subject=self.subject)
+        studies = Study.objects.filter(
+            battery=self.battery,
+            study_collection__studycollectionsubject__subject=self.subject,
+        )
         if self.assignment.alt_id:
             studies = studies.filter(remote_id=self.assignment.alt_id)
-        completion_codes = [(x.remote_id, x.completion_code) for x in studies if x.completion_code]
+        completion_codes = [
+            (x.remote_id, x.completion_code) for x in studies if x.completion_code
+        ]
 
         if len(completion_codes):
-            return render(request, "prolific/complete.html", {'completion_codes': completion_codes})
+            return render(
+                request,
+                "prolific/complete.html",
+                {"completion_codes": completion_codes},
+            )
         try:
             cc = SimpleCC.objects.get(battery=self.battery)
-            return render(request, "prolific/complete.html", {'completion_url': cc.completion_url})
+            return render(
+                request, "prolific/complete.html", {"completion_url": cc.completion_url}
+            )
         except ObjectDoesNotExist:
             # todo sentry log if this happens
             return super().complete()
 
     def get_js_vars(self, **kwargs):
-        scs = list(self.subject.studycollectionsubject_set.filter(study_collection__study__studysubject__assignment=self.assignment).distinct())
+        scs = list(
+            self.subject.studycollectionsubject_set.filter(
+                study_collection__study__studysubject__assignment=self.assignment
+            ).distinct()
+        )
         if len(scs) != 1:
-            raise Exception(f'assignment {self.assignment.id} produced {len(scs)} SCS objects in get_js_vars')
-        return super().get_js_vars(group_index = scs[0].group_index)
+            raise Exception(
+                f"assignment {self.assignment.id} produced {len(scs)} SCS objects in get_js_vars"
+            )
+        return super().get_js_vars(group_index=scs[0].group_index)
 
     def get_consent_url(self):
-        base_url = reverse('prolific:consent', kwargs={'battery_id': self.assignment.battery.id})
-        redirect_url = f'{base_url}?{self.request.GET.urlencode()}'
+        base_url = reverse(
+            "prolific:consent", kwargs={"battery_id": self.assignment.battery.id}
+        )
+        redirect_url = f"{base_url}?{self.request.GET.urlencode()}"
         return redirect_url
 
-'''
+
+"""
 Every method is being overridden, todo deduplicate if possible.
-'''
+"""
+
+
 class ProlificConsent(exp_views.ServeConsent):
     def consent_accepted_redirect(self, assignment, request):
         if assignment.battery.instructions:
-            serve = 'instructions'
+            serve = "instructions"
         else:
-            serve = 'serve-battery'
-        serve_url = reverse(f'prolific:{serve}', kwargs={'battery_id': assignment.battery.id})
-        redirect_url = f'{serve_url}?{request.GET.urlencode()}'
+            serve = "serve-battery"
+        serve_url = reverse(
+            f"prolific:{serve}", kwargs={"battery_id": assignment.battery.id}
+        )
+        redirect_url = f"{serve_url}?{request.GET.urlencode()}"
         return redirect(redirect_url)
 
     def get(self, request, *args, **kwargs):
@@ -133,12 +163,14 @@ class ProlificConsent(exp_views.ServeConsent):
             return self.consent_accepted_redirect(assignment, request)
 
         battery = assignment.battery
-        serve_url = reverse('prolific:consent', kwargs={'battery_id': assignment.battery.id})
-        next_url = f'{serve_url}?{request.GET.urlencode()}'
+        serve_url = reverse(
+            "prolific:consent", kwargs={"battery_id": assignment.battery.id}
+        )
+        next_url = f"{serve_url}?{request.GET.urlencode()}"
         context = {
-            'consent': battery.consent,
-            'next_url': next_url,
-            'consent_form': exp_forms.ConsentForm()
+            "consent": battery.consent,
+            "next_url": next_url,
+            "consent_form": exp_forms.ConsentForm(),
         }
 
         return render(request, "experiments/instructions.html", context)
@@ -152,20 +184,18 @@ class ProlificConsent(exp_views.ServeConsent):
 
         consent_form = exp_forms.ConsentForm(request.POST)
         if consent_form.is_valid():
-            assignment.consent_accepted = consent_form.cleaned_data['accept']
-            if assignment.consent_accepted and assignment.status == 'not-started':
-                assignment.status = 'started'
+            assignment.consent_accepted = consent_form.cleaned_data["accept"]
+            if assignment.consent_accepted and assignment.status == "not-started":
+                assignment.status = "started"
             assignment.save()
             if assignment.consent_accepted:
                 return self.consent_accepted_redirect(assignment, request)
             elif assignment.consent_accepted is False:
-                assignment.status = 'failed'
+                assignment.status = "failed"
                 assignment.save()
-                return redirect(reverse('experiments:decline'))
+                return redirect(reverse("experiments:decline"))
         else:
             return self.get(request, *args, **kwargs)
-
-
 
 
 class ProlificInstructions(View):
@@ -179,21 +209,22 @@ class ProlificInstructions(View):
         assignment = assignment_from_query_params(subject, study_id, session_id)
 
         if assignment.consent_accepted is not True and assignment.battery.consent:
-            base_url = reverse('prolific:consent', kwargs={'battery_id': assignment.battery.id})
-            redirect_url = f'{base_url}?{request.GET.urlencode()}'
+            base_url = reverse(
+                "prolific:consent", kwargs={"battery_id": assignment.battery.id}
+            )
+            redirect_url = f"{base_url}?{request.GET.urlencode()}"
             return redirect(redirect_url)
 
         serve_url = reverse(
-            'prolific:serve-battery',
-            kwargs={'battery_id': assignment.battery.id}
+            "prolific:serve-battery", kwargs={"battery_id": assignment.battery.id}
         )
 
         if not assignment.battery.instructions:
-            return redirect(f'{serve_url}?{request.GET.urlencode()}')
+            return redirect(f"{serve_url}?{request.GET.urlencode()}")
 
         context = {
-            'serve_url': serve_url,
-            'instructions': assignment.battery.instructions
+            "serve_url": serve_url,
+            "instructions": assignment.battery.instructions,
         }
         return render(request, "experiments/instructions.html", context)
 
@@ -244,9 +275,9 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
         initial = []
         if self.collection:
             initial = list(
-                models.Study.objects.filter(study_collection=self.collection).order_by("rank").values(
-                    "battery", "rank"
-                )
+                models.Study.objects.filter(study_collection=self.collection)
+                .order_by("rank")
+                .values("battery", "rank")
             )
         if "study_rank_formset" not in kwargs:
             context["study_rank_formset"] = forms.BatteryRankFormset(initial=initial)
@@ -602,7 +633,7 @@ def collection_progress_by_prolific_submissions(request, collection_id):
 
     subject_study_status = {}
     for study in studies:
-        if (not study.remote_id):
+        if not study.remote_id:
             continue
         api_results = outgoing_api.list_submissions(study.remote_id)
         for result in api_results:
@@ -758,6 +789,8 @@ def recent_participants(request):
         - StudyCollectionSubject, permenatly links collection and pid.
         - Create a StudySubject and by association for first study.
 """
+
+
 class ParticipantFormView(LoginRequiredMixin, FormView):
     template_name = "prolific/participant_form.html"
     form_class = forms.ParticipantIdForm
@@ -856,13 +889,18 @@ def study_collection_subject_detail(
             subject__prolific_id=prolific_id,
         )
     status = []
-    study_subjects = models.StudySubject.objects.filter(subject=scs.subject, study__study_collection=scs.study_collection).order_by('study__rank')
+    study_subjects = models.StudySubject.objects.filter(
+        subject=scs.subject, study__study_collection=scs.study_collection
+    ).order_by("study__rank")
     for ss in study_subjects:
         if not ss.prolific_session_id:
             prolific_status = "No Session ID"
         else:
             prolific_status = x.get_prolific_status()
-        includes = ss.assignment.result_set.all().values_list('battery_experiment__experiment_instance__experiment_repo_id__name', 'include')
+        includes = ss.assignment.result_set.all().values_list(
+            "battery_experiment__experiment_instance__experiment_repo_id__name",
+            "include",
+        )
         status.append((ss, prolific_status, includes))
     context = {
         "scs": scs,
@@ -904,7 +942,10 @@ def toggle_active_study_collection_subject(request, scs_id):
     scs = get_object_or_404(models.StudyCollectionSubject, id=scs_id)
     scs.active = not scs.active
     scs.save()
-    return redirect(reverse('prolific:collection-subject-detail', kwargs={'scs_id': scs.id}))
+    return redirect(
+        reverse("prolific:collection-subject-detail", kwargs={"scs_id": scs.id})
+    )
+
 
 class BlockedParticipantList(LoginRequiredMixin, ListView):
     model = models.BlockedParticipant
@@ -921,4 +962,69 @@ class BlockedParticipantCreate(LoginRequiredMixin, CreateView):
     fields = ["prolific_id", "active", "note"]
     success_url = reverse_lazy("prolific:blocked-participant-list")
 
+status_groups = {
+    'assigned': ['n/a', 'not-started', 'started', 'completed', 'failed', 'redo', 'kicked', 'flagged'],
+    'attempted': ['n/a', 'not-started', 'started', 'completed', 'failed', 'redo', 'kicked', 'flagged'],
+    'failed': ['failed', 'kicked', 'flagged'],
+    'completed': ['completed']
+}
+def status_count_dict():
+    statuses = [x[0] for x in models.StudyCollectionSubject._meta.get_field('status').choices]
+    return { status: 0 for status in statuses }
 
+def sc_status_counts(study_collection):
+    scs_status_count = (
+        list(models.StudyCollectionSubject.objects.filter(study_collection=study_collection)
+        .values("status")
+        .annotate(count=Count("id")))
+    )
+    status_count = status_count_dict()
+    for entry in scs_status_count:
+        status_count[entry['status']] = entry['count']
+    total_count = len(scs_status_count)
+    count_by_group = {}
+    for k, statuses in status_groups.items():
+        count_by_group[k] = sum([status_count[status] for status in statuses])
+    return {
+        'study_collection': study_collection,
+        'status_count': status_count,
+        'count_by_group': count_by_group,
+        'total': total_count
+    }
+
+def get_screener_chain(study_collection):
+    sc_list = [sc_status_counts(study_collection)]
+    target_sc = study_collection.screener_for
+    while target_sc:
+        sc_list.append(sc_status_counts(target_sc))
+        target_sc = target_sc.screener_for
+    print(sc_list)
+    return sc_list
+
+
+class ScreenerProgressList(LoginRequiredMixin, View):
+    template = "prolific/collection_dropout.html"
+    def get(self, request, *args, **kwargs):
+        first_screeners = (
+            models.StudyCollection.objects.exclude(
+                active=False, screener_for__isnull=True
+            )
+            .filter(studycollection__isnull=True)
+        )
+        screener_chains = []
+        for screener in first_screeners:
+            screener_chains.append(get_screener_chain(screener))
+        return render(
+            request,
+            self.template,
+            {"screener_chains": screener_chains},
+        )
+
+class ScreenerProgressListAlt(ScreenerProgressList):
+    template = "prolific/collection_dropout_alt.html"
+
+"""
+class SubjectCollectionProgressDetail(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        return render(request, "prolific/collectionprogress.html", context)
+"""
