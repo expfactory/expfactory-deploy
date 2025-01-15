@@ -140,6 +140,12 @@ def create_draft(study_details):
     response = make_call(create_study, json_body=to_create)
     return response
 
+def update_draft(id, study_details):
+    to_update = api_models.UpdateStudy.from_dict(study_details)
+    response = make_call(update_study, id=id, json_body=to_update)
+    return response
+
+
 
 """
     Feb 2024 prolfici api update changed part groups from being project based to being workspace based.

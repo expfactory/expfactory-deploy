@@ -276,6 +276,29 @@ def default_allowlist(group_id=""):
 def default_previous_studies():
     return {"filter_id": "previous_studies_allowlist", "selected_values": []}
 
+def participant_group_blocklist(exempt=[]):
+    screeners = StudyCollection.objects.filter(screener_for__isnull=False)
+    part_groups = [x.study_set.order_by('rank').first().participant_group for x in screeners]
+    part_groups = [x for x in part_groups if x and len(x) > 5]
+    part_groups = [x for x in part_groups if x not in exempt]
+    part_groups = list(set(part_groups))
+    return {"filter_id": "participant_group_blocklist", "selected_values": part_groups}
+
+def set_screener_derived_blocklist(study_collection):
+    exempt = []
+    first_study = study_collection.study_set.order_by('rank').first()
+
+    if study_collection.screener_for:
+        screener_for_first_study = screener.screener_for.study_set.order_by('rank').first()
+        if screener_for_first_study.participant_group:
+            exempt.append(screener_for_first_study.participant_group)
+
+    details = api.study_detail(study_collection.remote_id)
+    filters = details['filters']
+    new_blocklist = participant_group_blocklist(exempt)
+    filters.append(new_blocklist)
+    api.update_study(study_collection.remote_id, {"filters": filters})
+
 
 class Study(models.Model):
     battery = models.ForeignKey(Battery, null=True, on_delete=models.SET_NULL)
@@ -318,6 +341,7 @@ class Study(models.Model):
         ] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}/consent{query_params}"
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
+            self.save()
 
         if next_group:
             study_args["completion_codes"][0]["code"] = self.completion_code

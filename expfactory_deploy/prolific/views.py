@@ -91,7 +91,7 @@ class ProlificServe(exp_views.Serve):
         )
 
     def complete(self, request):
-        studies = Study.objects.filter(
+        studies = models.Study.objects.filter(
             battery=self.battery,
             study_collection__studycollectionsubject__subject=self.subject,
         )
@@ -1028,3 +1028,10 @@ class SubjectCollectionProgressDetail(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         return render(request, "prolific/collectionprogress.html", context)
 """
+
+@login_required
+def set_part_group_blocklist(request, collection_id):
+    study_collection = get_object_or_404(models.StudyCollection, id=collection_id)
+    first_study = study_collection.study_set.order_by("rank").first()
+    models.set_screener_derived_blocklist(study_collection)
+    return HttpResponseRedirect(reverse_lazy("prolific:remote-study-detail"), kwargs={"id": first_study.remote_id})

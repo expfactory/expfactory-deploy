@@ -76,6 +76,11 @@ urlpatterns = [
         name="collection-clear-remote-ids",
     ),
     path(
+        "collection/<int:collection_id>/set_part_group_blocklist",
+        views.set_part_group_blocklist,
+        name="collection-set-part-group-blocklist",
+    ),
+    path(
         "collection/<int:collection_id>/subjects",
         views.study_collection_subject_list,
         name="collection-subject-list",
