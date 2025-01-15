@@ -255,7 +255,6 @@ class StudyCollection(models.Model):
             "name": self.title,
             "description": f"{self.description}",
             "prolific_id_option": "url_parameters",
-            "completion_option": "code",
             "total_available_places": self.total_available_places,
             "estimated_completion_time": self.estimated_completion_time,
             "reward": self.reward,
@@ -305,7 +304,7 @@ def set_screener_derived_blocklist(study_collection):
     filters = details["filters"]
     new_blocklist = participant_group_blocklist(exempt)
     filters.append(new_blocklist)
-    api.update_study(first_study.remote_id, {"filters": filters})
+    api.update_draft(first_study.remote_id, {"filters": filters})
 
 
 class Study(models.Model):

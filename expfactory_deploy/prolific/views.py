@@ -313,7 +313,6 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
                     new_study.save()
             [x.delete() for x in study_set[len(study_rank_formset) :]]
         else:
-            print(study_rank_formset.errors)
             return self.render_to_response(
                 self.get_context_data(form=form, study_rank_formset=study_rank_formset)
             )
@@ -452,13 +451,7 @@ def remote_study_detail(request, id=None):
 def create_drafts_view(request, collection_id):
     collection = get_object_or_404(models.StudyCollection, id=collection_id)
     responses = []
-    try:
-        responses = collection.create_drafts()
-    except Exception as e:
-        print("in create view exception")
-        print(e)
-        print("!!!!!!!!!!!")
-        messages.error(request, e)
+    responses = collection.create_drafts()
     responses = json_encode_api_response(responses)
     return render(
         request,

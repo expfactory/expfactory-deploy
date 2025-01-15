@@ -140,7 +140,7 @@ def create_draft(study_details):
 
 
 def update_draft(id, study_details):
-    to_update = api_models.UpdateStudy.from_dict(study_details)
+    to_update = api_models.BaseStudy.from_dict(study_details)
     response = make_call(update_study, id=id, json_body=to_update)
     return response
 
