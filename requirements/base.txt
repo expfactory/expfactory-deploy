@@ -6,8 +6,6 @@
 #
 amqp==5.3.1
     # via kombu
-anyio==4.8.0
-    # via httpx
 argon2-cffi==21.3.0
     # via -r base.in
 argon2-cffi-bindings==21.2.0
@@ -20,7 +18,6 @@ asgiref==3.8.1
 attrs==24.3.0
     # via
     #   jsonschema
-    #   pyrolific
     #   referencing
 billiard==3.6.4.0
     # via celery
@@ -35,10 +32,6 @@ celery==5.2.7
     #   -r base.in
     #   django-celery-beat
     #   flower
-certifi==2024.12.14
-    # via
-    #   httpcore
-    #   httpx
 cffi==1.17.1
     # via argon2-cffi-bindings
 click==8.1.8
@@ -135,21 +128,11 @@ gitpython==3.1.29
 giturlparse==0.12.0
     # via -r base.in
 h11==0.14.0
-    # via
-    #   httpcore
-    #   uvicorn
+    # via uvicorn
 hiredis==3.1.0
     # via -r base.in
-httpcore==1.0.7
-    # via httpx
-httpx==0.27.2
-    # via pyrolific
 humanize==4.11.0
     # via flower
-idna==3.10
-    # via
-    #   anyio
-    #   httpx
 jmespath==1.0.1
     # via
     #   boto3
@@ -178,8 +161,6 @@ pycparser==2.22
     # via cffi
 pygments==2.19.1
     # via rich
-pyrolific @ git+https://github.com/rwblair/pyrolific/@1.4.x
-    # via -r base.in
 python-crontab==3.2.0
     # via django-celery-beat
 python-dateutil==2.9.0.post0
@@ -187,7 +168,6 @@ python-dateutil==2.9.0.post0
     #   botocore
     #   faker
     #   pandas
-    #   pyrolific
     #   python-crontab
 python-slugify==8.0.4
     # via -r base.in
@@ -223,10 +203,6 @@ six==1.17.0
     # via python-dateutil
 smmap==5.0.2
     # via gitdb
-sniffio==1.3.1
-    # via
-    #   anyio
-    #   httpx
 sqlparse==0.5.3
     # via django
 text-unidecode==1.3
@@ -234,9 +210,7 @@ text-unidecode==1.3
 tornado==6.4.2
     # via flower
 typing-extensions==4.12.2
-    # via
-    #   anyio
-    #   faker
+    # via faker
 tzdata==2024.2
     # via
     #   django-celery-beat
