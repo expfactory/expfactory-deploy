@@ -295,17 +295,17 @@ def set_screener_derived_blocklist(study_collection):
     first_study = study_collection.study_set.order_by("rank").first()
 
     if study_collection.screener_for:
-        screener_for_first_study = screener.screener_for.study_set.order_by(
+        screener_for_first_study = study_collection.screener_for.study_set.order_by(
             "rank"
         ).first()
         if screener_for_first_study.participant_group:
             exempt.append(screener_for_first_study.participant_group)
 
-    details = api.study_detail(study_collection.remote_id)
+    details = api.study_detail(first_study.remote_id)
     filters = details["filters"]
     new_blocklist = participant_group_blocklist(exempt)
     filters.append(new_blocklist)
-    api.update_study(study_collection.remote_id, {"filters": filters})
+    api.update_study(first_study.remote_id, {"filters": filters})
 
 
 class Study(models.Model):
@@ -379,7 +379,7 @@ class Study(models.Model):
             return
         api.add_to_part_group(self.participant_group, pids)
         for pid in pids:
-            if pid != None:
+            if pid is not None:
                 subject, created = Subject.objects.get_or_create(prolific_id=pid)
                 study_subject, ss_created = StudySubject.objects.get_or_create(
                     study=self, subject=subject
@@ -389,10 +389,10 @@ class Study(models.Model):
         if not self.participant_group:
             return
         api.remove_from_part_group(self.participant_group, [pid])
-        if pid != None:
+        if pid is not None:
             try:
                 subject = Subject.objects.get(prolific_id=pid)
-                study_subject = StudySubject.objects.get(
+                StudySubject.objects.get(
                     study=self, subject=subject
                 ).delete()
             except ObjectDoesNotExist:
@@ -448,7 +448,7 @@ class StudySubject(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        if self.pk == None:
+        if self.pk is None:
             assignments = Assignment.objects.filter(
                 subject=self.subject,
                 battery=self.study.battery,
@@ -547,7 +547,7 @@ class StudyCollectionSubject(models.Model):
 
     def save(self, *args, **kwargs):
         number_of_groups = self.study_collection.number_of_groups
-        if self.pk == None and number_of_groups > 0:
+        if self.pk is None and number_of_groups > 0:
             current_part_count = (
                 self.study_collection.studycollectionsubject_set.count()
             )
@@ -566,7 +566,6 @@ class StudyCollectionSubject(models.Model):
         return None
 
     def study_statuses(self):
-        stCount = self.study_collection.study_set.count()
         stSubs = StudySubject.objects.filter(
             subject=self.subject, study__study_collection=self.study_collection
         )
