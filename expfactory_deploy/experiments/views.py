@@ -548,7 +548,7 @@ class ServeConsent(View):
                 assignment.status = 'started'
             assignment.save()
             if assignment.consent_accepted:
-                return consent_accepted_redirect(assignment, request)
+                return self.consent_accepted_redirect(assignment, request)
             elif assignment.consent_accepted is False:
                 assignment.status = 'failed'
                 assignment.save()

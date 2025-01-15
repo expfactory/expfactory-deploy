@@ -990,7 +990,7 @@ def sc_status_counts(study_collection):
     status_count = status_count_dict()
     for entry in scs_status_count:
         status_count[entry["status"]] = entry["count"]
-    total_count = len(scs_status_count)
+    total_count = models.StudyCollectionSubject.objects.filter(study_collection=study_collection).count()
     count_by_group = {}
     for k, statuses in status_groups.items():
         count_by_group[k] = sum([status_count[status] for status in statuses])
@@ -1022,6 +1022,7 @@ class ScreenerProgressList(LoginRequiredMixin, View):
         screener_chains = []
         for screener in first_screeners:
             screener_chains.append(get_screener_chain(screener))
+        screener_chains = sorted(screener_chains, key=lambda x: x[0]['total'], reverse=True)
         return render(
             request,
             self.template,
