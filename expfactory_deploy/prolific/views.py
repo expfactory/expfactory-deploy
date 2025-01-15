@@ -242,7 +242,7 @@ class StudyCollectionList(LoginRequiredMixin, ListView):
     model = models.StudyCollection
     queryset = models.StudyCollection.objects.prefetch_related(
         Prefetch("study_set", queryset=models.Study.objects.order_by("rank"))
-    ).all()
+    ).all().order_by('-id')
 
 
 class StudyCollectionView(LoginRequiredMixin, TemplateView):
