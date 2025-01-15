@@ -1,9 +1,8 @@
 import json
-import os
 from functools import wraps
 from time import sleep
 
-from django.core.mail import EmailMessage, mail_managers
+from django.core.mail import EmailMessage
 from django.conf import settings
 
 
@@ -22,17 +21,13 @@ from pyrolific.api.participant_groups import (
     add_to_participant_group,
     get_participant_group_participants,
     create_participant_group,
-    get_participant_group,
     remove_from_participant_group,
-    delete_participant_group,
-    get_participant_groups,
     update_participant_group,
 )
 
 from pyrolific.api.submissions import get_submissions
 from pyrolific.api.submissions import get_submission as _get_submission
 from pyrolific.api.messages import send_message as _send_message
-from pyrolific.api import studies
 
 import sentry_sdk
 

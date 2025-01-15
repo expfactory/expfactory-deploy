@@ -1,8 +1,7 @@
 import json
-import pprint
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -12,15 +11,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, F, Prefetch, Q
 from django.http import (
     Http404,
-    HttpResponse,
     HttpResponseRedirect,
-    JsonResponse,
-    FileResponse,
 )
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import DetailView, ListView, TemplateView, View
+from django.views.generic import ListView, TemplateView, View
 from django.views.generic.edit import CreateView, FormView, UpdateView
 
 from experiments import views as exp_views
@@ -54,7 +50,6 @@ def assignment_from_query_params(subject, study_id, session_id):
         )
 
     if len(study_subjects) == 0:
-        studies = models.Study.objects.filter(remote_id=study_id)
         study = get_object_or_404(models.Study, remote_id=study_id)
         collection = study.study_collection
         add_subjects_to_collection([subject], collection)
@@ -64,7 +59,7 @@ def assignment_from_query_params(subject, study_id, session_id):
         study_subjects = [new_ss]
 
     ss = study_subjects[0]
-    if ss.prolific_session_id == None:
+    if ss.prolific_session_id is None:
         ss.prolific_session_id = session_id
         ss.save()
     return ss.assignment
@@ -108,7 +103,7 @@ class ProlificServe(exp_views.Serve):
                 {"completion_codes": completion_codes},
             )
         try:
-            cc = SimpleCC.objects.get(battery=self.battery)
+            cc = models.SimpleCC.objects.get(battery=self.battery)
             return render(
                 request, "prolific/complete.html", {"completion_url": cc.completion_url}
             )
@@ -362,15 +357,6 @@ def fetch_remote_study_details(id=None):
 
 
 @login_required
-def remote_studies_by_project(request, project_id):
-    studies_by_status = defaultdict(list)
-    try:
-        studies_by_status = fetch_studies_by_status(id=project_id)
-    except Exception as e:
-        messages.error(request, e)
-
-
-@login_required
 def remote_studies_list(request, collection_id=None):
     try:
         study_collection = models.StudyCollection.objects.get(id=collection_id)
@@ -382,7 +368,6 @@ def remote_studies_list(request, collection_id=None):
             "battery"
         )
     )
-    sc_study_count = len(studies_in_db)
     tracked_remote_ids = [study.remote_id for study in studies_in_db if study.remote_id]
 
     studies_by_status = defaultdict(list)
@@ -896,7 +881,7 @@ def study_collection_subject_detail(
         if not ss.prolific_session_id:
             prolific_status = "No Session ID"
         else:
-            prolific_status = x.get_prolific_status()
+            prolific_status = ss.get_prolific_status()
         includes = ss.assignment.result_set.all().values_list(
             "battery_experiment__experiment_instance__experiment_repo_id__name",
             "include",
