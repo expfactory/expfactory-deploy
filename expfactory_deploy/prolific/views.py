@@ -962,35 +962,60 @@ class BlockedParticipantCreate(LoginRequiredMixin, CreateView):
     fields = ["prolific_id", "active", "note"]
     success_url = reverse_lazy("prolific:blocked-participant-list")
 
+
 status_groups = {
-    'assigned': ['n/a', 'not-started', 'started', 'completed', 'failed', 'redo', 'kicked', 'flagged'],
-    'attempted': ['n/a', 'not-started', 'started', 'completed', 'failed', 'redo', 'kicked', 'flagged'],
-    'failed': ['failed', 'kicked', 'flagged'],
-    'completed': ['completed']
+    "assigned": [
+        "n/a",
+        "not-started",
+        "started",
+        "completed",
+        "failed",
+        "redo",
+        "kicked",
+        "flagged",
+    ],
+    "attempted": [
+        "n/a",
+        "not-started",
+        "started",
+        "completed",
+        "failed",
+        "redo",
+        "kicked",
+        "flagged",
+    ],
+    "failed": ["failed", "kicked", "flagged"],
+    "completed": ["completed"],
 }
+
+
 def status_count_dict():
-    statuses = [x[0] for x in models.StudyCollectionSubject._meta.get_field('status').choices]
-    return { status: 0 for status in statuses }
+    statuses = [
+        x[0] for x in models.StudyCollectionSubject._meta.get_field("status").choices
+    ]
+    return {status: 0 for status in statuses}
+
 
 def sc_status_counts(study_collection):
-    scs_status_count = (
-        list(models.StudyCollectionSubject.objects.filter(study_collection=study_collection)
+    scs_status_count = list(
+        models.StudyCollectionSubject.objects.filter(study_collection=study_collection)
         .values("status")
-        .annotate(count=Count("id")))
+        .annotate(count=Count("id"))
     )
     status_count = status_count_dict()
     for entry in scs_status_count:
-        status_count[entry['status']] = entry['count']
+        status_count[entry["status"]] = entry["count"]
     total_count = len(scs_status_count)
     count_by_group = {}
     for k, statuses in status_groups.items():
         count_by_group[k] = sum([status_count[status] for status in statuses])
     return {
-        'study_collection': study_collection,
-        'status_count': status_count,
-        'count_by_group': count_by_group,
-        'total': total_count
+        "study_collection": study_collection,
+        "status_count": status_count,
+        "count_by_group": count_by_group,
+        "total": total_count,
     }
+
 
 def get_screener_chain(study_collection):
     sc_list = [sc_status_counts(study_collection)]
@@ -1004,13 +1029,11 @@ def get_screener_chain(study_collection):
 
 class ScreenerProgressList(LoginRequiredMixin, View):
     template = "prolific/collection_dropout.html"
+
     def get(self, request, *args, **kwargs):
-        first_screeners = (
-            models.StudyCollection.objects.exclude(
-                active=False, screener_for__isnull=True
-            )
-            .filter(studycollection__isnull=True)
-        )
+        first_screeners = models.StudyCollection.objects.exclude(
+            active=False, screener_for__isnull=True
+        ).filter(studycollection__isnull=True)
         screener_chains = []
         for screener in first_screeners:
             screener_chains.append(get_screener_chain(screener))
@@ -1020,8 +1043,10 @@ class ScreenerProgressList(LoginRequiredMixin, View):
             {"screener_chains": screener_chains},
         )
 
+
 class ScreenerProgressListAlt(ScreenerProgressList):
     template = "prolific/collection_dropout_alt.html"
+
 
 """
 class SubjectCollectionProgressDetail(LoginRequiredMixin, View):
@@ -1029,9 +1054,13 @@ class SubjectCollectionProgressDetail(LoginRequiredMixin, View):
         return render(request, "prolific/collectionprogress.html", context)
 """
 
+
 @login_required
 def set_part_group_blocklist(request, collection_id):
     study_collection = get_object_or_404(models.StudyCollection, id=collection_id)
     first_study = study_collection.study_set.order_by("rank").first()
     models.set_screener_derived_blocklist(study_collection)
-    return HttpResponseRedirect(reverse_lazy("prolific:remote-study-detail"), kwargs={"id": first_study.remote_id})
+    return HttpResponseRedirect(
+        reverse_lazy("prolific:remote-study-detail"),
+        kwargs={"id": first_study.remote_id},
+    )

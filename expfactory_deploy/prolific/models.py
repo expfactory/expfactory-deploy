@@ -16,6 +16,7 @@ from model_utils import Choices
 from model_utils.models import TimeStampedModel
 from model_utils.fields import StatusField, MonitorField
 
+
 class StudyCollection(models.Model):
     name = models.TextField(blank=True, help_text="Name internal to expfactory.")
     project = models.TextField(
@@ -193,8 +194,8 @@ class StudyCollection(models.Model):
             return
         response = api.get_participants(study.participant_group)
         print(response)
-        to_promote = set([x['participant_id'] for x in response['results']])
-        print('first promote')
+        to_promote = set([x["participant_id"] for x in response["results"]])
+        print("first promote")
         print(to_promote)
 
         to_promote = to_promote - blocked
@@ -265,6 +266,7 @@ class StudyCollection(models.Model):
 
 query_params = f"?{settings.PROLIFIC_PARTICIPANT_PARAM}={{{{%PROLIFIC_PID%}}}}&{settings.PROLIFIC_STUDY_PARAM}={{{{%STUDY_ID%}}}}&{settings.PROLIFIC_SESSION_PARAM}={{{{%SESSION_ID%}}}}"
 
+
 def part_group_action(pid=""):
     return {"action": "ADD_TO_PARTICIPANT_GROUP", "participant_group": pid}
 
@@ -276,25 +278,31 @@ def default_allowlist(group_id=""):
 def default_previous_studies():
     return {"filter_id": "previous_studies_allowlist", "selected_values": []}
 
+
 def participant_group_blocklist(exempt=[]):
     screeners = StudyCollection.objects.filter(screener_for__isnull=False)
-    part_groups = [x.study_set.order_by('rank').first().participant_group for x in screeners]
+    part_groups = [
+        x.study_set.order_by("rank").first().participant_group for x in screeners
+    ]
     part_groups = [x for x in part_groups if x and len(x) > 5]
     part_groups = [x for x in part_groups if x not in exempt]
     part_groups = list(set(part_groups))
     return {"filter_id": "participant_group_blocklist", "selected_values": part_groups}
 
+
 def set_screener_derived_blocklist(study_collection):
     exempt = []
-    first_study = study_collection.study_set.order_by('rank').first()
+    first_study = study_collection.study_set.order_by("rank").first()
 
     if study_collection.screener_for:
-        screener_for_first_study = screener.screener_for.study_set.order_by('rank').first()
+        screener_for_first_study = screener.screener_for.study_set.order_by(
+            "rank"
+        ).first()
         if screener_for_first_study.participant_group:
             exempt.append(screener_for_first_study.participant_group)
 
     details = api.study_detail(study_collection.remote_id)
-    filters = details['filters']
+    filters = details["filters"]
     new_blocklist = participant_group_blocklist(exempt)
     filters.append(new_blocklist)
     api.update_study(study_collection.remote_id, {"filters": filters})
@@ -317,9 +325,8 @@ class Study(models.Model):
     def part_group_name(self):
         return f"collection: {self.study_collection.id}, study: {self.id}, rank: {self.rank}, battery: {self.battery.title} (pg)"
 
-
     def __str__(self):
-        return f'{self.battery.title} - prolific:{self.remote_id}'
+        return f"{self.battery.title} - prolific:{self.remote_id}"
 
     def set_group_name(self):
         if self.remote_id and self.participant_group:
@@ -458,7 +465,9 @@ class StudySubject(models.Model):
             elif len(assignments) == 1:
                 self.assignment = assignments[0]
             else:
-                sentry_sdk.capture_message(f"Multiple assignments found for sub {self.subject.pk} and study {self.study.pk}")
+                sentry_sdk.capture_message(
+                    f"Multiple assignments found for sub {self.subject.pk} and study {self.study.pk}"
+                )
                 self.assignment = assignments[0]
         super().save(*args, **kwargs)
 
@@ -519,11 +528,18 @@ class StudyCollectionSubject(models.Model):
     ttcc_flagged_at = MonitorField(
         monitor="status", when=["flagged"], default=None, null=True
     )
-    active = models.BooleanField(default=True, help_text="Used to manually prevent subject from progressing in study.")
+    active = models.BooleanField(
+        default=True,
+        help_text="Used to manually prevent subject from progressing in study.",
+    )
 
     @property
     def ended(self):
-        return self.status in ["failed", "completed", "kicked"] or self.failed_at or not self.active
+        return (
+            self.status in ["failed", "completed", "kicked"]
+            or self.failed_at
+            or not self.active
+        )
 
     """ Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
         to not give same number multiple times? Current use case is in a loop, should be fine.
@@ -639,5 +655,3 @@ class BlockedParticipant(TimeStampedModel):
     prolific_id = models.TextField(unique=True)
     active = models.BooleanField(default=True)
     note = models.TextField(blank=True)
-
-

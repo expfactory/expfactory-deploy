@@ -7,7 +7,6 @@ from django.core.mail import EmailMessage, mail_managers
 from django.conf import settings
 
 
-
 from pyrolific import Client, AuthenticatedClient
 from pyrolific import models as api_models
 from pyrolific.api.studies import (
@@ -86,20 +85,23 @@ def make_call(api_func, ac=False, **kwargs):
 
     if response.status_code.value > 399:
         from prolific.models import ProlificAPIResult
+
         print(response)
-        sentry_sdk.capture_exception(GenericProlificException({
-            'api_func': api_func,
-            'kwargs': kwargs,
-            'response': response
-        }))
+        sentry_sdk.capture_exception(
+            GenericProlificException(
+                {"api_func": api_func, "kwargs": kwargs, "response": response}
+            )
+        )
 
         response_str = json.dumps(response, indent=4, default=str)
-        ProlificAPIResult.objects.create(request=f"{api_func} {kwargs}", response={"response": response_str})
+        ProlificAPIResult.objects.create(
+            request=f"{api_func} {kwargs}", response={"response": response_str}
+        )
         message = EmailMessage(
             f"Prolific API response error {response.status_code.value}",
             f"Fucntion Call\n{api_func}\n\nkwargs:\n{kwargs}\n\nResponse:\n{response_str}",
             settings.SERVER_EMAIL,
-            [a[1] for a in settings.MANAGERS]
+            [a[1] for a in settings.MANAGERS],
         )
         message.send()
 
@@ -122,6 +124,7 @@ def list_studies(pid=None):
         raise GenericProlificException(response)
     return [x for x in response.get("results", [])]
 
+
 def list_active_studies(state="ACTIVE"):
     state = api_models.GetStudiesState(state)
     response = make_call(get_studies, state=state)
@@ -140,15 +143,15 @@ def create_draft(study_details):
     response = make_call(create_study, json_body=to_create)
     return response
 
+
 def update_draft(id, study_details):
     to_update = api_models.UpdateStudy.from_dict(study_details)
     response = make_call(update_study, id=id, json_body=to_update)
     return response
 
 
-
 """
-    Feb 2024 prolfici api update changed part groups from being project based to being workspace based.
+    Feb 2024 prolfic api update changed part groups from being project based to being workspace based.
     For the time being we'll pull this from the env, but it should be added as an option to the DB
 """
 
