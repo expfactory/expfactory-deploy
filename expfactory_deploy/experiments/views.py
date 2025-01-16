@@ -359,14 +359,6 @@ class BatteryClone(LoginRequiredMixin, View):
         new_batt.save()
         return redirect('experiments:battery-list')
 
-
-
-"""
-class BatteryDeploymentDelete(DeleteView):
-    model = models.Battery
-    success_url = reverse_lazy('battery-list')
-"""
-
 def jspsych_context(exp_instance):
     deploy_static_fs = exp_instance.deploy_static()
     deploy_static_url = deploy_static_fs.replace(
@@ -396,6 +388,7 @@ class Preview(View):
 
         template = "experiments/jspsych_deploy.html"
         context = jspsych_context(exp_instance)
+        context["post_url"] = "local"
         return render(request, template, context)
 
     def post(self, request, *args, **kwargs):
