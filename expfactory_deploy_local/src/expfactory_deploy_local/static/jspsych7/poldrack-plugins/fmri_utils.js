@@ -27,9 +27,109 @@ var check_middle = {
   },
 };
 
+var check_ring = {
+  // Check key press for ring finger.
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: "<div><h1>Please press your ring finger.</h1></div>",
+  choices: ["c"],
+  post_trial_gap: 500,
+  data: function () {
+    return {
+      trial_id: "check_ring",
+    };
+  },
+};
+
+// Span task
+var check_left_button = {
+  // Check key press for left button.
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: "<div><h1>Please press the left button.</h1></div>",
+  choices: ["b"],
+  post_trial_gap: 500,
+  data: function () {
+    return {
+      trial_id: "check_left_button",
+    };
+  },
+};
+
+var check_right_button = {
+  // Check key press for right button.
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: "<div><h1>Please press the right button.</h1></div>",
+  choices: ["g"],
+  post_trial_gap: 500,
+  data: function () {
+    return {
+      trial_id: "check_right_button",
+    };
+  },
+};
+
+var check_up_button = {
+  // Check key press for up button.
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: "<div><h1>Please press the up button.</h1></div>",
+  choices: ["y"],
+  post_trial_gap: 500,
+  data: function () {
+    return {
+      trial_id: "check_up_button",
+    };
+  },
+};
+
+var check_down_button = {
+  // Check key press for down button.
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: "<div><h1>Please press the down button.</h1></div>",
+  choices: ["r"],
+  post_trial_gap: 500,
+  data: function () {
+    return {
+      trial_id: "check_down_button",
+    };
+  },
+};
+
+var check_middle_button = {
+  // Check key press for middle button.
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: "<div><h1>Please press the middle button.</h1></div>",
+  choices: ["e"],
+  post_trial_gap: 500,
+  data: function () {
+    return {
+      trial_id: "check_middle_button",
+    };
+  },
+};
+
 var check_fingers_node = {
   // Check key press for index and middle fingers.
   timeline: [check_index, check_middle],
+};
+
+var check_fingers_node_stroop = {
+  // Check key press for index, middle, and ring fingers.
+  timeline: [check_index, check_middle, check_ring],
+};
+
+var check_fingers_node_op_only_span = {
+  // Check key press for left and right buttons.
+  timeline: [check_left_button, check_right_button],
+};
+
+var check_fingers_node_span = {
+  // Check key press for left, right, up, down, and middle buttons.
+  timeline: [
+    check_left_button,
+    check_right_button,
+    check_up_button,
+    check_down_button,
+    check_middle_button,
+  ],
 };
 
 var fmri_wait_block_initial = {
