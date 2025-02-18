@@ -45,7 +45,7 @@ var check_left_button = {
   // Check key press for left button.
   type: jsPsychHtmlKeyboardResponse,
   stimulus: "<div><h1>Please press the left button.</h1></div>",
-  choices: ["b"],
+  choices: ["g"],
   post_trial_gap: 500,
   data: function () {
     return {
@@ -58,7 +58,7 @@ var check_right_button = {
   // Check key press for right button.
   type: jsPsychHtmlKeyboardResponse,
   stimulus: "<div><h1>Please press the right button.</h1></div>",
-  choices: ["g"],
+  choices: ["b"],
   post_trial_gap: 500,
   data: function () {
     return {
@@ -71,7 +71,7 @@ var check_up_button = {
   // Check key press for up button.
   type: jsPsychHtmlKeyboardResponse,
   stimulus: "<div><h1>Please press the up button.</h1></div>",
-  choices: ["y"],
+  choices: ["r"],
   post_trial_gap: 500,
   data: function () {
     return {
@@ -84,7 +84,7 @@ var check_down_button = {
   // Check key press for down button.
   type: jsPsychHtmlKeyboardResponse,
   stimulus: "<div><h1>Please press the down button.</h1></div>",
-  choices: ["r"],
+  choices: ["y"],
   post_trial_gap: 500,
   data: function () {
     return {
