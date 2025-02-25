@@ -19,7 +19,7 @@
   <tbody>
   {% for sub in subjects %}
     <tr>
-      <td>{{ sub.prolific_id }}</td>
+      <td><a href="{% url 'experiments:subject-detail' sub.id %}">{{ sub.prolific_id }}<a></td>
       <td>{{ sub.last_url }}</td>
       <td>{{ sub.last_url_at }}</td>
       <td>{{ sub.last_exp.name }}</td>

@@ -1,6 +1,6 @@
 import pytest
+from django.conf import settings
 
-from expfactory_deploy.users.models import User
 from expfactory_deploy.users.tests.factories import UserFactory
 
 
@@ -10,5 +10,5 @@ def media_storage(settings, tmpdir):
 
 
 @pytest.fixture
-def user() -> User:
+def user():
     return UserFactory()

@@ -1,15 +1,12 @@
-from django.urls import include, path, re_path
+from django.urls import path
 
 from expfactory_deploy.prolific import views
 
 app_name = "prolific"
 urlpatterns = [
+    path("serve/<int:battery_id>/instructions", views.ProlificInstructions.as_view(), name="instructions"),
+    path("serve/<int:battery_id>/consent", views.ProlificConsent.as_view(), name="consent"),
     path("serve/<int:battery_id>", views.ProlificServe.as_view(), name="serve-battery"),
-    path(
-        "complete/<int:assignment_id>",
-        views.ProlificComplete.as_view(),
-        name="complete",
-    ),
     path(
         "simplecc/update/<int:battery_id>",
         views.SimpleCCUpdate.as_view(),
@@ -79,6 +76,11 @@ urlpatterns = [
         name="collection-clear-remote-ids",
     ),
     path(
+        "collection/<int:collection_id>/set_part_group_blocklist",
+        views.set_part_group_blocklist,
+        name="collection-set-part-group-blocklist",
+    ),
+    path(
         "collection/<int:collection_id>/subjects",
         views.study_collection_subject_list,
         name="collection-subject-list",
@@ -132,5 +134,15 @@ urlpatterns = [
         "delete/<int:collection_id>/<str:subject_id>",
         views.delete_study_subject_relations,
         name="delete-study-subject-relations",
+    ),
+    path(
+        "screener/progress",
+        views.ScreenerProgressList.as_view(),
+        name="screener-progress-list"
+    ),
+    path(
+        "screener/progressalt",
+        views.ScreenerProgressListAlt.as_view(),
+        name="screener-progress-list-alt"
     ),
 ]

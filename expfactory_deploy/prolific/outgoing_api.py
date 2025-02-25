@@ -1,11 +1,9 @@
 import json
-import os
 from functools import wraps
 from time import sleep
 
-from django.core.mail import EmailMessage, mail_managers
+from django.core.mail import EmailMessage
 from django.conf import settings
-
 
 
 from pyrolific import Client, AuthenticatedClient
@@ -23,17 +21,13 @@ from pyrolific.api.participant_groups import (
     add_to_participant_group,
     get_participant_group_participants,
     create_participant_group,
-    get_participant_group,
     remove_from_participant_group,
-    delete_participant_group,
-    get_participant_groups,
     update_participant_group,
 )
 
 from pyrolific.api.submissions import get_submissions
 from pyrolific.api.submissions import get_submission as _get_submission
 from pyrolific.api.messages import send_message as _send_message
-from pyrolific.api import studies
 
 import sentry_sdk
 
@@ -86,20 +80,23 @@ def make_call(api_func, ac=False, **kwargs):
 
     if response.status_code.value > 399:
         from prolific.models import ProlificAPIResult
+
         print(response)
-        sentry_sdk.capture_exception(GenericProlificException({
-            'api_func': api_func,
-            'kwargs': kwargs,
-            'response': response
-        }))
+        sentry_sdk.capture_exception(
+            GenericProlificException(
+                {"api_func": api_func, "kwargs": kwargs, "response": response}
+            )
+        )
 
         response_str = json.dumps(response, indent=4, default=str)
-        ProlificAPIResult.objects.create(request=f"{api_func} {kwargs}", response={"response": response_str})
+        ProlificAPIResult.objects.create(
+            request=f"{api_func} {kwargs}", response={"response": response_str}
+        )
         message = EmailMessage(
             f"Prolific API response error {response.status_code.value}",
             f"Fucntion Call\n{api_func}\n\nkwargs:\n{kwargs}\n\nResponse:\n{response_str}",
             settings.SERVER_EMAIL,
-            [a[1] for a in settings.MANAGERS]
+            [a[1] for a in settings.MANAGERS],
         )
         message.send()
 
@@ -122,6 +119,7 @@ def list_studies(pid=None):
         raise GenericProlificException(response)
     return [x for x in response.get("results", [])]
 
+
 def list_active_studies(state="ACTIVE"):
     state = api_models.GetStudiesState(state)
     response = make_call(get_studies, state=state)
@@ -141,8 +139,14 @@ def create_draft(study_details):
     return response
 
 
+def update_draft(id, study_details):
+    to_update = api_models.BaseStudy.from_dict(study_details)
+    response = make_call(update_study, id=id, json_body=to_update)
+    return response
+
+
 """
-    Feb 2024 prolfici api update changed part groups from being project based to being workspace based.
+    Feb 2024 prolfic api update changed part groups from being project based to being workspace based.
     For the time being we'll pull this from the env, but it should be added as an option to the DB
 """
 
@@ -201,7 +205,7 @@ def publish(sid):
 def list_submissions(sid=None):
     response = make_call(get_submissions, study=sid)
     if hasattr(response, "status_code"):
-        raise GenericProlificException()
+        raise GenericProlificException(f"response has status_code {response}")
     return response["results"]
 
 

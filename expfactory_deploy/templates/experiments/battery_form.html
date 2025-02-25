@@ -56,7 +56,9 @@
 			</div>
 
 			<div id="battexplist" class="list-group col">
-        {{ exp_instance_formset }}
+        {% for ei_form in exp_instance_formset.forms %}
+          {{ ei_form }}
+        {% endfor %}
 			</div>
 {% endblock %}
 

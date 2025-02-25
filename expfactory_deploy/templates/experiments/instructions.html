@@ -13,7 +13,7 @@
       <div id="instructions">
         {{ instructions |safe }}
       {% if not consent %}
-        <a class="btn btn-primary" href="{{ serve }}">Start Experiment</a>
+        <a class="btn btn-primary" href="{{ serve_url }}">Start Experiment</a>
       {% endif %}
       </div>
       {% if consent %}

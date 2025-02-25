@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="h2">
+  </div>
+{% for screener_chain in screener_chains %}
+  <table id="sc-table-{{ screener_chain.0.study_collection.pk }}">
+    <thead>
+      <tr>
+        <th> Study Collection </th>
+      {% for status in screener_chain.0.count_by_group %}
+        <th>
+          {{ status }}
+        </th>
+      {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+    {% for sc in screener_chain %}
+      <tr>
+        <td>
+          <a href="{% url 'prolific:collection-progress' sc.study_collection.id %}">{{ sc.study_collection.name }}</a>
+        </td>
+        {% for status, count in sc.count_by_group.items %}
+        <td>
+          {{ count }}/{{ sc.total }}
+        </td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endfor %}
+{% endblock %}
+{% block inline_javascript %}
+<script>
+  {% for screener_chain in screener_chains %}
+  document.addEventListener('DOMContentLoaded', function () {
+    const subjectTable = new simpleDatatables.DataTable("#sc-table-{{ screener_chain.0.study_collection.pk }}", { paging: false, searchable: false });
+  }, false);
+  {% endfor %}
+</script>
+{% endblock inline_javascript %}

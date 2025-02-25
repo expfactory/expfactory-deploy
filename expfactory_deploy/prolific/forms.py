@@ -28,6 +28,7 @@ class StudyCollectionForm(ModelForm):
         self.fields[
             "inter_study_delay"
         ].help_text = "hh:mm:ss - Time to wait before assigning prolific participants to the next study after completing the previous one."
+        self.fields["screener_for"].queryset = models.StudyCollection.objects.order_by('-id')
 
     class Meta:
         model = models.StudyCollection

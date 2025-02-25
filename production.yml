@@ -1,8 +1,8 @@
 version: '3'
 
 volumes:
-  production_postgres_data: {}
-  production_postgres_data_backups: {}
+  production_postgres17_data: {}
+  production_postgres17_data_backups: {}
   production_traefik: {}
 
 services:
@@ -22,7 +22,7 @@ services:
     env_file:
       - ./.envs/.production/.django
       - ./.envs/.production/.postgres
-    command: /start
+    command: /usr/local/bin/gunicorn config.asgi --bind 0.0.0.0:5000 --chdir=/app -w 1 --max-requests 2000 -t 60 --graceful-timeout 60 -k uvicorn.workers.UvicornWorker
 
   postgres:
     build:
@@ -30,8 +30,8 @@ services:
       dockerfile: ./compose/production/postgres/Dockerfile
     image: expfactory_deploy_production_postgres
     volumes:
-      - production_postgres_data:/var/lib/postgresql/data:Z
-      - production_postgres_data_backups:/backups:z
+      - production_postgres17_data:/var/lib/postgresql/data:Z
+      - production_postgres17_data_backups:/backups:z
     env_file:
       - ./.envs/.production/.postgres
 

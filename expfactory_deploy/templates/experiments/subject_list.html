@@ -32,7 +32,7 @@
       <td>
         {% for assignment in subject.assignment_set.all %}
           <a href="{% url 'experiments:battery-detail'  assignment.battery.id %}">
-            {{ assignment.battery.title }} - {{ assignment.result_status.total }}
+            {{ assignment.battery.title }}
           </a>
         {% empty %}
           None

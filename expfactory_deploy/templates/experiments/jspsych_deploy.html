@@ -3,6 +3,13 @@
   <head>
     <title>The Experiment Factory</title>
     <meta charset="utf-8" />
+    <script>
+        try {
+          window.efVars = {{js_vars|safe|default_if_none:""}}
+        } catch {
+          window.efVars = {'failed': ''}
+        }
+    </script>
     <script src="/deployment/non_repo/default/static/js/jquery.min.js"></script>
     <script src="/deployment/non_repo/default/static/js/bootstrap.min.js"></script>
     {{ experiment_load | safe }}
@@ -10,11 +17,6 @@
   </head>
   <body>
     <script>
-        try {
-          window.efVars = {{js_vars|safe|default_if_none:""}}
-        } catch {
-          window.efVars = {'failed': ''}
-        }
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
         function generatePostData() {

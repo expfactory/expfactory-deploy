@@ -2,6 +2,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from uuid import uuid4
 
+import sentry_sdk
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.conf import settings
@@ -13,11 +15,6 @@ from pyrolific import models as api_models
 from model_utils import Choices
 from model_utils.models import TimeStampedModel
 from model_utils.fields import StatusField, MonitorField
-
-"""
-Due to how prolific tracks time for payment we much chunk large batteries into
-multiple batteries that can be done in single sittings.
-"""
 
 
 class StudyCollection(models.Model):
@@ -196,8 +193,10 @@ class StudyCollection(models.Model):
             # raise Exception("No participant group")
             return
         response = api.get_participants(study.participant_group)
-
+        print(response)
         to_promote = set([x["participant_id"] for x in response["results"]])
+        print("first promote")
+        print(to_promote)
 
         to_promote = to_promote - blocked
         for study in studies:
@@ -210,12 +209,14 @@ class StudyCollection(models.Model):
             submissions = api.list_submissions(study.remote_id)
             submitted = set()
             for submission in submissions:
+                print(submission)
                 pid = submission.get("participant_id")
                 submitted.add(pid)
                 to_promote.add(pid)
                 completed_at = submission.get("completed_at")
                 if not completed_at and pid in to_promote:
                     to_promote.remove(pid)
+                    continue
                 completed_at = datetime.fromisoformat(completed_at)
                 if (
                     completed_at
@@ -254,7 +255,6 @@ class StudyCollection(models.Model):
             "name": self.title,
             "description": f"{self.description}",
             "prolific_id_option": "url_parameters",
-            "completion_option": "code",
             "total_available_places": self.total_available_places,
             "estimated_completion_time": self.estimated_completion_time,
             "reward": self.reward,
@@ -278,6 +278,35 @@ def default_previous_studies():
     return {"filter_id": "previous_studies_allowlist", "selected_values": []}
 
 
+def participant_group_blocklist(exempt=[]):
+    screeners = StudyCollection.objects.filter(screener_for__isnull=False)
+    part_groups = [
+        x.study_set.order_by("rank").first().participant_group for x in screeners
+    ]
+    part_groups = [x for x in part_groups if x and len(x) > 5]
+    part_groups = [x for x in part_groups if x not in exempt]
+    part_groups = list(set(part_groups))
+    return {"filter_id": "participant_group_blocklist", "selected_values": part_groups}
+
+
+def set_screener_derived_blocklist(study_collection):
+    exempt = []
+    first_study = study_collection.study_set.order_by("rank").first()
+
+    if study_collection.screener_for:
+        screener_for_first_study = study_collection.screener_for.study_set.order_by(
+            "rank"
+        ).first()
+        if screener_for_first_study.participant_group:
+            exempt.append(screener_for_first_study.participant_group)
+
+    details = api.study_detail(first_study.remote_id)
+    filters = details["filters"]
+    new_blocklist = participant_group_blocklist(exempt)
+    filters.append(new_blocklist)
+    api.update_draft(first_study.remote_id, {"filters": filters})
+
+
 class Study(models.Model):
     battery = models.ForeignKey(Battery, null=True, on_delete=models.SET_NULL)
     study_collection = models.ForeignKey(
@@ -295,9 +324,8 @@ class Study(models.Model):
     def part_group_name(self):
         return f"collection: {self.study_collection.id}, study: {self.id}, rank: {self.rank}, battery: {self.battery.title} (pg)"
 
-
     def __str__(self):
-        return f'{self.battery.title} - prolific:{self.remote_id}'
+        return f"{self.battery.title} - prolific:{self.remote_id}"
 
     def set_group_name(self):
         if self.remote_id and self.participant_group:
@@ -316,9 +344,10 @@ class Study(models.Model):
         ] = f"{study_args['name']} ({self.rank + 1} of {self.study_collection.study_count})"
         study_args[
             "external_study_url"
-        ] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}{query_params}"
+        ] = f"https://deploy.expfactory.org/prolific/serve/{self.battery.id}/consent{query_params}"
         if self.completion_code == "":
             self.completion_code = str(uuid4())[:8]
+            self.save()
 
         if next_group:
             study_args["completion_codes"][0]["code"] = self.completion_code
@@ -349,7 +378,7 @@ class Study(models.Model):
             return
         api.add_to_part_group(self.participant_group, pids)
         for pid in pids:
-            if pid != None:
+            if pid is not None:
                 subject, created = Subject.objects.get_or_create(prolific_id=pid)
                 study_subject, ss_created = StudySubject.objects.get_or_create(
                     study=self, subject=subject
@@ -359,10 +388,10 @@ class Study(models.Model):
         if not self.participant_group:
             return
         api.remove_from_part_group(self.participant_group, [pid])
-        if pid != None:
+        if pid is not None:
             try:
                 subject = Subject.objects.get(prolific_id=pid)
-                study_subject = StudySubject.objects.get(
+                StudySubject.objects.get(
                     study=self, subject=subject
                 ).delete()
             except ObjectDoesNotExist:
@@ -418,7 +447,7 @@ class StudySubject(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        if self.pk == None:
+        if self.pk is None:
             assignments = Assignment.objects.filter(
                 subject=self.subject,
                 battery=self.study.battery,
@@ -435,7 +464,9 @@ class StudySubject(models.Model):
             elif len(assignments) == 1:
                 self.assignment = assignments[0]
             else:
-                # pray on what to do here. Choose one based on timestamp or status?
+                sentry_sdk.capture_message(
+                    f"Multiple assignments found for sub {self.subject.pk} and study {self.study.pk}"
+                )
                 self.assignment = assignments[0]
         super().save(*args, **kwargs)
 
@@ -496,11 +527,18 @@ class StudyCollectionSubject(models.Model):
     ttcc_flagged_at = MonitorField(
         monitor="status", when=["flagged"], default=None, null=True
     )
-    active = models.BooleanField(default=True, help_text="Used to manually prevent subject from progressing in study.")
+    active = models.BooleanField(
+        default=True,
+        help_text="Used to manually prevent subject from progressing in study.",
+    )
 
     @property
     def ended(self):
-        return self.status in ["failed", "completed", "kicked"] or self.failed_at or not self.active
+        return (
+            self.status in ["failed", "completed", "kicked"]
+            or self.failed_at
+            or not self.active
+        )
 
     """ Wonder how this works on a bulk create, potential for studycollcetionsubject_set.count
         to not give same number multiple times? Current use case is in a loop, should be fine.
@@ -508,7 +546,7 @@ class StudyCollectionSubject(models.Model):
 
     def save(self, *args, **kwargs):
         number_of_groups = self.study_collection.number_of_groups
-        if self.pk == None and number_of_groups > 0:
+        if self.pk is None and number_of_groups > 0:
             current_part_count = (
                 self.study_collection.studycollectionsubject_set.count()
             )
@@ -527,7 +565,6 @@ class StudyCollectionSubject(models.Model):
         return None
 
     def study_statuses(self):
-        stCount = self.study_collection.study_set.count()
         stSubs = StudySubject.objects.filter(
             subject=self.subject, study__study_collection=self.study_collection
         )
@@ -616,5 +653,3 @@ class BlockedParticipant(TimeStampedModel):
     prolific_id = models.TextField(unique=True)
     active = models.BooleanField(default=True)
     note = models.TextField(blank=True)
-
-
