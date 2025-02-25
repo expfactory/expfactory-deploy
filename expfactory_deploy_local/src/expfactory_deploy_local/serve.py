@@ -3,6 +3,7 @@ import datetime
 import json
 import os
 import sys
+import time
 import urllib
 from pathlib import Path
 
@@ -16,6 +17,7 @@ web.config.debug = False
 package_dir = os.path.dirname(os.path.abspath(__file__))
 
 urls = ("/", "serve", "/serve", "serve", "/decline", "decline", "/reset", "reset")
+
 app = web.application(urls, globals())
 session = web.session.Session(
     app, web.session.DiskStore(Path(package_dir, "sessions")), initializer={"incomplete": None }
@@ -87,11 +89,20 @@ def run(args=None):
     web.config.update({'experiments': experiments})
     if (args.group_index is not None):
         web.config.update({'group_index': args.group_index})
-    # I think a directory starting with a period in the dirname of
-    # sys.argv[0] threw webpy run func for a loop.
-    # We don't need argv anymore so can clear it.
-    sys.argv = []
-    app.run()
+
+    # webpy is opinionated about sys.argv. Set it to something it can handle
+    port = 8080
+    sys.argv = [None, str(port)]
+
+    started = False
+    while port < 10000 and not started:
+        try:
+            app.run()
+            started = True
+        except OSError as e:
+            print(e)
+            port += 1
+            sys.argv = [None, str(port)]
 
 def serve_experiment(experiment):
     exp_name = experiment.stem

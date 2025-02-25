@@ -91,6 +91,11 @@
                 data : JSON.stringify(trialdata),
                 error: (error) => { console.log(error) },
                 dataType: 'text',
+                error: (error) => {
+                  console.log(jsPsych.data.get().json());
+                  jsPsych.data.get().localSave('json', `${new Date().toISOString()}.json`);
+                  console.log(error);
+                },
                 success: (data) => {
                   $("#next_experiment_button").click(() => {
                     console.log("Finished!");
