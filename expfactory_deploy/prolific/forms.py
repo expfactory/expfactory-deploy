@@ -24,7 +24,16 @@ class StudyCollectionForm(ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_tag = False
-        self.fields["inter_study_delay"].initial = "00:00:00"
+        time_based_fields = [
+            "inter_study_delay",
+            "study_time_to_warning",
+            "time_to_start_first_study",
+            "study_grace_interval",
+            "collection_time_to_warning",
+            "collection_grace_interval",
+        ]
+        for time_field in time_based_fields:
+            self.fields[time_field].initial = "00:00:00"
         self.fields[
             "inter_study_delay"
         ].help_text = "hh:mm:ss - Time to wait before assigning prolific participants to the next study after completing the previous one."

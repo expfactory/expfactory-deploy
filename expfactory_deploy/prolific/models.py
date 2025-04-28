@@ -110,6 +110,9 @@ class StudyCollection(models.Model):
     def deployed(self):
         return bool(self.study_set.exclude(remote_id="").count())
 
+    def __str__(self):
+        return f"{self.name} - id: {self.id}"
+
     def next_study(self, sid):
         studies = self.study_set.all().order_by("rank")
         prev = None

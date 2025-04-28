@@ -388,7 +388,7 @@ class Preview(View):
 
         template = "experiments/jspsych_deploy.html"
         context = jspsych_context(exp_instance)
-        context["post_url"] = "local"
+        context["post_url"] = "http://notadomain"
         return render(request, template, context)
 
     def post(self, request, *args, **kwargs):
