@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Responses from prolific api</h2>
-<a href="{% url 'prolific:remote-studies-list' id %}"> Per Study Details </a>
+  <div class="h2">
+    Responses from prolific api
+    <div class="battery-actions">
+      <a class="btn btn-primary" href="{% url 'prolific:remote-studies-list' id %}">Manage Prolific State</a>
+      <a href="{% url 'prolific:remote-studies-list' id %}"> Per Study Details </a>
+    </div>
+  </div>
 <br>
 {% for response in responses %}
   <pre>{{ response|pprint }}</pre>
