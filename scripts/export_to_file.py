@@ -16,6 +16,7 @@ from django.db.models import Count
 import experiments.models as em
 import prolific.models as pm
 
+from .export_assgn_meta import collect_all_assgn_metadata
 output_dir = '/results_export'
 
 def dump_all():
@@ -24,6 +25,7 @@ def dump_all():
         dump_battery(batt)
     dump_sc_metadata()
     dump_scs_metadata()
+    collect_all_assgn_metadata(output_dir)
 
 def dump_by_id(bid):
     batt = em.Battery.objects.get(id=bid)
@@ -43,7 +45,7 @@ def dump_battery(battery):
 
     dumped_assignment_ids = [int(x[0]) for x in manifest]
     assignments = em.Assignment.objects.filter(
-        battery=battery, status="completed"
+        battery=battery, # status="completed"
     ).exclude(id__in=dumped_assignment_ids)
 
     add_to_manifest = []
