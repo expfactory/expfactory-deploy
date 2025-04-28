@@ -96,6 +96,10 @@ class ProlificServe(exp_views.Serve):
             (x.remote_id, x.completion_code) for x in studies if x.completion_code
         ]
 
+        if len(completion_codes) == 1:
+            redirect_url = f"https://app.prolific.com/submissions/complete?cc={completion_codes[0]}"
+            return HttpResponseRedirect(redirect_url)
+
         if len(completion_codes):
             return render(
                 request,
@@ -109,7 +113,7 @@ class ProlificServe(exp_views.Serve):
             )
         except ObjectDoesNotExist:
             # todo sentry log if this happens
-            return super().complete()
+            return super().complete(request)
 
     def get_js_vars(self, **kwargs):
         scs = list(
@@ -158,13 +162,18 @@ class ProlificConsent(exp_views.ServeConsent):
             return self.consent_accepted_redirect(assignment, request)
 
         battery = assignment.battery
-        serve_url = reverse(
+        next_url = reverse(
             "prolific:consent", kwargs={"battery_id": assignment.battery.id}
         )
-        next_url = f"{serve_url}?{request.GET.urlencode()}"
+        next_url = f"{next_url}?{request.GET.urlencode()}"
+        serve_url = reverse(
+            "prolific:serve-battery", kwargs={"battery_id": assignment.battery.id}
+        )
+        serve_url = f"{serve_url}?{request.GET.urlencode()}"
         context = {
             "consent": battery.consent,
             "next_url": next_url,
+            "serve_url": serve_url,
             "consent_form": exp_forms.ConsentForm(),
         }
 
@@ -213,9 +222,10 @@ class ProlificInstructions(View):
         serve_url = reverse(
             "prolific:serve-battery", kwargs={"battery_id": assignment.battery.id}
         )
+        serve_url = f"{serve_url}?{request.GET.urlencode()}"
 
         if not assignment.battery.instructions:
-            return redirect(f"{serve_url}?{request.GET.urlencode()}")
+            return redirect(serve_url)
 
         context = {
             "serve_url": serve_url,
@@ -281,7 +291,7 @@ class StudyCollectionView(LoginRequiredMixin, TemplateView):
 
         context["batteries"] = exp_models.Battery.objects.exclude(
             status__in=["template", "inactive"]
-        ).values_list("id", "title")
+        ).order_by('title').values_list("id", "title")
 
         return context
 
@@ -773,13 +783,15 @@ class ParticipantFormView(LoginRequiredMixin, FormView):
     template_name = "prolific/participant_form.html"
     form_class = forms.ParticipantIdForm
     success_url = reverse_lazy("prolific:study-collection-list")
-
     def form_valid(self, form):
         ids = form.cleaned_data["ids"]
         collection = get_object_or_404(
             models.StudyCollection, id=self.kwargs["collection_id"]
         )
-
+        self.success_url = reverse_lazy(
+            "prolific:collection-subject-list",
+            kwargs={"collection_id": self.kwargs["collection_id"]},
+        )
         subjects = []
         for id in ids:
             subject, sub_created = exp_models.Subject.objects.get_or_create(

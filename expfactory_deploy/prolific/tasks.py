@@ -29,7 +29,7 @@ on battery completion:
 def add_to_collection(subject_id, collection_id, group_index=None):
     subject = em.Subject.objects.get(id=subject_id)
     collection = pm.StudyCollection.objects.get(id=collection_id)
-    add_subjects_to_collection([subject], collection)
+    add_subjects_to_collection([subject], collection, group_index)
 
 
 def on_complete_battery(sc, current_study, subject_id):
@@ -84,7 +84,7 @@ def on_complete_battery(sc, current_study, subject_id):
                 if screener_rejection_message:
                     api.send_message(
                         scs.subject.prolific_id,
-                        current_study,
+                        ss.study.remote_id,
                         screener_rejection_message,
                     )
 
