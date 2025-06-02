@@ -97,7 +97,7 @@ class ProlificServe(exp_views.Serve):
         ]
 
         if len(completion_codes) == 1:
-            redirect_url = f"https://app.prolific.com/submissions/complete?cc={completion_codes[0]}"
+            redirect_url = f"https://app.prolific.com/submissions/complete?cc={completion_codes[0][1]}"
             return HttpResponseRedirect(redirect_url)
 
         if len(completion_codes):

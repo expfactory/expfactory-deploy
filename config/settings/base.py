@@ -226,7 +226,7 @@ ADMIN_URL = "admin/"
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
 ADMINS = [("""Ross Blair""", "rosswilsonblair@gmail.com")]
 # https://docs.djangoproject.com/en/dev/ref/settings/#managers
-MANAGERS = [("""Ross Blair""", "rosswilsonblair@gmail.com"), ("Logan Bennett", "logben@stanford.edu")]
+MANAGERS = [("""Ross Blair""", "rosswilsonblair@gmail.com"), ("Logan Bennett", "logben@stanford.edu"), ("Margot Mitchell", "marg0tm@stanford.edu")]
 # MANAGERS = ADMINS
 
 # LOGGING
@@ -347,5 +347,7 @@ Q_CLUSTER = {
     'orm': 'default',
     'poll': 4,
     'max_attempts': 3,
+    'save_limit': 0,
+    'max_rss': 2000000,
 }
 

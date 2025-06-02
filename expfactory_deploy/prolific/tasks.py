@@ -129,7 +129,7 @@ def study_warning(scs_id, study_id):
     sc = scs.study_collection
     study = pm.Study.objects.get(id=study_id)
     started = (
-        em.Assignment.objects.filter(alt_id=study.remote_id)
+        em.Assignment.objects.filter(alt_id=study.remote_id, subject=scs.subject)
         .exclude(status="not-started")
         .count()
     )
@@ -165,7 +165,7 @@ def study_end_grace(scs_id, study_id):
     if started:
         return f"{scs.subject} has started {study} taking no action"
 
-    if scs.study_collection.kick_on_timeout:
+    if scs.study_collection.study_kick_on_timeout:
         status = "kicked"
         study.remove_participant(scs.subject.prolific_id)
         message = f"removed ${scs.subject.prolific_id} from ${study} for not starting battery on time"
