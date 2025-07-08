@@ -137,7 +137,7 @@ def study_warning(scs_id, study_id):
         study_subject = pm.StudySubject.objects.get(study=study, subject=scs.subject)
         api.send_message(
             scs.subject.prolific_id,
-            study_id,
+            study.remote_id,
             sc.study_warning_message,
         )
         study_subject.warned_at = datetime.now()

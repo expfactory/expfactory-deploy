@@ -7,6 +7,7 @@ volumes:
 
 services:
   django: &django
+    restart: always
     build:
       context: .
       dockerfile: ./compose/production/django/Dockerfile
@@ -25,6 +26,7 @@ services:
     command: /usr/local/bin/gunicorn config.asgi --bind 0.0.0.0:5000 --chdir=/app -w 1 --max-requests 2000 -t 60 --graceful-timeout 60 -k uvicorn.workers.UvicornWorker
 
   postgres:
+    restart: always
     build:
       context: .
       dockerfile: ./compose/production/postgres/Dockerfile

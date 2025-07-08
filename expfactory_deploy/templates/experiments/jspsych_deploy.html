@@ -13,6 +13,40 @@
     <script src="/deployment/non_repo/default/static/js/jquery.min.js"></script>
     <script src="/deployment/non_repo/default/static/js/bootstrap.min.js"></script>
     {{ experiment_load | safe }}
+    <style>
+      .lds-dual-ring {
+        /* change color here */
+        color: #1c4c5b
+      }
+      .lds-dual-ring,
+      .lds-dual-ring:after {
+        box-sizing: border-box;
+      }
+      .lds-dual-ring {
+        display: inline-block;
+        width: 80px;
+        height: 80px;
+      }
+      .lds-dual-ring:after {
+        content: " ";
+        display: block;
+        width: 64px;
+        height: 64px;
+        margin: 8px;
+        border-radius: 50%;
+        border: 6.4px solid currentColor;
+        border-color: currentColor transparent currentColor transparent;
+        animation: lds-dual-ring 1.2s linear infinite;
+      }
+      @keyframes lds-dual-ring {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+  </style>
 {% csrf_token %}
   </head>
   <body>
@@ -75,7 +109,12 @@
             <div id="finished_message" style="margin:100px">
                 <h1>Experiment Complete</h1>
                 <p>{{ end_message }}</p>
-                <button id="next_experiment_button" type="button" class="btn btn-success">Next Experiment</button>
+                <div id="upload_spinner">
+                <p>Attempting to upload results.</p>
+                <div class="lds-dual-ring"></div>
+                </div>
+                <div id="upload_failure" hidden=""><p>Failed to upload results. Please contact us.</p></div>
+                <button id="next_experiment_button" type="button" class="btn btn-success" hidden="">Next Experiment</button>
             </div>`;
 
           let postData = generatePostData()
@@ -90,6 +129,8 @@
             data : JSON.stringify(postData),
             dataType: 'text',
             error: (error) => {
+              document.getElementById("upload_spinner").hidden = true
+              document.getElementById("upload_failure").hidden = false
               jsPsych.data.get().localSave('csv', `${new Date().getTime()}.csv`);
               console.log(error)
             },
@@ -98,6 +139,8 @@
                 console.log("Finished!");
                 location.reload()
               })
+              document.getElementById("upload_spinner").hidden = true
+              document.getElementById("next_experiment_button").hidden = false
               let old_ds = document.getElementsByClassName("display_stage_background")
               if (old_ds.length > 0) {
                 old_ds[0].hidden = true
