@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Count, F, Prefetch, Q
 from django.http import (
     Http404,
@@ -45,7 +45,7 @@ def assignment_from_query_params(subject, study_id, session_id):
             study_subjects = session_ss
 
     if len(study_subjects) > 1:
-        raise Exception(
+        raise MultipleObjectsReturned(
             f"Found multiple study subjects while setting assignment for subject {subject.id}"
         )
 
@@ -233,6 +233,22 @@ class ProlificInstructions(View):
         }
         return render(request, "experiments/instructions.html", context)
 
+class ManualUpload(FormView):
+    template_name = "prolific/manual_upload.html"
+    form_class = forms.ManualUploadForm
+    success_url = reverse_lazy("prolific:upload-success")
+
+    def form_valid(self, form):
+        print("form_valid??")
+        if form.is_valid():
+            print("iz_valid")
+            form.write_to_file()
+            form.write_to_result()
+        print("super")
+        return super().form_valid(form)
+
+class ManualUploadSuccess(TemplateView):
+    template_name = "prolific/manual_upload_success.html"
 
 class SimpleCCUpdate(LoginRequiredMixin, UpdateView):
     form_class = forms.SimpleCCForm
@@ -1055,3 +1071,4 @@ def set_part_group_blocklist(request, collection_id):
         reverse_lazy("prolific:remote-study-detail"),
         kwargs={"id": first_study.remote_id},
     )
+
