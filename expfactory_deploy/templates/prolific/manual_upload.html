@@ -6,3 +6,9 @@
 {% crispy form %}
 
 {% endblock %}
+
+{% block inline_javascript %}
+<script>
+  document.getElementById('id_error').value = window.localStorage.getItem('errorThrown')
+</script>
+{% endblock %}
