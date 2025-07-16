@@ -251,13 +251,19 @@ class ManualUploadForm(forms.Form):
             result.data = export
             result.status = 'completed'
             result.save()
-            print(f"""
-                Saved manual results:
+            message = EmailMessage(
+                f"Manual Upload Success",
+                f"""
                     Subject: {self.subject.prolific_id}
                     Study: {self.study.remote_id}
                     Date: {self.date}
                     exp_id: {exp_id}
-            """)
+                    result id: {result.id}
+                """,
+                settings.SERVER_EMAIL,
+                [a[1] for a in settings.MANAGERS],
+            )
+            message.send()
         else:
             message = EmailMessage(
                 f"Unable to find unique result for manual upload by subject.",
