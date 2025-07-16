@@ -244,7 +244,7 @@ class ManualUploadForm(forms.Form):
         if started_count == 1 and other_count == 0:
             result = results.get(status='started')
             if result.data != '':
-                old_data_fname = os.join(self.sub_dir, f"{self.fname_stub}_old_data.json")
+                old_data_fname = os.path.join(self.sub_dir, f"{self.fname_stub}_old_data.json")
                 old_data = ast.literal(result.data)
                 with open(old_data_fname, 'w') as fp:
                     json.dump(fp)
