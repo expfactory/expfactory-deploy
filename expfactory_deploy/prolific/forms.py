@@ -264,6 +264,31 @@ class ManualUploadForm(forms.Form):
                 [a[1] for a in settings.MANAGERS],
             )
             message.send()
+        elif started_count == 0 and other_count == 0:
+            # try and create new result object.
+            batt_exp_query = assgn.battery.batteryexperiments_set.all().filter(experiment_instance__experiment_repo_id__name=exp_id)
+            if batt_exp_query.count() == 1:
+                batt_exp = batt_exp_query[0]
+                exp_models.Result(
+                    assignment=assgn,
+                    battery_experiment=batt_exp,
+                    subject=self.subject,
+                    data=export,
+                    status='completed'
+                ).save()
+            else:
+                message = EmailMessage(
+                    f"Unable to determine unique experiment within battery for manual upload.",
+                    f"""
+                        Subject: {self.subject.prolific_id}
+                        Study: {self.study.remote_id}
+                        Date: {self.date}
+                        exp_id: {exp_id}
+                    """,
+                    settings.SERVER_EMAIL,
+                    [a[1] for a in settings.MANAGERS],
+                )
+                message.send()
         else:
             message = EmailMessage(
                 f"Unable to find unique result for manual upload by subject.",
