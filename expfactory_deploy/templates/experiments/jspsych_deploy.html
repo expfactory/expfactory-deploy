@@ -129,7 +129,7 @@
             data : JSON.stringify(postData),
             dataType: 'text',
             retryCount: 0,
-            error: function(error, textStatus, errorThrown) {
+            error: function(error, textStatus) {
               if (this.retryCount < 3) {
                 this.retryCount++;
                 setTimeout(() => $.ajax(this), 3000);
@@ -138,8 +138,7 @@
               document.getElementById("upload_spinner").hidden = true
               document.getElementById("upload_failure").hidden = false
               jsPsych.data.get().localSave('csv', `${new Date().getTime()}.csv`);
-              window.localStorage.setItem('errorThrown', errorThrown)
-              console.log(errorThrown)
+              window.localStorage.setItem('errorThrown', error.statusText)
             },
             success: (data) => {
               $("#next_experiment_button").click(() => {
