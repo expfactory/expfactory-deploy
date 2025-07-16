@@ -239,12 +239,9 @@ class ManualUpload(FormView):
     success_url = reverse_lazy("prolific:upload-success")
 
     def form_valid(self, form):
-        print("form_valid??")
         if form.is_valid():
-            print("iz_valid")
             form.write_to_file()
             form.write_to_result()
-        print("super")
         return super().form_valid(form)
 
 class ManualUploadSuccess(TemplateView):
