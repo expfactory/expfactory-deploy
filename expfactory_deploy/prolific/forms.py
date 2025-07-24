@@ -147,6 +147,7 @@ class ManualUploadForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.add_input(Submit("submit", "Submit"))
+        self.saved_to_result = False
 
     def clean_prolific_id(self):
         prolific_id = self.cleaned_data["prolific_id"]
@@ -251,6 +252,7 @@ class ManualUploadForm(forms.Form):
             result.data = export
             result.status = 'completed'
             result.save()
+            self.saved_to_result = True
             message = EmailMessage(
                 f"Manual Upload Success",
                 f"""
@@ -276,6 +278,7 @@ class ManualUploadForm(forms.Form):
                     data=export,
                     status='completed'
                 ).save()
+                self.saved_to_result = True
             else:
                 message = EmailMessage(
                     f"Unable to determine unique experiment within battery for manual upload.",

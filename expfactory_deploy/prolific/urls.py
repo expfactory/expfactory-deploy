@@ -154,6 +154,11 @@ urlpatterns = [
         "participant/result/upload/success",
         views.ManualUploadSuccess.as_view(),
         name="upload-success"
+    ),
+    path(
+        "participant/result/upload/failure",
+        views.ManualUploadFailure.as_view(),
+        name="upload-failure"
     )
 
 ]

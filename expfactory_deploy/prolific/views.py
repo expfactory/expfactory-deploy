@@ -242,10 +242,15 @@ class ManualUpload(FormView):
         if form.is_valid():
             form.write_to_file()
             form.write_to_result()
+            if form.saved_to_result is False:
+                self.success_url = reverse_lazy("prolific:upload-failure")
         return super().form_valid(form)
 
 class ManualUploadSuccess(TemplateView):
     template_name = "prolific/manual_upload_success.html"
+
+class ManualUploadFailure(TemplateView):
+    template_name = "prolific/manual_upload_failure.html"
 
 class SimpleCCUpdate(LoginRequiredMixin, UpdateView):
     form_class = forms.SimpleCCForm
