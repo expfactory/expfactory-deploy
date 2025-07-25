@@ -246,9 +246,9 @@ class ManualUploadForm(forms.Form):
             result = results.get(status='started')
             if result.data != '':
                 old_data_fname = os.path.join(self.sub_dir, f"{self.fname_stub}_old_data.json")
-                old_data = ast.literal(result.data)
+                old_data = ast.literal_eval(result.data)
                 with open(old_data_fname, 'w') as fp:
-                    json.dump(fp)
+                    json.dump(old_data,fp)
             result.data = export
             result.status = 'completed'
             result.save()
