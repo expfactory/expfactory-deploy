@@ -33,6 +33,7 @@
                   {% for study in collection.study_set.all %}
                     <li>
                       <a href="{% url 'experiments:battery-detail' study.battery.id %}">Battery {{ study.battery.title }}</a> <br>
+                      Battery ID: {{ study.battery.id }} <br>
                       Prolific ID: {% if study.remote_id == '' %} None {% else %} {{ study.remote_id }} {% endif %}
                     </li>
                   {% endfor %}
@@ -95,7 +96,8 @@
         <ul>
           {% for study in collection.study_set.all %}
             <li>
-              <a href="{% url 'experiments:battery-detail' study.battery.id %}">Battery {{ study.battery.id }} </a>
+              <a href="{% url 'experiments:battery-detail' study.battery.id %}">Battery {{ study.battery.title }}</a> <br>
+              Battery ID: {{ study.battery.id }} <br>
               Prolific ID: {{ study.remote_id }}
             </li>
           {% endfor %}
