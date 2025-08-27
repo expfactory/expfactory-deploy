@@ -294,3 +294,4 @@ test_config
 /**/expfactory_deploy_local/static/experiments
 
 .certs
+docs/prolific_api.yaml
