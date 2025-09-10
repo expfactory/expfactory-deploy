@@ -159,6 +159,26 @@ urlpatterns = [
         "participant/result/upload/failure",
         views.ManualUploadFailure.as_view(),
         name="upload-failure"
-    )
+    ),
+    path(
+        "taskflow/list",
+        views.TaskflowList.as_view(),
+        name="taskflow-list",
+    ),
+    path(
+        "taskflow/edit",
+        views.taskflow_edit,
+        name="taskflow-edit",
+    ),
+    path(
+        "taskflow/edit/<str:taskflow_remote_id>",
+        views.taskflow_edit,
+        name="taskflow-edit",
+    ),
+    path(
+        "taskflow/delete/<int:pk>",
+        views.TaskflowDelete.as_view(),
+        name="taskflow-delete",
+    ),
 
 ]

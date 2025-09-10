@@ -25,6 +25,10 @@ services:
       - "8000:8000"
       - "4000:4000"
     command: /start
+    develop:
+      watch:
+        - action: restart
+          path: ./expfactory_deploy
 
   postgres:
     build:

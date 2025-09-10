@@ -17,7 +17,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.generic import ListView, TemplateView, View
-from django.views.generic.edit import CreateView, FormView, UpdateView
+from django.views.generic.edit import CreateView, DeleteView, FormView, UpdateView
 
 from experiments import views as exp_views
 from experiments import models as exp_models
@@ -1074,3 +1074,34 @@ def set_part_group_blocklist(request, collection_id):
         kwargs={"id": first_study.remote_id},
     )
 
+
+class TaskflowList(LoginRequiredMixin, ListView):
+    model = models.Taskflow
+    queryset = models.Taskflow.objects.prefetch_related(
+        Prefetch("studycollection_set")
+    ).all()
+
+class TaskflowDelete(LoginRequiredMixin, DeleteView):
+    model = models.Taskflow
+    success_url = reverse_lazy('prolific:taskflow-list')
+
+@login_required
+def taskflow_edit(request, taskflow_remote_id=None):
+    if request.method == 'POST':
+        form = forms.TaskflowForm(request.POST)
+        if form.is_valid():
+            taskflow, created = models.Taskflow.objects.get_or_create(taskflow_remote_id=form.cleaned_data["taskflow_remote_id"])
+            taskflow.save()
+            study_collections = form.cleaned_data["study_collections"]
+            study_collections.update(taskflow=taskflow)
+            return redirect(reverse('prolific:taskflow-list'))
+    else:
+        initial = None
+        if taskflow_remote_id is not None:
+            initial = {
+                "taskflow_remote_id": taskflow_remote_id,
+                "study_collections": models.StudyCollection.objects.filter(taskflow__taskflow_remote_id=taskflow_remote_id)
+            }
+        form = forms.TaskflowForm(initial=initial)
+
+    return render(request, 'prolific/taskflow_edit.html', {'form': form})
