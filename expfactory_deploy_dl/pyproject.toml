@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "efd-dl"
+version = "0.1.0"
+authors = [{name = "Ross Blair", email="rosswilsonblair@gmail.com"}]
+readme = "README.md"
+description = "CLI that wraps rsync calls to download exported results from expfactory-deploy"
+license = { text = "MIT License" }
+requires-python = ">=3.11"
+dependencies = ["typer >= 0.17"]
+
+[project.scripts]
+efd-dl = "efd_dl:main"
