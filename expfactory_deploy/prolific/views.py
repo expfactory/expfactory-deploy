@@ -1,7 +1,8 @@
 import json
 
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
+from time import sleep
 
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,6 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Count, F, Prefetch, Q
 from django.http import (
     Http404,
+    HttpResponse,
     HttpResponseRedirect,
 )
 from django.shortcuts import get_object_or_404, render, redirect
@@ -1105,3 +1107,15 @@ def taskflow_edit(request, taskflow_remote_id=None):
         form = forms.TaskflowForm(initial=initial)
 
     return render(request, 'prolific/taskflow_edit.html', {'form': form})
+
+def q2_status(request):
+    from django_q.tasks import async_task, result
+    from django_q import models as qm
+    async_task("prolific.tasks.q2_status")
+    sleep(1)
+    result = qm.Success.objects.filter(func='prolific.tasks.q2_status').order_by('-result').first().result
+    diff = datetime.now() - result
+    if diff < timedelta(minutes=60):
+        return HttpResponse(status=200)
+    else:
+        return HttpResponse(status=500)
