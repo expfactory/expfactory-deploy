@@ -13,9 +13,6 @@ Welcome to Expfactory Deploy's documentation!
    introduction
    experiments
    prolific
-   howto
-   pycharm/configuration
-   users
 
 
 
