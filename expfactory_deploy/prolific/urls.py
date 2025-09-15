@@ -145,4 +145,20 @@ urlpatterns = [
         views.ScreenerProgressListAlt.as_view(),
         name="screener-progress-list-alt"
     ),
+    path(
+        "participant/result/upload",
+        views.ManualUpload.as_view(),
+        name="manual-upload"
+    ),
+    path(
+        "participant/result/upload/success",
+        views.ManualUploadSuccess.as_view(),
+        name="upload-success"
+    ),
+    path(
+        "participant/result/upload/failure",
+        views.ManualUploadFailure.as_view(),
+        name="upload-failure"
+    )
+
 ]

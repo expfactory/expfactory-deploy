@@ -13,6 +13,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.serializers import serialize
+from django.core.mail import EmailMessage
 from django.db.models import F, Q
 from django.forms import formset_factory, TextInput
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, FileResponse
@@ -24,6 +25,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView, TemplateView, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, FormView
 from taggit.models import Tag
+
+import sentry_sdk
 
 from experiments import forms as forms
 from experiments import models as models
@@ -388,7 +391,7 @@ class Preview(View):
 
         template = "experiments/jspsych_deploy.html"
         context = jspsych_context(exp_instance)
-        context["post_url"] = "local"
+        context["post_url"] = "http://notadomain"
         return render(request, template, context)
 
     def post(self, request, *args, **kwargs):
@@ -637,6 +640,29 @@ class Results(View):
         inprogress_results = [x for x in results if x.status in inprogress_statuses]
         if len(inprogress_results):
             result = inprogress_results[0]
+            try:
+                prev_length = len(result.data.__str__())
+                new_length = len(data.__str__())
+                if prev_length > new_length:
+                    message = EmailMessage(
+                        f"Potential Experiment Reload",
+                        f"""
+                            Subject: {assignment.subject.id} - {assignment.subject.prolific_id}
+                            Assignment: { assignment.id }
+                            Result: { result.id }
+                            Previous Modified: { result.modified.isoformat() }
+                            Current Time: { datetime.utcnow().isoformat() }
+                            Old Length: { prev_length }
+                            New Length: { new_length }
+                        """,
+                        settings.SERVER_EMAIL,
+                        [a[1] for a in settings.MANAGERS],
+                    )
+                    message.attach(f"old_data_rid{result.id}.json", json.dumps(result.data, indent=4, default=str), "application/json")
+                    message.attach(f"new_data_rid{result.id}.json", json.dumps(data, indent=4, default=str), "application/json")
+                    message.send()
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
             result.data = data
             result.status = new_status
             result.save()

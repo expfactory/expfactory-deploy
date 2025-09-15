@@ -13,21 +13,47 @@
   </thead>
   <tbody id="repo_tbody">
     {% for repo in object_list %}
+    {% if repo.active %}
     <tr>
       <td><a href="{% url 'experiments:repo-origin-detail' repo.id %}">{{ repo.name }}</a></td>
       <td>
         <a href="{{ repo.display_url }}"> {{ repo.display_url }}</a> {{ repo.get_latest_commit }} {{ repo.commit_date }}
       </td>
       <td>
-      {% if repo.active %}
-        <a href="{% url 'experiments:repo-deactivate-confirm' repo.id %}">deactivate</a></td>
-      {% else %}
-        Inactive
-      {% endif %}
+        <a href="{% url 'experiments:repo-deactivate-confirm' repo.id %}">deactivate</a>
+      </td>
     </tr>
+    {% endif %}
     {% endfor %}
   </tbody>
 </table>
+
+<details>
+  <summary>Hidden Repositories</summary>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>URL</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for repo in object_list %}
+      {% if not repo.active %}
+      <tr>
+        <td><a href="{% url 'experiments:repo-origin-detail' repo.id %}">{{ repo.name }}</a></td>
+        <td>
+          <a href="{{ repo.display_url }}"> {{ repo.display_url }}</a> {{ repo.get_latest_commit }} {{ repo.commit_date }}
+        </td>
+        <td>Inactive</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+
 <a class="btn btn-primary" href="{% url 'experiments:repo-origin-create' %}"> Add New </a>
 
 <script>

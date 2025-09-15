@@ -1,0 +1,14 @@
+{% extends "subject_facing_base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+{% crispy form %}
+
+{% endblock %}
+
+{% block inline_javascript %}
+<script>
+  document.getElementById('id_error').value = window.localStorage.getItem('errorThrown')
+</script>
+{% endblock %}

@@ -12,21 +12,21 @@ def add_subjects_to_collection(subjects, collection, group_index=None):
     for subject in subjects:
         (
             subject_collection,
-            created,
+            scs_created,
         ) = models.StudyCollectionSubject.objects.get_or_create(
             study_collection=collection, subject=subject
         )
         if first_study:
-            study_subject, created = models.StudySubject.objects.get_or_create(
+            study_subject, ss_created = models.StudySubject.objects.get_or_create(
                 study=first_study, subject=subject
             )
         print(f"first study: {first_study}, ss.study: {study_subject.study}")
-        if created:
+        if scs_created:
             if group_index:
                 subject_collection.group_index = group_index
                 subject_collection.save()
             on_add_to_collection(subject_collection)
-        if first_study and created:
+        if first_study and scs_created:
             subject_collection.current_study = first_study
 
     ids = [x.prolific_id for x in subjects]

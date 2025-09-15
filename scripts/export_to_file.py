@@ -16,7 +16,9 @@ from django.db.models import Count
 import experiments.models as em
 import prolific.models as pm
 
+from .export_assgn_meta import collect_all_assgn_metadata
 output_dir = '/results_export'
+failed_validation = []
 
 def dump_all():
     batteries = em.Battery.objects.all()
@@ -24,14 +26,23 @@ def dump_all():
         dump_battery(batt)
     dump_sc_metadata()
     dump_scs_metadata()
+    collect_all_assgn_metadata(output_dir)
 
-def dump_by_id(bid):
+def dump_by_id(bid, validate=False):
     batt = em.Battery.objects.get(id=bid)
-    dump_battery(batt)
+    dump_battery(batt, validate)
 
-def dump_battery(battery):
+def validate_all():
+    batteries = em.Battery.objects.all()
+    for batt in batteries:
+        print(batt.id, len(failed_validation))
+        dump_battery(batt, True)
+    print(failed_validation)
+
+def dump_battery(battery, validate=False):
     battery_id = f'battery-{battery.id}'
     os.makedirs(os.path.join(output_dir, battery_id), exist_ok=True)
+    '''
     manifest = []
     manifest_fname = f"{battery_id}_manifest.csv" 
     try:
@@ -42,23 +53,28 @@ def dump_battery(battery):
         pass
 
     dumped_assignment_ids = [int(x[0]) for x in manifest]
+    '''
+
     assignments = em.Assignment.objects.filter(
-        battery=battery, status="completed"
-    ).exclude(id__in=dumped_assignment_ids)
+        battery=battery, # status="completed"
+    )#.exclude(id__in=dumped_assignment_ids)
 
-    add_to_manifest = []
+    # add_to_manifest = []
     for assignment in assignments:
-        dump_assignment(assignment, battery_id)
-        add_to_manifest.append([str(assignment.id), datetime.now().isoformat()])
+        dump_assignment(assignment, battery_id, validate=validate)
+        # add_to_manifest.append([str(assignment.id), datetime.now().isoformat()])
 
+    '''
     with open(os.path.join(output_dir, battery_id, manifest_fname), 'a') as fp:
         fp.write('\n'.join([','.join(x) for x in add_to_manifest]))
+    '''
 
-def dump_assignment(assignment, target_dir=None, force=False):
+def dump_assignment(assignment, target_dir=None, force=False, validate=False):
     result_fname = 'sub-{sub}_{batt}_order-{order}_task-{exp_name}_asgn-{aid}_data.json'
     sub = assignment.subject.prolific_id or assignment.subject.id
     results = list(
         assignment.result_set.all()
+            .filter(status='completed')
             .select_related('battery_experiment')
             .order_by('completed_at')
             .select_related('battery_experiment__experiment_instance__experiment_repo_id')
@@ -75,8 +91,20 @@ def dump_assignment(assignment, target_dir=None, force=False):
         order = str(i).zfill(padding)
         fname = result_fname.format(sub=sub, batt=target_dir, exp_name=exp_name, order=order, aid=assignment.id)
         data = ast.literal_eval(result.data)
-        with open(os.path.join(output_dir, target_dir, fname), 'w') as fp:
-            json.dump(data, fp)
+        if validate:
+            validate_result(os.path.join(output_dir, target_dir, fname), data)
+        if not os.path.isfile(os.path.join(output_dir, target_dir, fname)):
+            with open(os.path.join(output_dir, target_dir, fname), 'w') as fp:
+                json.dump(data, fp)
+
+def validate_result(path, data):
+    result_size = len(json.dumps(data).encode('utf-8'))   
+    try:
+        file_size = os.path.getsize(path)
+    except FileNotFoundError:
+        return
+    if result_size - file_size != 0:
+        failed_validation.append((path, result_size, file_size))
 
 def dump_sc_metadata():
     fname = 'study_collections.json'

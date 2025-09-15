@@ -29,7 +29,7 @@ on battery completion:
 def add_to_collection(subject_id, collection_id, group_index=None):
     subject = em.Subject.objects.get(id=subject_id)
     collection = pm.StudyCollection.objects.get(id=collection_id)
-    add_subjects_to_collection([subject], collection)
+    add_subjects_to_collection([subject], collection, group_index)
 
 
 def on_complete_battery(sc, current_study, subject_id):
@@ -84,7 +84,7 @@ def on_complete_battery(sc, current_study, subject_id):
                 if screener_rejection_message:
                     api.send_message(
                         scs.subject.prolific_id,
-                        current_study,
+                        ss.study.remote_id,
                         screener_rejection_message,
                     )
 
@@ -129,7 +129,7 @@ def study_warning(scs_id, study_id):
     sc = scs.study_collection
     study = pm.Study.objects.get(id=study_id)
     started = (
-        em.Assignment.objects.filter(alt_id=study.remote_id)
+        em.Assignment.objects.filter(alt_id=study.remote_id, subject=scs.subject)
         .exclude(status="not-started")
         .count()
     )
@@ -137,7 +137,7 @@ def study_warning(scs_id, study_id):
         study_subject = pm.StudySubject.objects.get(study=study, subject=scs.subject)
         api.send_message(
             scs.subject.prolific_id,
-            study_id,
+            study.remote_id,
             sc.study_warning_message,
         )
         study_subject.warned_at = datetime.now()
@@ -165,7 +165,7 @@ def study_end_grace(scs_id, study_id):
     if started:
         return f"{scs.subject} has started {study} taking no action"
 
-    if scs.study_collection.kick_on_timeout:
+    if scs.study_collection.study_kick_on_timeout:
         status = "kicked"
         study.remove_participant(scs.subject.prolific_id)
         message = f"removed ${scs.subject.prolific_id} from ${study} for not starting battery on time"

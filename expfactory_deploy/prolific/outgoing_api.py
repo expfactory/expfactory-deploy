@@ -215,8 +215,11 @@ def get_submission(session_id):
 
 
 def send_message(participant_id, study_id, message):
+    sid = study_id
+    if study_id in ["681cc18caff80f0d077a4ebb", "6818c2518698b6fa880a2ba5", "6818c4a5771dd80e17b0eacb", "6818dc2da9c7a2f991db696d"]:
+        sid = "683614b4b44d41f6e2305612"
     body = api_models.send_message.SendMessage.from_dict(
-        {"recipient_id": participant_id, "body": message, "study_id": study_id}
+        {"recipient_id": participant_id, "body": message, "study_id": sid}
     )
     response = make_call(_send_message, json_body=body)
     return response

@@ -380,6 +380,7 @@ class Assignment(SubjectTaskStatusModel):
         exempt_results = Result.objects.filter(
                 Q(status=Result.STATUS.completed) | Q(status=Result.STATUS.failed),
                 battery_experiment__battery=self.battery, subject=self.subject,
+                assignment=self,
             )
         exempt = [exp.battery_experiment for exp in exempt_results]
         unfinished = [batt_exp for batt_exp in batt_exps if batt_exp not in exempt]
