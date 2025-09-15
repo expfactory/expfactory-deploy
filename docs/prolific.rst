@@ -32,6 +32,7 @@ To open a study to the public the screening criteria of the study on prolific wi
 
 Screener For
 ----------------------------------------------------------------------
+When creating a study collection the final field before sequencing batteries is titled `Screener For`. Its a drop down to select another Study Collection. When a subject completes the study collection the server conducts a `pass_check` for that subject/assignment, it iterates through each of the subjects results for that battery and looks to see if there is any where in the subjects experiment data that the value `include_subject` was set to `reject`. If so it will not assign the subject to the study collection pointed at by `Screener For`. Otherwise the subject will be assigned to the first study in the study collection pointed at by `Screener For`
 
 Taskflow
 ----------------------------------------------------------------------

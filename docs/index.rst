@@ -10,6 +10,9 @@ Welcome to Expfactory Deploy's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   introduction
+   experiments
+   prolific
    howto
    pycharm/configuration
    users

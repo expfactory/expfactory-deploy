@@ -1,7 +1,7 @@
 Introduction
 ======================================================================
 
-What it is
+What Expfactory Deploy is
 ----------------------------------------------------------------------
 Expfactory Deploy is django project to sequence series of jspsych
 experiments, serve them online, and collect results for them. It also has
@@ -109,7 +109,7 @@ Pages on the Site
 ----------------------------------------------------------------------
 As seen on the navigation header these are the 5 pages you can initially navigate to on the site:
 
-Batteries
+Batteries - `/battery/`
     Lists existing batteries by default. When a battery is initially created it is considered to be a template that can be cloned.
     Each entry in the list of batteries starts with details of a template battery and then contains all of its clones in a box underneath it.
 
@@ -123,18 +123,20 @@ Batteries
 
     Making a battery `inactive` hides it from view on this page, and prevents it from being used in future Studys.
 
-Experiments
+Experiments - `/experiments/`
     Lists all experiments that are being tracked by the database. The `Update Experiments` link will perform a git pull for each repository that has experiments.
 
     Tags were intended as way of grouping experiments, but the feature was never used. The table shows the name of the experiment, which repository it lives in, and the last column is a link to a preview of the latest version of the experiment.
 
-Subjects
+Subjects - `/subjects/`
     Lists subjects by their unique ID and batteries that have been associated with that subject. The links in the first column will take you to a page with more details about that subject and their results.
 
-Repositories
+Repositories - `/repo/list/`
     Lists currently tracked repositories, showing their origin URL, when they were last updated, and the ability deactivate them. Deactivated repositories will have their experiments hidden from future use in batteries.
 
-Prolific
+Prolific - `/prolific/collection/`
     Lists all StudyCollections, whether or not they have been posted to prolific. Each entry lists the study collection name. If the collection has been created on Prolific the top level link will show each of its studies current status according to the prolific API. Otherwise the link forms to edit the study collection. The expandable list beneath this link is a link to each of the batteries used by the studies in the study collection and the prolific study ID. On the edit page for a study collection is a link to a page titled `Manage State`. This is the page that allows you to push the study collection studies to Prolific as drafts, and then publish them once created on Prolific's end.
 
     The next column has links to edit the study collection if it is not has not been pushed to Prolific. If it has been pushed to prolific the button will read `Clear Remote IDs` This will remove the Prolific study IDs that the server has associated with the study collections studies. It will not remove touch the studys as they exist on the prolific website.
+
+
