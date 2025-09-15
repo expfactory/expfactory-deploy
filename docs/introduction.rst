@@ -4,8 +4,8 @@ Introduction
 What it is
 ----------------------------------------------------------------------
 Expfactory Deploy is django project to sequence series of jspsych
-experiments, serve them, and collect results for them. It also has an
-integration with Prolific to automatically create studys on the
+experiments, serve them online, and collect results for them. It also has
+an integration with Prolific to automatically create studys on the
 prolific website.
 
 It also has a cli, expfactory_deploy_local, that can be used to serve
