@@ -1,17 +1,28 @@
 Prolific
 ======================================================================
 
+Workspaces and API Keys:
+The server tracks two environment variables used to interact with prolific
+PROLIFIC_KEY - For authentication
+PROLIFIC_DEFAULT_WORKSPACE - The prolific ID for which workspace new studys should be created under.
+
+When creating new studys one additional ID will need to be used, a Prolific Project ID. On prolific as a researcher you can create workspaces, which can bundle projects, and projects which can bundle studys. You will need to create a project on prolific and get its ID from its URL in order to create new studys via expfactory-deploy.
+
 Workflow
 ----------------------------------------------------------------------
-1. Add repository to expfactory-deploy.
-2. Create battery template sequencing experiments.
-3. Clone the template.
-4. Create StudyCollection - add previously cloned battery to it.
-5. Push Study Collection to prolific by creating drafts.
+1. Create battery and clone battery ala :ref:`experiments-quickstart`.
+2. Create StudyCollection - add previously cloned battery to it.
+    `prolific/collection/new` This form will be used as a template for creating studys on prolific. Certain fields are used directly when creating new studys on prolific:
+    - Reward - Value in cents that subjects will be rewarded.
+    - Total available places
+    - Estimated Completion Time
+    - Title
+    - Description
+    The other fields are used by expfactory-deploy to control the flow of participants between the created studies.
+3. Push Study Collection to prolific by creating drafts.
     a. Modify access to the first study on prolific. See below.
-6. Publish Study Collection.
-7. Add Prolific participants to study collection if needed.
-
+4. Publish Study Collection.
+5. Add Prolific participants to study collection if needed.
 
 Prolific Caveats
 ----------------------------------------------------------------------
