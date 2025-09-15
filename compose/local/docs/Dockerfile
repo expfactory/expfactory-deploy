@@ -1,4 +1,4 @@
-FROM python:3.8-slim-buster
+FROM python:3.13-slim-bookworm
 
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -10,6 +10,7 @@ RUN apt-get update \
     && apt-get install -y libpq-dev \
     # Translations dependencies
     && apt-get install -y gettext \
+    && apt-get install -y git \
     # Uncomment below lines to enable Sphinx output to latex and pdf
     # && apt-get install -y texlive-latex-recommended \
     # && apt-get install -y texlive-fonts-recommended \

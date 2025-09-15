@@ -29,12 +29,12 @@ CACHES = {
 # EMAIL_HOST = env("EMAIL_HOST", default="mailhog")
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-port
 EMAIL_PORT = env("EMAIL_PORT", default=1025)
-EMAIL_USE_TLS = env("EMAIL_USE_TLS")
+EMAIL_USE_TLS = env("EMAIL_USE_TLS", default=True)
 EMAIL_USE_TLS = True
 # EMAIL_PORT = env("EMAIL_PORT")
-EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
-EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default=None)
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default=None)
+EMAIL_HOST = env("EMAIL_HOST", default=None)
 DEFAULT_FROM_EMAIL = "admin@mg.expfactory.org"
 SERVER_EMAIL = "admin@mg.expfactory.org"
 

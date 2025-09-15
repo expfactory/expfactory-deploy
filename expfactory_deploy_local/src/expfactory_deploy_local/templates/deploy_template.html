@@ -20,6 +20,56 @@
       hidden
     ></button>
     <script>
+        function generatePostData() {
+          let data = {}
+          let interactionData = {}
+          if (jsPsych.data.hasOwnProperty('getData')) {
+            data = jsPsych.data.getData()
+          } else {
+            data = jsPsych.data.get().json()
+            interactionData = jsPsych.data.getInteractionData().json();
+          }
+
+          let browser = {}
+          try {
+            browser = {
+              "userAgent": navigator.userAgent,
+              "windowWidth": window.innerWidth,
+              "windowHeight": window.innerHeight
+            }
+          } catch {
+            browser = {"error": "failed to access navigator or window object"}
+          }
+
+          let postData = {
+            "uniqueid": "{{ uniqueId }}",
+            "current_trial": 0,
+            "dateTime": (new Date().getTime()),
+            "trialdata": data,
+            "status": "finished",
+            "browser": browser,
+            "interactionData": interactionData
+          }
+          return postData
+        }
+
+        function dataSync() {
+          let postData = generatePostData()
+          postData["status"] = "started"
+          $.ajax({
+            type: "POST",
+            contentType: "application/json",
+            url : "{{ post_url }}",
+            data : JSON.stringify(postData),
+            dataType: 'text',
+            error: (error) => {
+              console.log(error)
+            }
+          })
+        }
+        window.dataSync = dataSync
+
+
       {% if require_cookie_csrf %}
        $(function() {
          <!-- {# include "experiments/serve_battery_cookie.html" #} -->
@@ -91,6 +141,11 @@
                 data : JSON.stringify(trialdata),
                 error: (error) => { console.log(error) },
                 dataType: 'text',
+                error: (error) => {
+                  console.log(jsPsych.data.get().json());
+                  jsPsych.data.get().localSave('json', `${new Date().toISOString()}.json`);
+                  console.log(error);
+                },
                 success: (data) => {
                   $("#next_experiment_button").click(() => {
                     console.log("Finished!");
