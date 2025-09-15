@@ -18,7 +18,13 @@ web.config.debug = False
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 
-urls = ("/", "serve", "/serve", "serve", "/decline", "decline", "/reset", "reset")
+urls = (
+    "/", "serve",
+    "/serve", "serve",
+    "/decline", "decline",
+    "/reset", "reset",
+    "/serve/(.+)/(.+)/(.+)", "serve_specific"
+)
 
 app = web.application(urls, globals())
 session = web.session.Session(
@@ -100,7 +106,12 @@ def rename_task(task_name):
 
 def create_events_file(data, bids_datafile):
     data = json.loads(data)
-    trialdata = json.loads(data["trialdata"])
+    trialdata = None
+
+    try:
+        trialdata = json.loads(data["trialdata"])
+    except TypeError:
+        trialdata = data["trialdata"]
 
     flattened_data = []
     for trial in trialdata:
@@ -112,34 +123,40 @@ def create_events_file(data, bids_datafile):
                 flat_trial[key] = value
         flattened_data.append(flat_trial)
 
-    df = pl.DataFrame(flattened_data)
-    start_trial = df.filter(pl.col("trial_id") == "fmri_wait_block_trigger_start")
-    start_trial_end = start_trial.select("time_elapsed").to_series()[0]
+    try:
+        df = pl.DataFrame(flattened_data)
+        start_trial = df.filter(pl.col("trial_id") == "fmri_wait_block_trigger_start")
+        start_trial_end = start_trial.select("time_elapsed").to_series()[0]
 
-    # Create a mask that becomes True at fmri_wait_block_trigger_end and stays True thereafter
-    mask = (pl.col("trial_id") == "fmri_wait_block_trigger_end").cum_max()
-    events_df = df.filter(mask)
-    events_df = events_df.with_columns(
-        (pl.col("time_elapsed") - start_trial_end - pl.col("block_duration")).alias(
-            "onset"
+        # Create a mask that becomes True at fmri_wait_block_trigger_end and stays True thereafter
+        mask = (pl.col("trial_id") == "fmri_wait_block_trigger_end").cum_max()
+        events_df = df.filter(mask)
+        events_df = events_df.with_columns(
+            (pl.col("time_elapsed") - start_trial_end - pl.col("block_duration")).alias(
+                "onset"
+            )
         )
-    )
 
-    events_df.write_csv(bids_datafile, separator="\t")
-    print("Saved events datafile to: ", bids_datafile)
-    return events_df
+        events_df.write_csv(bids_datafile, separator="\t")
+        print("Saved events datafile to: ", bids_datafile)
+        return events_df
+    except Exception as e:
+        print(f"failed to save {bids_datafile}")
+        print(e)
+    return None
 
 
 def run(args=None):
     args = parser.parse_args(args)
+    print(args)
     if args.exps is not None:
         experiments = args.exps
-    elif args.exp_config is not None:
-        if args.exp_config.is_file():
-            with open(args.exp_config) as fp:
+    elif args.config is not None:
+        if args.config.is_file():
+            with open(args.config) as fp:
                 experiments = [Path(x.strip()) for x in fp.readlines()]
         else:
-            experiments = [args.exp_config]
+            experiments = [args.config]
     else:
         print("Found arguments:")
         print(args)
@@ -195,10 +212,10 @@ def run(args=None):
             sys.argv = [None, str(port)]
 
 
-def serve_experiment(experiment):
+def serve_experiment(experiment, **kwargs):
     exp_name = experiment.stem
     context = generate_experiment_context(
-        Path(experiments_dir, exp_name), "/", f"/static/experiments/{exp_name}"
+        Path(experiments_dir, exp_name), "/", f"/static/experiments/{exp_name}", **kwargs
     )
     if web.config.get("group_index", None):
         context["group_index"] = web.config.group_index
@@ -209,6 +226,29 @@ class reset:
     def GET(self):
         session.kill()
         return '<html><body>Reset session, <a href="/">back to / </a></body></html>'
+
+class serve_specific:
+    def GET(self, subject_id, session_num, exp_name):
+        return serve_experiment(Path(exp_name), post_url=f"/serve/{subject_id}/{session_num}/{exp_name}")
+
+    def POST(self, subject_id, session_num, exp_name):
+        exp_name_stem = rename_task(exp_name)
+        date = str(int(datetime.datetime.now(datetime.timezone.utc).timestamp()))
+        raw_datafile = f"task-{exp_name_stem}_dateTime-{date}.json"
+        bids_datafile = f"task-{exp_name_stem}.tsv"
+        if session_num:
+            raw_datafile = f"ses-{session_num}_{raw_datafile}"
+            bids_datafile = f"ses-{session_num}_{bids_datafile}"
+        if subject_id:
+            raw_datafile = f"sub-{subject_id}_{raw_datafile}"
+            bids_datafile = f"sub-{subject_id}_{bids_datafile}"
+
+        write_results(raw_datafile, bids_datafile)
+        if "practice" not in exp_name_stem:
+            create_events_file(web.data(), bids_datafile)
+
+        web.header("Content-Type", "application/json")
+        return "{'success': true}"
 
 
 class serve:
@@ -249,15 +289,20 @@ class serve:
             bids_datafile = bids_datafile.replace(
                 ".tsv", f"_run-{web.config.run_num}.tsv"
             )
+        write_results(raw_datafile, bids_datafile)
 
+        web.header("Content-Type", "application/json")
+        return "{'success': true}"
+
+def write_results(raw_datafile, bids_datafile, subject_id=None, session_num=None):
         if web.config.raw_dir:
-            if web.config.subject_id:
+            if subject_id:
                 sub_dir = os.path.join(
-                    web.config.raw_dir, f"sub-{web.config.subject_id}"
+                    web.config.raw_dir, f"sub-{subject_id}"
                 )
                 if web.config.session_num:
                     sub_ses_dir = os.path.join(
-                        sub_dir, f"ses-{web.config.session_num}", "func"
+                        sub_dir, f"ses-{session_num}", "func"
                     )
                     os.makedirs(sub_ses_dir, exist_ok=True)
                     raw_datafile = os.path.join(sub_ses_dir, raw_datafile)
@@ -267,13 +312,13 @@ class serve:
                 raw_datafile = os.path.join(web.config.raw_dir, raw_datafile)
 
         if web.config.bids_dir:
-            if web.config.subject_id:
+            if subject_id:
                 sub_dir = os.path.join(
-                    web.config.bids_dir, f"sub-{web.config.subject_id}"
+                    web.config.bids_dir, f"sub-{subject_id}"
                 )
-                if web.config.session_num:
+                if session_num:
                     sub_ses_dir = os.path.join(
-                        sub_dir, f"ses-{web.config.session_num}", "func"
+                        sub_dir, f"ses-{session_num}", "func"
                     )
                     os.makedirs(sub_ses_dir, exist_ok=True)
                     bids_datafile = os.path.join(sub_ses_dir, bids_datafile)
@@ -287,12 +332,7 @@ class serve:
             fp.write(data)
             print("Saved raw datafile to: ", raw_datafile)
 
-        web.header("Content-Type", "application/json")
 
-        if "practice" not in exp_name_stem:
-            create_events_file(web.data(), bids_datafile)
-
-        return "{'success': true}"
 
 
 class decline:

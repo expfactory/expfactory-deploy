@@ -5,8 +5,12 @@ description = ""
 authors = [{name = "Ross Blair", email="rosswilsonblair@gmail.com"}, {name = "Logan Bennett", email="logben@stanford.edu"}]
 readme = "README.md"
 license = { text = "MIT License" }
-requires-python = ">=3.8"
-dependencies = ["web.py >= 0.62", "Jinja2 >= 3.1.2", "polars"]
+requires-python = ">=3.8, <3.13"
+dependencies = [
+    "web.py >= 0.62",
+    "Jinja2 >= 3.1.2",
+    "polars"
+]
 
 [project.scripts]
 expfactory_deploy_local = 'expfactory_deploy_local.cli:main'
