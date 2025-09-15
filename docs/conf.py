@@ -14,9 +14,9 @@ import os
 import sys
 import django
 
-sys.path.insert(0, os.path.abspath(".."))
-sys.path.insert(0, os.path.abspath("../expfactory_deploy"))
 if os.getenv("READTHEDOCS", default=False) == "True":
+    sys.path.insert(0, os.path.abspath(".."))
+    sys.path.insert(0, os.path.abspath("../expfactory_deploy"))
     os.environ["DJANGO_READ_DOT_ENV_FILE"] = "True"
     os.environ["USE_DOCKER"] = "no"
 else:
