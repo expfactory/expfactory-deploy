@@ -180,5 +180,9 @@ urlpatterns = [
         views.TaskflowDelete.as_view(),
         name="taskflow-delete",
     ),
-
+    path(
+        "q2_status",
+        views.q2_status,
+        name="q2-status",
+    ),
 ]
