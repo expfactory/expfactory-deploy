@@ -13,6 +13,7 @@ services:
     container_name: django
     depends_on:
       - postgres
+      - q2worker
     volumes:
       - .:/app:z
       - ./expfactory_deploy_local/src/expfactory_deploy_local/static/:/app/deployment_assets/non_repo_files/default/static/:rw
@@ -25,6 +26,10 @@ services:
       - "8000:8000"
       - "4000:4000"
     command: /start
+    develop:
+      watch:
+        - action: restart
+          path: ./expfactory_deploy
 
   postgres:
     build:
