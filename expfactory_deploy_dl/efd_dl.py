@@ -34,9 +34,6 @@ CONFIG_KEY_DESCRIPTIONS = {
 
 REQUIRED_CONFIG_KEYS = [key.value for key in ConfigKey]
 
-SSH_OPT = 'ssh -i {key}'
-if platform.system == "Linux":
-    SSH_OPT = '"ssh -i {key}"'
 SSH_OPT = '"ssh -i {key}"'
 
 
@@ -128,9 +125,9 @@ def rsync(target: str, id: Optional[int]=None, filters: Optional[list[str]]=None
     command.extend(SSH_OPT.format(key=key))
 
     if filters:
-        command.extend('--include="*/"'),
+        command.append('--include="*/"'),
         command.extend([f'--include="{x}"' for x in filters])
-        command.extend('--exclude="*"')
+        command.append('--exclude="*"')
 
     command.extend([source, target])
 
