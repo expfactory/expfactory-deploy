@@ -37,6 +37,7 @@ REQUIRED_CONFIG_KEYS = [key.value for key in ConfigKey]
 SSH_OPT = 'ssh -i {key}'
 if platform.system == "Linux":
     SSH_OPT = '"ssh -i {key}"'
+SSH_OPT = '"ssh -i {key}"'
 
 
 
