@@ -124,7 +124,7 @@ def rsync(target: str, id: Optional[int]=None, filters: Optional[list[str]]=None
         source = f"{base_url}:~/results_export/battery-{id}"
 
     command = [ "rsync", "-avmP", "-e" ]
-    command.extend(SSH_OPT.format(key=key)
+    command.extend(SSH_OPT.format(key=key))
 
     if filters:
         command.extend('--include="*/"'),
