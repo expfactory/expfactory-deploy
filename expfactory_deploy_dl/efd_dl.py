@@ -224,7 +224,7 @@ def filter_unified(target: str, config):
         "-avP",
         "-e",
         SSH_OPT.format(key=key),
-        f"{base_url}:~/results_export/unified.csv",
+        f"{Path(base_url) / 'unified.csv'}",
         target
     ]
     subprocess.run(command, check=True)
