@@ -165,7 +165,7 @@ def xref_sc_ids(scs: list[str], target: str, filters: Optional[list[str]]=None, 
     sc_meta = [x for x in sc_meta if x['id'] in sc_ids]
 
     for sc in sc_meta:
-        sc_target = Path(target) / sc['id']
+        sc_target = Path(target) / str(sc['id'])
         for study in sc["studies"]:
             id = study["battery"]
             rsync(sc_target, id, filters, config)
