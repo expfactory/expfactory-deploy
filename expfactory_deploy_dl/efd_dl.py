@@ -34,11 +34,7 @@ CONFIG_KEY_DESCRIPTIONS = {
 
 REQUIRED_CONFIG_KEYS = [key.value for key in ConfigKey]
 
-SSH_OPT = 'ssh -i {key}'
-if platform.system() == "Linux":
-    SSH_OPT = '"ssh -i {key}"'
-
-
+SSH_OPT = "ssh -i '{key}'"
 
 def load_config():
     if not CONFIG_FILE.exists():
@@ -124,7 +120,7 @@ def rsync(target: str, id: Optional[int]=None, filters: Optional[list[str]]=None
         source = f"{base_url}:~/results_export/battery-{id}"
 
     command = [ "rsync", "-avmP", "-e" ]
-    command.extend(SSH_OPT.format(key=key))
+    command.append(SSH_OPT.format(key=key))
 
     if filters:
         command.append('--include="*/"'),
@@ -133,7 +129,7 @@ def rsync(target: str, id: Optional[int]=None, filters: Optional[list[str]]=None
 
     command.extend([source, target])
 
-    subprocess.run(' '.join(command), shell=True, check=True)
+    subprocess.run(command, check=True)
 
 def target_validation(target: str):
     target_path = Path(target).expanduser().resolve()
@@ -162,7 +158,7 @@ def xref_sc_ids(scs: list[str], target: str, filters: Optional[list[str]]=None, 
         f"{base_url}:~/results_export/study_collections.json",
         target
     ]
-    subprocess.run(command, check=True, shell=True)
+    subprocess.run(command, check=True )
     sc_meta = {}
     with open(Path(target).expanduser() / "study_collections.json", 'r') as fp:
         sc_meta = json.load(fp)
@@ -219,6 +215,10 @@ def filter_unified(target: str, config):
     for root, _, files in os.walk(target):
         for file in files:
             dl_fnames.append(file)
+
+    default_source = config['default_source']
+    base_url = default_source
+    key = config['key']
     command = [
         "rsync",
         "-avP",
@@ -227,7 +227,7 @@ def filter_unified(target: str, config):
         f"{base_url}:~/results_export/unified.csv",
         target
     ]
-    subprocess.run(command, check=True, shell=True)
+    subprocess.run(command, check=True)
     with open(Path(target).expanduser() / "unified.csv", 'r') as fp:
         reader = csv.reader(fp)
     header = next(reader)

@@ -8,9 +8,12 @@ version = "0.1.0"
 authors = [{name = "Ross Blair", email="rosswilsonblair@gmail.com"}]
 readme = "README.md"
 description = "CLI that wraps rsync calls to download exported results from expfactory-deploy"
-license = { text = "MIT License" }
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = ["typer >= 0.17"]
 
 [project.scripts]
 efd-dl = "efd_dl:main"
+
+[tool.setuptools]
+py-modules = []
