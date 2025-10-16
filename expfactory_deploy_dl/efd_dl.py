@@ -228,10 +228,11 @@ def filter_unified(target: str, config):
         target
     ]
     subprocess.run(command, check=True)
+    unified = []
     with open(Path(target).expanduser() / "unified.csv", 'r') as fp:
         reader = csv.reader(fp)
-    header = next(reader)
-    unified = [x for x in reader if x[-1] in dl_fnames]
+        header = next(reader)
+        unified = [x for x in reader if x[-1] in dl_fnames]
 
     with open(Path(target).expanduser() / "unified.csv", 'w') as fp:
         writer = csv.writer(fp)
