@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <div class="h2">
+    Taskflow Message Forwarding List
+    <div class="battery-actions">
+      {% if form.taskflow_remote_id %}
+      <a class="btn btn-danger" href="{% url 'prolific:taskflow-delete' form.id %}">Delete</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% crispy form %}
+
+{% endblock %}

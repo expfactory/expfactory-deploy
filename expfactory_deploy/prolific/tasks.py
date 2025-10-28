@@ -353,3 +353,6 @@ def on_add_to_collection(scs):
             scs.id,
             next_run=datetime.now() + sc.collection_time_to_warning,
         )
+
+def q2_status():
+    return datetime.now()

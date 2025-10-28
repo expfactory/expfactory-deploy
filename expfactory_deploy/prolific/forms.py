@@ -308,3 +308,15 @@ class ManualUploadForm(forms.Form):
             )
             message.send()
         return
+
+class TaskflowForm(forms.Form):
+    taskflow_remote_id = forms.CharField(label="Prolific Taskflow Study ID", max_length=200)
+    study_collections = forms.ModelMultipleChoiceField(
+        queryset=models.StudyCollection.objects.filter(active=True),
+        widget=forms.CheckboxSelectMultiple
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.add_input(Submit("submit", "Submit"))

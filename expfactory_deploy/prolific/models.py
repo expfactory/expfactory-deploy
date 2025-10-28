@@ -101,6 +101,7 @@ class StudyCollection(models.Model):
         "self", blank=True, null=True, on_delete=models.SET_NULL
     )
     screener_rejection_message = models.TextField(blank=True)
+    taskflow = models.ForeignKey("Taskflow", blank=True, null=True, on_delete=models.SET_NULL)
 
     @property
     def study_count(self):
@@ -656,3 +657,7 @@ class BlockedParticipant(TimeStampedModel):
     prolific_id = models.TextField(unique=True)
     active = models.BooleanField(default=True)
     note = models.TextField(blank=True)
+
+
+class Taskflow(models.Model):
+    taskflow_remote_id = models.TextField(unique=True)
