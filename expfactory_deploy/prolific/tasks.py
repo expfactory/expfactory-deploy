@@ -356,3 +356,61 @@ def on_add_to_collection(scs):
 
 def q2_status():
     return datetime.now()
+
+
+def find_timers(subject_id):
+    from django_q import models as qm
+
+    scses = pm.StudyCollectionSubject.objects.filter(subject__id=subject_id)
+
+    scs_study_args = []
+    scs_args = []
+    for scs in scses:
+        scs_args.append(f"({scs.id},)")
+        for study in scs.study_collection.study_set.all():
+            scs_study_args.append(f"({scs.id},{study.id})")
+
+    ss_args = []
+    sses = pm.StudySubject.objects.filter(subject__id=subject_id)
+    for ss in sses:
+        ss_args.append(f"({ss.id},)")
+
+    funcs = [
+        ("study_warning", scs_study_args),
+        ("study_end_grace", scs_study_args),
+        ("initial_end_grace", ss_args),
+        ("initial_warning", ss_args),
+        ("collection_end_grace", scs_args),
+        ("collection_warning", scs_args),
+    ]
+
+    tasks_ret = []
+    for func in funcs:
+        tasks = qm.Schedule.objects.filter(func=f"prolific.tasks.{func[0]}", args__in=func[1])
+        if tasks.count():
+            tasks_ret.append(tasks)
+    return tasks_ret
+
+def reissue_study(subject, study):
+    from prolific.models import default_allow_list
+    responses = []
+    group_response = api.create_part_group(
+        study_collection.project, f"Reissue for {subject.prolific_id}: {study.part_group_name}"
+    )
+    responses.append(group_response)
+    new_part_group = group_response["id"]
+    old_remote_id = study.remote_id
+    study_collection = study.study_collection
+    study_details = api.study_detail(id=old_remote_id)
+    query_params = f"?{settings.PROLIFIC_PARTICIPANT_PARAM}={{{{%PROLIFIC_PID%}}}}&{settings.PROLIFIC_STUDY_PARAM}={old_remote_id}&reissue_id={{{{%STUDY_ID%}}}}&{settings.PROLIFIC_SESSION_PARAM}={{{{%SESSION_ID%}}}}"
+
+    study_details['name'] = f"Reissue for {subject.prolific_id}: {study_details['name']}"
+    study_details["external_study_url"] = f"https://deploy.expfactory.org/prolific/serve/{study.battery.id}/consent{query_params}"
+    study_details['filters'] = [default_allow_list(new_part_group)]
+
+    study_details.pop('id')
+    study_details.pop('status')
+
+    response.append(api.create_draft(study_details))
+    api.add_to_part_group(self.participant_group, [subject.prolific_id])
+    return responses
