@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="h2">
+    Subject <a href="{% url 'experiments:subject-detail' subject.id %}">{{ subject.prolific_id}}</a>
+    <div class="battery-actions">
+      <form method="post" action="{% url 'prolific:subject-timers' subject.prolific_id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Delete Timers</a>
+    </div>
+  </div>
+  <table class="table">
+    <thead>
+      <th>Func</th>
+      <th>Args</th>
+      <th>Next Run</th>
+    </thead>
+    <tbody>
+      {% for timers in all_timers %}
+        <tr>
+        {% for timer in timers %}
+          <td>{{ timer.func }}</td>
+          <td>{{ timer.args }}</td>
+          <td>{{ timer.next_run }}</td>
+        {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

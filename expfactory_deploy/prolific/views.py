@@ -29,7 +29,7 @@ from prolific import models
 from prolific import forms
 from prolific import outgoing_api
 
-from prolific.tasks import on_add_to_collection
+from prolific.tasks import on_add_to_collection, find_timers, reissue_study
 from prolific.utils import add_subjects_to_collection
 
 """
@@ -878,11 +878,30 @@ def study_collection_subject_list(request, collection_id):
     return render(request, "prolific/study_collection_subjects.html", context)
 
 
+'''
+    Purpose has altered to reissue only a single study for the subject.
+'''
 @login_required
-def reissue_incomplete_study_collection(request, scs_id):
+def reissue_incomplete_study_collection(request, scs_id, study_id=None):
     scs = get_object_or_404(models.StudyCollectionSubject, pk=scs_id)
-    responses, new_scs = scs.incomplete_study_collection()
-    context = {"responses": responses, "old_scs": scs, "new_scs": new_scs}
+    # responses, new_scs = scs.incomplete_study_collection()
+    # context = {"responses": responses, "old_scs": scs, "new_scs": new_scs}
+
+    if study_id is None:
+        ss = pm.StudySubject.objects.filter(study=scs.current_study, subject=scs.subject)
+    else:
+        ss = pm.StudySubject.objects.filter(study__id=study_id, subject=scs.subject)
+    if ss.assignment.status != 'completed':
+        responses = reissue_study(scs.subject, scs.current_study)
+        scs.status = "started"
+        scs.save()
+        ss.status = "started"
+        ss.save()
+        part_group_id = responses[0]["id"]
+        new_study_id = responses[1]["id"]
+        context["part_group_url"] = f"https://app.prolific.com/researcher/workspaces/{settings.PROLIFIC_DEFAULT_WORKSPACE}/groups/{part_group_id}"
+        context["new_study_url"] = f"https://app.prolific.com/researcher/workspaces/projects/{new_study_id}"
+    context['study_subject'] = ss
     return render(request, "prolific/reissue_incomplete_study_collection.html", context)
 
 
@@ -1065,6 +1084,19 @@ class SubjectCollectionProgressDetail(LoginRequiredMixin, View):
         return render(request, "prolific/collectionprogress.html", context)
 """
 
+
+@login_required
+def subject_timers(request, prolific_id):
+    context = {}
+    subject = get_object_or_404(exp_models.Subject, prolific_id=prolific_id)
+    all_timers = find_timers(subject.id)
+    if request.method == 'POST':
+        for timers in all_timers:
+            if len(timers) and "collection" not in timers[0].func:
+                timers.delete()
+    context['all_timers'] = all_timers
+    context['subject'] = subject
+    return render(request, 'prolific/subject_timers.html', context)
 
 @login_required
 def set_part_group_blocklist(request, collection_id):

@@ -128,7 +128,7 @@ def rsync(target: str, id: Optional[int]=None, filters: Optional[list[str]]=None
         command.append('--exclude="*"')
 
     command.extend([source, target])
-
+    print(command)
     subprocess.run(command, check=True)
 
 def target_validation(target: str):

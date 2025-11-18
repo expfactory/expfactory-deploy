@@ -160,6 +160,12 @@ urlpatterns = [
         views.ManualUploadFailure.as_view(),
         name="upload-failure"
     ),
+
+    path(
+        "subject/timers/<str:prolific_id>",
+        views.subject_timers,
+        name="subject-timers",
+    ),
     path(
         "taskflow/list",
         views.TaskflowList.as_view(),

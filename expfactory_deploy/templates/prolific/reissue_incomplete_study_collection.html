@@ -3,12 +3,20 @@
 {% block content %}
 
 <h2> API responses for reissue attempt </h2>
-<a href="{% url 'prolific:remote-studies-list' collection_id=old_scs.study_collection.id %}">Old Study Collection</a><br>
-<a href="{% url 'prolific:remote-studies-list' collection_id=new_scs.study_collection.id %}">New Study Collection</a><br>
+Subject Study:<br>
+{% if new_study_url %}
+  New Study: <a href="{{ new_study_url }}">{{ new_study_url }}</a><br>
+{% endif %}
+{% if part_group_url %}
+  New Participant Group: <a href="{{ part_group_url }}">{{ part_group_url }}</a><br>
+{% endif %}
+Study being reissued: {{ ss.study }}<br>
+Assignment Status: {{ ss.assignment.status }}<br>
+Subject Details: <a href="{% url 'experiments:subject-detail' ss.subject.id %}">{{ ss.subject.prolific_id }}</a><br>
 <ul>
 {% for response in responses %}
 <li>
-{{ response }}
+{{ response|pprint }}
 </li>
 {% endfor %}
 </ul>
