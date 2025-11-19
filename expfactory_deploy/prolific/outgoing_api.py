@@ -221,7 +221,7 @@ def send_message(participant_id, study_id, message):
     try:
         study = Study.objects.get(remote_id=study_id)
         if study.study_collection.taskflow and study.rank == 0:
-            sid = study.study_collection.taskflow.remote_task_id
+            sid = study.study_collection.taskflow.taskflow_remote_id
     except Study.ObjectDoesNotExist:
         pass
 
