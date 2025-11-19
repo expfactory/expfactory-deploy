@@ -272,7 +272,7 @@ class StudyCollectionList(LoginRequiredMixin, ListView):
     model = models.StudyCollection
     queryset = models.StudyCollection.objects.prefetch_related(
         Prefetch("study_set", queryset=models.Study.objects.order_by("rank"))
-    ).all().order_by('-id')
+    ).all().order_by('name')
 
 
 class StudyCollectionView(LoginRequiredMixin, TemplateView):
@@ -1102,7 +1102,7 @@ def taskflow_edit(request, taskflow_remote_id=None):
         if taskflow_remote_id is not None:
             initial = {
                 "taskflow_remote_id": taskflow_remote_id,
-                "study_collections": models.StudyCollection.objects.filter(taskflow__taskflow_remote_id=taskflow_remote_id)
+                "study_collections": models.StudyCollection.objects.filter(taskflow__taskflow_remote_id=taskflow_remote_id).order_by('name')
             }
         form = forms.TaskflowForm(initial=initial)
 
@@ -1119,3 +1119,14 @@ def q2_status(request):
         return HttpResponse(status=200)
     else:
         return HttpResponse(status=500)
+
+@login_required
+def participant_ids(request):
+    pids = set(exp_models.Subject.objects.all().values_list('prolific_id', flat=True))
+    exclude = ["6410d74c29d97f193806ca65", "66df7183ca005faefb450369"]
+    pids = [x for x in pids if x and x not in exclude and len(x) == 24]
+    lines = '\n'.join(pids)
+
+    response = HttpResponse(lines, content_type='application/octet-stream')
+    response['Content-Disposition'] = f'attachment; filename="participant_ids.txt"'
+    return response
