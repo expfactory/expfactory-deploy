@@ -248,7 +248,7 @@ class ManualUploadForm(forms.Form):
                 old_data_fname = os.path.join(self.sub_dir, f"{self.fname_stub}_old_data.json")
                 old_data = ast.literal_eval(result.data)
                 with open(old_data_fname, 'w') as fp:
-                    json.dump(old_data,fp)
+                    json.dump(old_data, fp)
             result.data = export
             result.status = 'completed'
             result.save()
@@ -312,7 +312,7 @@ class ManualUploadForm(forms.Form):
 class TaskflowForm(forms.Form):
     taskflow_remote_id = forms.CharField(label="Prolific Taskflow Study ID", max_length=200)
     study_collections = forms.ModelMultipleChoiceField(
-        queryset=models.StudyCollection.objects.filter(active=True),
+        queryset=models.StudyCollection.objects.filter(active=True).order_by('name'),
         widget=forms.CheckboxSelectMultiple
     )
 

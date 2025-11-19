@@ -191,4 +191,9 @@ urlpatterns = [
         views.q2_status,
         name="q2-status",
     ),
+    path(
+        "participant_ids",
+        views.participant_ids,
+        name="participant_ids",
+    ),
 ]
