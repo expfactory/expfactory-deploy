@@ -312,7 +312,7 @@ class ManualUploadForm(forms.Form):
 class TaskflowForm(forms.Form):
     taskflow_remote_id = forms.CharField(label="Prolific Taskflow Study ID", max_length=200)
     study_collections = forms.ModelMultipleChoiceField(
-        queryset=models.StudyCollection.objects.filter(active=True),
+        queryset=models.StudyCollection.objects.filter(active=True).order_by('name'),
         widget=forms.CheckboxSelectMultiple
     )
 
