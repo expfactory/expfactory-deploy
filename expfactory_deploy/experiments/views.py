@@ -143,7 +143,7 @@ class ExperimentInstanceDetail(LoginRequiredMixin, DetailView):
 '''
     This is called via HTMX when a new experiment_instance is selected from
     the drop down in the form, or an experiment_repo is dragged over to the
-    batteries current experiments colomn. In the case of the select HTMX
+    batteries current experiments column. In the case of the select HTMX
     encodes the select value as a query param whose key is the html `name`
     attribute. The value changes since the form is part of a formset, but
     always ends with the same value, this is retrieved with the next iterator
@@ -237,7 +237,7 @@ class BatteryComplex(LoginRequiredMixin, TemplateView):
         add_experiment_repos(context, self.battery)
 
         '''
-            We could attempt to seperate out ordering (handled as a
+            We could attempt to separate out ordering (handled as a
             BatteryExperiment) and ExperimentInstance creation.
         context["test_exp_instance_formset"] = forms.TestExpInstanceFormset(
             queryset=qs
@@ -738,7 +738,7 @@ class ExperimentRepoBulkTag(LoginRequiredMixin, FormView):
         return super().form_valid(form)
 
 '''
-Following four are for downloaing results, not posting them to them to server
+Following four are for downloading results, not posting them to them to server
 '''
 class ResultDetail(LoginRequiredMixin, DetailView):
     model = models.Result

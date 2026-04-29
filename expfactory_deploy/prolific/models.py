@@ -85,7 +85,7 @@ class StudyCollection(models.Model):
     collection_time_to_warning = models.DurationField(
         null=True,
         blank=True,
-        help_text="hh:mm:ss - Overall time participant has to complete all studies before recieving a warning message.",
+        help_text="hh:mm:ss - Overall time participant has to complete all studies before receiving a warning message.",
     )
     collection_warning_message = models.TextField(blank=True)
     collection_grace_interval = models.DurationField(

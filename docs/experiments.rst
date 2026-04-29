@@ -9,7 +9,7 @@ This allows us to dynamically set where exactly jspsych is sending its data,
 and whtat urls to load once the experiment is complete.
 
 Each experiment lists what static resources it needs loaded in the html in its config.json,
-and the server populates these imports in the html before initalizing jspysch.
+and the server populates these imports in the html before initializing jspysch.
 
 .. _experiments-quickstart:
 Quickstart to Serving Experiments
@@ -38,7 +38,7 @@ Hey What about all those other buttons that cloned batteries have?
 Publish:
     Currently not used. Historically a battery would need to be published before subjects could complete it. Published batteries could not be modified in any way. This proved to restrictive when developing batteries and hasn't been removed.
 Preview Instructions/Consent:
-    Unlike `Preview` it does not generate a new subject and wont serve any experiments. Only used for testing to see how the Instructions and Consent render in a browser.
+    Unlike `Preview` it does not generate a new subject and won't serve any experiments. Only used for testing to see how the Instructions and Consent render in a browser.
 Details:
     A read only page with some additional information about the battery. It contains a list of all the subjects who have completed it, and results for that battery can be downloaded from there.
 Set Prolific URL:

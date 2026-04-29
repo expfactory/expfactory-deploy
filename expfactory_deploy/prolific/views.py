@@ -441,12 +441,12 @@ def remote_studies_list(request, collection_id=None):
     elif "COMPLETED" in studies_by_status and len(
         studies_by_status["COMPLETED"]
     ) == len(tracked_remote_ids):
-        state_description = "Collection for studies on prolific has completed. If you need to collect data for more participants use the 'clear remote ids' on the study colleciton list page to reset the databses state to not track any prolific study ids. From there drafts will need to be created, published and participants added."
+        state_description = "Collection for studies on prolific has completed. If you need to collect data for more participants use the 'clear remote ids' on the study collection list page to reset the databases state to not track any prolific study ids. From there drafts will need to be created, published and participants added."
 
     else:
         bad_state = True
 
-        state_description = "It appears not all studies in the study collection have the same status on prolific. This shouldn't happen normally. If there is a timed out message at the top of the page, reload the page to see if all the api requests go through. Otherwise you can attempt to use the 'clear remote ids' on the study colleciton list page to reset the databses state to not track any prolific study ids. From there drafts will need to be created, published and participants added. Any current active or unpublished studies should be manually closed or deleted on prolific."
+        state_description = "It appears not all studies in the study collection have the same status on prolific. This shouldn't happen normally. If there is a timed out message at the top of the page, reload the page to see if all the api requests go through. Otherwise you can attempt to use the 'clear remote ids' on the study collection list page to reset the databases state to not track any prolific study ids. From there drafts will need to be created, published and participants added. Any current active or unpublished studies should be manually closed or deleted on prolific."
 
     studies_by_status.default_factory = None
     context = {
@@ -564,7 +564,7 @@ def collection_recently_completed(request, collection_id, days, by):
 """
 
 """
-    collection_progress is the first stab at a progress page. Superceded by collection_progress_by_* views
+    collection_progress is the first stab at a progress page. Superseded by collection_progress_by_* views
 """
 
 
@@ -858,7 +858,7 @@ def toggle_collection(request, collection_id):
 
 
 """
-    View that displays all the subjects that have been associated with a study colleciton.
+    View that displays all the subjects that have been associated with a study collection.
     This is typically done when a prolific ID is added to the first study in a study collection.
 """
 

@@ -94,7 +94,7 @@ def make_call(api_func, ac=False, **kwargs):
         )
         message = EmailMessage(
             f"Prolific API response error {response.status_code.value}",
-            f"Fucntion Call\n{api_func}\n\nkwargs:\n{kwargs}\n\nResponse:\n{response_str}",
+            f"Function Call\n{api_func}\n\nkwargs:\n{kwargs}\n\nResponse:\n{response_str}",
             settings.SERVER_EMAIL,
             [a[1] for a in settings.MANAGERS],
         )

@@ -43,7 +43,7 @@ Study Collection
 
 Database Models
 ----------------------------------------------------------------------
-To represent the above high level terms on the website there are a number of database models. Each of the following is the name of a python class. The classes are used to generate the databse schema, as well as instantiate instances of python objects when data from the database is accessed.
+To represent the above high level terms on the website there are a number of database models. Each of the following is the name of a python class. The classes are used to generate the database schema, as well as instantiate instances of python objects when data from the database is accessed.
 
 RepoOrigin
     Tracks a remote git repository that contains experiments.
@@ -82,8 +82,8 @@ Assignment
 
 Study
     An object that associates a battery and the details of a Study on
-    prolific's website.  When studies are first crated on the prolific site
-    they recieve a unique ID from prolific.
+    prolific's website.  When studies are first created on the prolific site
+    they receive a unique ID from prolific.
 
 StudyCollection
     Takes a set of batteries and creates a set of study objects for them,

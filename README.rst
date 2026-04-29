@@ -1,7 +1,7 @@
 Expfactory Deploy
 =================
 
-Django project for the managment and deployment of batteries of experiments.
+Django project for the management and deployment of batteries of experiments.
 
 History
 -------
@@ -21,7 +21,7 @@ The repos and their purpose from first iteration of Expfactory:
 And from the The second iteration of Expfactory:
 
 - `expfactory-experiments (github org)
-  <https://github.com/expfactory-experiments>`_: Seprated each experiment into
+  <https://github.com/expfactory-experiments>`_: Separated each experiment into
   their own repository.
 - `expfactory <https://github.com/expfactory/expfactory>`_: A utility to mint
   container images that allow given batteries to be reproducibly run.
@@ -36,7 +36,7 @@ integrate the tenets of reproducibility from the second iteration.
 
 Running Locally
 ---------------
-On a fresh clone a number of environemnt variables must be set for django to start properly:
+On a fresh clone a number of environment variables must be set for django to start properly:
 In a shell:
     mkdir -p ./.envs/.local
     touch -p ./.envs/.local/.postgres
